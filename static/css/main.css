@@ -201,8 +201,12 @@ body {
   color: var(--color-gray-500);
 }
 
-/* Month filter pill */
-.month-filter {
+/* Multi-month filter */
+.month-multi-select {
+  position: relative;
+  display: inline-block;
+}
+.month-multi-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -210,18 +214,70 @@ body {
   border-radius: 999px;
   padding: 6px 14px;
   font-size: .82rem;
-  font-weight: 500;
-  color: var(--color-gray-700);
-}
-.month-filter select {
-  background: transparent;
-  border: none;
-  outline: none;
-  font-family: var(--font);
-  font-size: .82rem;
   font-weight: 600;
   color: var(--color-primary);
   cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: var(--transition);
+  user-select: none;
+}
+.month-multi-toggle:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+.month-multi-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 200px;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-gray-200);
+  padding: 10px;
+  z-index: 1000;
+  display: none;
+}
+.month-multi-menu.show {
+  display: block;
+  animation: slideDown .15s ease-out;
+}
+.month-multi-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: .85rem;
+  color: var(--color-gray-700);
+}
+.month-multi-item:hover {
+  background: var(--color-gray-50);
+}
+.month-multi-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+.month-multi-footer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-gray-100);
+  display: flex;
+  justify-content: space-between;
+}
+.month-multi-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Page content */

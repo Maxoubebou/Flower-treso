@@ -70,13 +70,20 @@ def tva_synthese(request):
     aujourd_hui = date.today()
 
     # Période sélectionnée
-    mois = int(request.GET.get('mois') or request.session.get('filtre_mois') or aujourd_hui.month)
+    mois_param = request.GET.get('mois') or request.session.get('filtre_mois')
+    # Si c'est une liste (filtre global), on prend le premier élément
+    if isinstance(mois_param, list):
+        mois_val = mois_param[0] if mois_param else aujourd_hui.month
+    else:
+        mois_val = mois_param or aujourd_hui.month
+
+    mois = int(mois_val)
     annee = int(request.GET.get('annee') or request.session.get('filtre_annee') or aujourd_hui.year)
     periode = f"{annee}{mois:02d}"
 
-    if request.GET.get('mois'):
-        request.session['filtre_mois'] = str(mois)
-    if request.GET.get('annee'):
+    if 'mois' in request.GET:
+        request.session['filtre_mois'] = [str(mois)]
+    if 'annee' in request.GET:
         request.session['filtre_annee'] = str(annee)
 
     # Récupérer ou créer la déclaration

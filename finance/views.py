@@ -7,18 +7,44 @@ from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, Para
 
 
 def _get_filtres(request):
-    mois = request.GET.get('mois') or request.session.get('filtre_mois')
-    annee = request.GET.get('annee') or request.session.get('filtre_annee')
-    if request.GET.get('mois'):
+    # Gestion du mois
+    if 'mois' in request.GET:
+        mois_raw = request.GET.getlist('mois')
+        # Protection contre la sérialisation sauvage de listes dans l'URL
+        processed_mois = []
+        for m in mois_raw:
+            if m.startswith('[') and m.endswith(']'):
+                import ast
+                try:
+                    val = ast.literal_eval(m)
+                    if isinstance(val, list):
+                        processed_mois.extend([str(item) for item in val])
+                except (ValueError, SyntaxError):
+                    pass
+            elif m:
+                processed_mois.append(m)
+        
+        mois = list(set(processed_mois)) # Déduplication
         request.session['filtre_mois'] = mois
-    if request.GET.get('annee'):
+    else:
+        mois = request.session.get('filtre_mois') or []
+
+    # Gestion de l'année
+    if 'annee' in request.GET:
+        annee = request.GET.get('annee')
         request.session['filtre_annee'] = annee
+    else:
+        annee = request.session.get('filtre_annee')
+
     return mois, annee
 
 
 def _appliquer_filtres(qs, mois, annee, champ_date='date_operation'):
     if mois:
-        qs = qs.filter(**{f'{champ_date}__month': int(mois)})
+        if isinstance(mois, list):
+            qs = qs.filter(**{f'{champ_date}__month__in': [int(m) for m in mois]})
+        else:
+            qs = qs.filter(**{f'{champ_date}__month': int(mois)})
     if annee:
         qs = qs.filter(**{f'{champ_date}__year': int(annee)})
     return qs
