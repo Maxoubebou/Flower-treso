@@ -149,7 +149,7 @@
               <div class="card-body">
                 <div class="form-group">
                   <label class="form-label">Taux de TVA</label>
-                  <select name="taux_tva" class="form-control" id="taux-tva-select" onchange="computeTVA()">
+                  <select name="taux_tva" id = "taux-tva-select" class="form-control" onchange="computeTVA()">
                     {% for t in taux_tva_disponibles %}
                     <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
                       {{ t.taux }}% — {{ t.libelle }}
@@ -222,11 +222,21 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Fournisseur <span class="required">*</span></label>
-                  <input type="text" name="fournisseur" class="form-control" required>
+                  {% with lib_lower=operation.libelle|lower %}
+                    <input type="text" name="fournisseur" class="form-control" required value ="{% if 'cotis' in lib_lower %}BPGO
+                                                                                                {%elif 'test' in lib_lower %}Test% 
+                                                                                                {% endif %}">
+                  {% endwith %}
                 </div>
                 <div class="form-group">
                   <label class="form-label">Libellé</label>
-                  <input type="text" name="libelle" class="form-control" value="{{ operation.info_complementaire }}">
+                  <!-- detection automatique de mot clé pour suggestion de libellé-->
+                  {% with lib_lower=operation.libelle|lower %}
+                    <input type="text" name="libelle" class="form-control" value="{% if 'cotis' in lib_lower %}Frais bancaire
+                                                                                  {%elif 'test' in lib_lower %}Test% 
+                                                                                  {%else %}{{ operation.info_complementaire }}
+                                                                                  {% endif %}">
+                  {% endwith %}
                 </div>
                 <div class="form-group">
                   <label class="form-label">Preuve comptable (lien Drive)</label>
@@ -295,9 +305,20 @@
               <div class="card-body">
                 <div class="form-group">
                   <label class="form-label">Taux de TVA</label>
-                  <select name="taux_tva" class="form-control" onchange="computeTVAAchat()">
+                  <select name="taux_tva" id="taux-tva-select" class="form-control" onchange="computeTVAAchat(this)">
                     {% for t in taux_tva_disponibles %}
-                    <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
+                    <!-- detection automatique de mot clé pour suggestion de TVA-->
+                    <option value="{{ t.taux }}" 
+                      {% with libelle_test=operation.libelle|lower %}
+                        {% if "cotis frequence asso" in libelle_test %}
+                          {% if t.taux == 0 %}selected{% endif %}
+                        {% elif "test" in libelle_test %}
+                          {% if t.taux == 10 %}selected{% endif %}
+                        {% else %}
+                          {% if t.taux == 20 %}selected{% endif %}
+                        {% endif %}
+                      {% endwith %}
+                      title="{{ t.commentaire }}">
                       {{ t.taux }}% — {{ t.libelle }}
                     </option>
                     {% endfor %}
@@ -523,12 +544,13 @@
 
 {% block extra_js %}
 <script>
-const TTC = {{ operation.credit|default:operation.debit|floatformat:2 }};
-
+const TTC = parseFloat("{{ operation.credit|default:operation.debit|stringformat:'.2f' }}");
 
 // ─── TVA Vente ───────────────────────────────────────────────────────────────
 function computeTVA() {
-  const taux = parseFloat(document.getElementById('taux-tva-select')?.value || 20);
+  const sel = document.getElementById('taux-tva-select');
+  if (!sel) return;
+  const taux = parseFloat(sel.value || 20);
   const ht = TTC / (1 + taux / 100);
   const tva = TTC - ht;
   const htInput = document.getElementById('montant-ht');
@@ -563,10 +585,12 @@ function toggleTauxMixte(cb) {
 }
 
 // ─── TVA Achat ────────────────────────────────────────────────────────────────
-function computeTVAAchat() {
-  const sel = document.querySelector('[name="taux_tva"]');
-  if (!sel) return;
-  const taux = parseFloat(sel.value || 20);
+function computeTVAAchat(sel) {
+  // Si sel n'est pas fourni (au chargement), on va le chercher par son ID
+  const selectEl = sel || document.getElementById('taux-tva-select');
+  if (!selectEl) return;
+
+  const taux = parseFloat(selectEl.value || 20);
   const ht = TTC / (1 + taux / 100);
   const tva = TTC - ht;
   const htInput = document.getElementById('achat-montant-ht');
