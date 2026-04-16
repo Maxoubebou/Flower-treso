@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Modifier {{ facture.numero }} — Flower-Tréso{% endblock %}
+{% block page_title %}Modifier la facture d'achat {{ facture.numero }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:900px;margin:0 auto">
+  <div class="card-header">
+    <div class="card-title">
+      <i data-lucide="edit-2" width="18" height="18" style="color:var(--color-primary)"></i>
+      {{ facture.numero }} — {{ facture.fournisseur }}
+    </div>
+    <span class="badge badge-danger font-mono">{{ facture.montant_ttc|floatformat:2 }} € TTC</span>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-grid-2 mb-6">
+        <div>
+          <div class="form-group">
+            <label class="form-label">Type d'achat</label>
+            <select name="type_achat" class="form-control" required>
+              {% for ta in types_achat %}
+              <option value="{{ ta.pk }}" {% if ta.pk == facture.type_achat_id %}selected{% endif %}>{{ ta.nom }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fournisseur</label>
+            <input type="text" name="fournisseur" class="form-control" value="{{ facture.fournisseur }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Libellé</label>
+            <input type="text" name="libelle" class="form-control" value="{{ facture.libelle }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ligne budgétaire</label>
+            <select name="ligne_budgetaire" class="form-control">
+              <option value="">— Aucune —</option>
+              {% for lb in lignes_budgetaires %}
+              <option value="{{ lb.pk }}" {% if lb.pk == facture.ligne_budgetaire_id %}selected{% endif %}>{{ lb.nom }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Preuve comptable (Drive)</label>
+            <input type="url" name="lien_drive" class="form-control" value="{{ facture.lien_drive }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Commentaire</label>
+            <textarea name="commentaire" class="form-control" rows="3">{{ facture.commentaire }}</textarea>
+          </div>
+        </div>
+
+        <div>
+          <div class="form-group">
+            <label class="form-label">Date d'opération <span class="text-muted">(non modifiable)</span></label>
+            <input type="date" class="form-control" value="{{ facture.date_operation|date:'Y-m-d' }}" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date de réception de la facture</label>
+            <input type="date" name="date_reception" class="form-control" value="{{ facture.date_reception|date:'Y-m-d'|default:'' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Catégorisation</label>
+            <select name="categorisation" class="form-control">
+              <option value="service" {% if facture.categorisation == 'service' %}selected{% endif %}>Service</option>
+              <option value="bien" {% if facture.categorisation == 'bien' %}selected{% endif %}>Bien</option>
+              <option value="immobilisation" {% if facture.immobilisation %}selected{% endif %}>Immobilisation</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pays de TVA</label>
+            <select name="pays_tva" class="form-control">
+              <option value="FR" {% if facture.pays_tva == 'FR' %}selected{% endif %}>France (FR)</option>
+              <option value="intracom" {% if facture.pays_tva == 'intracom' %}selected{% endif %}>Intracom UE</option>
+              <option value="extracom" {% if facture.pays_tva == 'extracom' %}selected{% endif %}>Extra UE</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Taux de TVA</label>
+            <select name="taux_tva" class="form-control" id="achat-edit-taux" onchange="recomputeAchatEdit()">
+              {% for t in taux_tva_disponibles %}
+              <option value="{{ t.taux }}" {% if t.taux == facture.taux_tva %}selected{% endif %}>{{ t.taux }}% — {{ t.libelle }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px">
+            <div class="flex justify-between text-sm" style="margin-bottom:8px">
+              <span class="text-muted">Montant TTC (fixe)</span>
+              <span class="font-bold font-mono">{{ facture.montant_ttc|floatformat:2 }} €</span>
+            </div>
+            <div class="form-grid-2">
+              <div>
+                <label class="form-label text-xs">HT (€)</label>
+                <input type="number" step="0.01" name="montant_ht" id="achat-edit-ht" class="form-control font-mono"
+                       value="{{ facture.montant_ht }}" {% if not facture.taux_compose %}readonly style="background:var(--color-gray-100)"{% endif %}>
+              </div>
+              <div>
+                <label class="form-label text-xs">TVA (€)</label>
+                <input type="number" step="0.01" name="montant_tva" id="achat-edit-tva" class="form-control font-mono"
+                       value="{{ facture.montant_tva }}" {% if not facture.taux_compose %}readonly style="background:var(--color-gray-100)"{% endif %}>
+              </div>
+            </div>
+            <div style="margin-top:10px">
+              <label class="form-switch">
+                <input type="checkbox" name="taux_compose" id="achat-compose-toggle"
+                       {% if facture.taux_compose %}checked{% endif %}
+                       onchange="toggleAchatCompose(this)">
+                <span class="switch-track"></span>
+                <span class="switch-label">Taux composé (saisie manuelle)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-3 justify-end">
+        <a href="{% url 'finance:achats_list' %}" class="btn btn-outline">
+          <i data-lucide="arrow-left" width="15" height="15"></i> Annuler
+        </a>
+        <button type="submit" class="btn btn-danger btn-lg">
+          <i data-lucide="save" width="16" height="16"></i> Enregistrer
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const TTC_ACHAT = {{ facture.montant_ttc|floatformat:2 }};
+
+function recomputeAchatEdit() {
+  const toggle = document.getElementById('achat-compose-toggle');
+  if (toggle && toggle.checked) return;
+  const taux = parseFloat(document.getElementById('achat-edit-taux').value);
+  const ht = TTC_ACHAT / (1 + taux / 100);
+  document.getElementById('achat-edit-ht').value = ht.toFixed(2);
+  document.getElementById('achat-edit-tva').value = (TTC_ACHAT - ht).toFixed(2);
+}
+
+function toggleAchatCompose(cb) {
+  const ht = document.getElementById('achat-edit-ht');
+  const tva = document.getElementById('achat-edit-tva');
+  ht.readOnly = !cb.checked;
+  tva.readOnly = !cb.checked;
+  ht.style.background = cb.checked ? '#fff' : '';
+  tva.style.background = cb.checked ? '#fff' : '';
+}
+</script>
+{% endblock %}

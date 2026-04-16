@@ -1,0 +1,56 @@
+[
+  {"model": "config_app.parametretva", "pk": 1, "fields": {"taux": "20.00", "libelle": "Taux normal", "commentaire": "Applicable à la majorité des prestations de services et ventes de biens.", "actif": true, "ordre": 1}},
+  {"model": "config_app.parametretva", "pk": 2, "fields": {"taux": "10.00", "libelle": "Taux réduit", "commentaire": "Restauration, travaux de rénovation, transports de voyageurs.", "actif": true, "ordre": 2}},
+  {"model": "config_app.parametretva", "pk": 3, "fields": {"taux": "5.50", "libelle": "Taux super réduit", "commentaire": "Produits alimentaires, livres, médicaments.", "actif": true, "ordre": 3}},
+  {"model": "config_app.parametretva", "pk": 4, "fields": {"taux": "0.00", "libelle": "Exonéré / TVA non applicable", "commentaire": "Cotisations associatives, subventions, opérations hors champ TVA.", "actif": true, "ordre": 4}},
+
+  {"model": "config_app.typefacturevente", "pk": 1, "fields": {"nom": "Facture d'acompte", "code": "ACOMPTE", "suffixe": "A", "taux_tva_defaut": "20.00", "est_cotisation": false, "est_subvention": false, "active": true, "ordre": 1}},
+  {"model": "config_app.typefacturevente", "pk": 2, "fields": {"nom": "Facture de solde", "code": "SOLDE", "suffixe": "S", "taux_tva_defaut": "20.00", "est_cotisation": false, "est_subvention": false, "active": true, "ordre": 2}},
+  {"model": "config_app.typefacturevente", "pk": 3, "fields": {"nom": "Cotisation", "code": "COTISATION", "suffixe": "C", "taux_tva_defaut": "0.00", "est_cotisation": true, "est_subvention": false, "active": true, "ordre": 3}},
+  {"model": "config_app.typefacturevente", "pk": 4, "fields": {"nom": "Subvention", "code": "SUBVENTION", "suffixe": "SU", "taux_tva_defaut": "0.00", "est_cotisation": false, "est_subvention": true, "active": true, "ordre": 4}},
+  {"model": "config_app.typefacturevente", "pk": 5, "fields": {"nom": "Facture d'avoir", "code": "AVOIR", "suffixe": "AV", "taux_tva_defaut": "20.00", "est_cotisation": false, "est_subvention": false, "active": true, "ordre": 5}},
+  {"model": "config_app.typefacturevente", "pk": 6, "fields": {"nom": "Refacturation", "code": "REFACT", "suffixe": "R", "taux_tva_defaut": "20.00", "est_cotisation": false, "est_subvention": false, "active": true, "ordre": 6}},
+
+  {"model": "config_app.typeachat", "pk": 1, "fields": {"nom": "Facture fournisseur", "code": "FOURNISSEUR", "suffixe": "F", "active": true, "ordre": 1}},
+  {"model": "config_app.typeachat", "pk": 2, "fields": {"nom": "Note de frais", "code": "NOTE_FRAIS", "suffixe": "NF", "active": true, "ordre": 2}},
+
+  {"model": "config_app.lignebudgetaire", "pk": 1, "fields": {"nom": "Étude", "active": true, "ordre": 1}},
+  {"model": "config_app.lignebudgetaire", "pk": 2, "fields": {"nom": "Cotisation", "active": true, "ordre": 2}},
+  {"model": "config_app.lignebudgetaire", "pk": 3, "fields": {"nom": "Subvention", "active": true, "ordre": 3}},
+  {"model": "config_app.lignebudgetaire", "pk": 4, "fields": {"nom": "Rétribution", "active": true, "ordre": 4}},
+  {"model": "config_app.lignebudgetaire", "pk": 5, "fields": {"nom": "Structure", "active": true, "ordre": 5}},
+  {"model": "config_app.lignebudgetaire", "pk": 6, "fields": {"nom": "CNJE", "active": true, "ordre": 6}},
+  {"model": "config_app.lignebudgetaire", "pk": 7, "fields": {"nom": "Congrès", "active": true, "ordre": 7}},
+  {"model": "config_app.lignebudgetaire", "pk": 8, "fields": {"nom": "Pôles", "active": true, "ordre": 8}},
+
+  {
+    "model": "config_app.parametrecotisation",
+    "pk": 1,
+    "fields": {
+      "type_cotisant": "junior",
+      "base_urssaf": "48.08",
+      "assurance_maladie": "13.00",
+      "accident_travail": "0.91",
+      "vieillesse_plafonnee": "8.55",
+      "vieillesse_deplafonnee": "0.40",
+      "allocations_familiales": "5.25",
+      "csg_deductible": "0.00",
+      "csg_non_deductible": "0.00"
+    }
+  },
+  {
+    "model": "config_app.parametrecotisation",
+    "pk": 2,
+    "fields": {
+      "type_cotisant": "etudiant",
+      "base_urssaf": "48.08",
+      "assurance_maladie": "0.00",
+      "accident_travail": "0.00",
+      "vieillesse_plafonnee": "6.90",
+      "vieillesse_deplafonnee": "2.11",
+      "allocations_familiales": "0.00",
+      "csg_deductible": "6.80",
+      "csg_non_deductible": "2.90"
+    }
+  }
+]

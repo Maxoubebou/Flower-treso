@@ -1,0 +1,9 @@
+<tr>
+  <td class="line-num" style="position:relative">{{ num }}
+    {% if tooltip %}
+    <div class="tva-tooltip">{{ tooltip }}</div>
+    {% endif %}
+  </td>
+  <td>{{ label }}</td>
+  <td class="text-right font-mono">{{ value|floatformat:2 }}</td>
+</tr>

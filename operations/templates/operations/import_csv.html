@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Import CSV — Flower-Tréso{% endblock %}
+{% block page_title %}Importer un relevé bancaire{% endblock %}
+
+{% block content %}
+
+<div class="grid-2">
+
+  <!-- Zone d'upload -->
+  <div>
+    <div class="card mb-6">
+      <div class="card-header">
+        <div class="card-title">
+          <i data-lucide="upload-cloud" width="18" height="18" style="color:var(--color-primary)"></i>
+          Télécharger un fichier CSV
+        </div>
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" id="import-form">
+          {% csrf_token %}
+
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-input').click()">
+            <div class="upload-icon">
+              <i data-lucide="file-spreadsheet" width="48" height="48"></i>
+            </div>
+            <div class="upload-text">Cliquez ou déposez votre fichier CSV ici</div>
+            <div class="upload-hint">Format attendu : séparateur « ; » ou « , » — Encodage UTF-8 ou Latin-1</div>
+            <div id="file-name" style="margin-top:12px;font-weight:600;color:var(--color-primary);display:none"></div>
+          </div>
+
+          <input type="file" id="csv-input" name="csv_file" accept=".csv" style="display:none"
+                 onchange="handleFileSelect(this)">
+
+          <div class="mt-4">
+            <button type="submit" class="btn btn-primary w-full btn-lg" id="submit-btn" disabled>
+              <i data-lucide="upload" width="18" height="18"></i>
+              Importer les opérations
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Format attendu -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i data-lucide="info" width="18" height="18" style="color:var(--color-primary)"></i>
+          Format CSV attendu
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="overflow-x:auto">
+          <table class="data-table" style="font-size:.75rem">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Colonne</th>
+                <th>Type</th>
+                <th>Exemple</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td>Libellé simplifié</td><td>Texte</td><td>VIREMENT ETUDE 2024</td></tr>
+              <tr><td>2</td><td>Référence</td><td>Texte</td><td>VIR-00123</td></tr>
+              <tr><td>3</td><td>Informations complémentaires</td><td>Texte</td><td>Etude Dupont & Associés</td></tr>
+              <tr><td>4</td><td>Type opération</td><td>Texte</td><td>Crédit / Débit</td></tr>
+              <tr><td>5</td><td>Débit</td><td>Nombre</td><td>1500,00</td></tr>
+              <tr><td>6</td><td>Crédit</td><td>Nombre</td><td>2400,00</td></tr>
+              <tr><td>7</td><td>Date opération</td><td>JJ/MM/AAAA</td><td>15/06/2024</td></tr>
+              <tr><td>8</td><td>Date de valeur</td><td>JJ/MM/AAAA</td><td>17/06/2024</td></tr>
+              <tr><td>9</td><td>Pointage</td><td>Texte</td><td>P</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Imports récents -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i data-lucide="history" width="18" height="18" style="color:var(--color-primary)"></i>
+          Imports récents
+        </div>
+        {% if pending_count > 0 %}
+        <a href="{% url 'operations:process_list' %}" class="btn btn-primary btn-sm">
+          <i data-lucide="list-checks" width="14" height="14"></i>
+          {{ pending_count }} à traiter
+        </a>
+        {% endif %}
+      </div>
+      <div class="card-body" style="padding:0">
+        {% if recent_batches %}
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Fichier</th>
+              <th class="text-center">Lignes</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for batch in recent_batches %}
+            <tr>
+              <td>
+                <div style="font-weight:600;color:var(--color-gray-800)">{{ batch.filename }}</div>
+              </td>
+              <td class="text-center">
+                <span class="badge badge-primary">{{ batch.nb_rows }}</span>
+              </td>
+              <td class="text-muted text-sm">{{ batch.created_at|date:"d/m/Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="padding:48px;text-align:center;color:var(--color-gray-400)">
+          <i data-lucide="inbox" width="40" height="40" style="display:block;margin:0 auto 12px;opacity:.4"></i>
+          Aucun import récent
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (file) {
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-name').style.display = 'block';
+    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('upload-zone').style.borderColor = 'var(--color-primary)';
+    document.getElementById('upload-zone').style.background = 'var(--color-primary-light)';
+  }
+}
+
+// Drag and drop
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const input = document.getElementById('csv-input');
+  input.files = e.dataTransfer.files;
+  handleFileSelect(input);
+});
+</script>
+{% endblock %}

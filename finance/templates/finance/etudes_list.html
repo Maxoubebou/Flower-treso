@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Études — Flower-Tréso{% endblock %}
+{% block page_title %}Études{% endblock %}
+
+{% block content %}
+
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <i data-lucide="folder-open" width="18" height="18" style="color:var(--color-primary)"></i>
+        {{ etudes|length }} étude{{ etudes|length|pluralize }}
+      </div>
+    </div>
+    {% if etudes %}
+    <div class="table-wrapper" style="border:none;border-radius:0">
+      <table class="data-table">
+        <thead>
+          <tr><th>Référence</th><th>Nom</th><th>Statut</th><th>Créée le</th></tr>
+        </thead>
+        <tbody>
+          {% for e in etudes %}
+          <tr>
+            <td><span class="font-mono font-bold" style="color:var(--color-primary)">{{ e.reference }}</span></td>
+            <td>{{ e.nom }}</td>
+            <td>
+              <span class="badge {% if e.active %}badge-success{% else %}badge-gray{% endif %}">
+                {% if e.active %}Active{% else %}Inactive{% endif %}
+              </span>
+            </td>
+            <td class="text-sm text-muted">{{ e.created_at|date:"d/m/Y" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card-body" style="text-align:center;padding:40px;color:var(--color-gray-400)">
+      Aucune étude enregistrée.
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card" style="align-self:flex-start">
+    <div class="card-header">
+      <div class="card-title">
+        <i data-lucide="plus-circle" width="18" height="18" style="color:var(--color-primary)"></i>
+        Nouvelle étude
+      </div>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{% url 'finance:etude_create' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Référence <span class="required">*</span></label>
+          <input type="text" name="reference" class="form-control font-mono" required
+                 placeholder="EX2024001" style="text-transform:uppercase">
+          <div class="form-hint">Identifiant unique de l'étude (ex: INS2024001)</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nom de l'étude <span class="required">*</span></label>
+          <input type="text" name="nom" class="form-control" required placeholder="Client — Intitulé de la mission">
+        </div>
+        <button type="submit" class="btn btn-primary w-full">
+          <i data-lucide="save" width="15" height="15"></i>
+          Créer l'étude
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

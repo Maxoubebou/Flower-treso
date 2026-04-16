@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard — Flower-Tréso{% endblock %}
+{% block page_title %}Tableau de bord 📊{% endblock %}
+
+{% block content %}
+{% now "F Y" as periode_label %}
+
+<!-- KPIs -->
+<div class="stats-grid">
+
+  <div class="stat-card success">
+    <div class="stat-icon success">
+      <i data-lucide="trending-up" width="20" height="20"></i>
+    </div>
+    <div class="stat-value">{{ ca_mois|floatformat:0 }} €</div>
+    <div class="stat-label">CA TTC du mois</div>
+    <div class="stat-sub">{{ nb_ventes }} facture{{ nb_ventes|pluralize }} de vente</div>
+  </div>
+
+  <div class="stat-card danger">
+    <div class="stat-icon danger">
+      <i data-lucide="trending-down" width="20" height="20"></i>
+    </div>
+    <div class="stat-value">{{ depenses_mois|floatformat:0 }} €</div>
+    <div class="stat-label">Dépenses TTC du mois</div>
+    <div class="stat-sub">{{ nb_achats }} facture{{ nb_achats|pluralize }} d'achat</div>
+  </div>
+
+  <div class="stat-card primary">
+    <div class="stat-icon primary">
+      <i data-lucide="users" width="20" height="20"></i>
+    </div>
+    <div class="stat-value">{{ nb_bv }}</div>
+    <div class="stat-label">Bulletins de versement</div>
+    <div class="stat-sub">Ce mois-ci</div>
+  </div>
+
+  <div class="stat-card {% if ops_pending > 0 %}warning{% else %}success{% endif %}">
+    <div class="stat-icon {% if ops_pending > 0 %}warning{% else %}success{% endif %}">
+      <i data-lucide="{% if ops_pending > 0 %}clock{% else %}check-circle{% endif %}" width="20" height="20"></i>
+    </div>
+    <div class="stat-value">{{ ops_pending }}</div>
+    <div class="stat-label">Opérations en attente</div>
+    <div class="stat-sub">
+      {% if ops_pending > 0 %}
+      <a href="{% url 'operations:process_list' %}" style="color:inherit;text-decoration:underline;">Traiter maintenant</a>
+      {% else %}Tout est traité ✓{% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Row: TVA + Déclarations récentes -->
+<div class="grid-2 mb-6">
+
+  <!-- TVA du mois -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <i data-lucide="calculator" width="18" height="18" style="color:var(--color-primary)"></i>
+        TVA — {% now "F Y" %}
+      </div>
+      <a href="{% url 'reporting:tva_synthese' %}?mois={{ mois_courant }}&annee={{ annee_courante }}"
+         class="btn btn-outline btn-sm">
+        <i data-lucide="external-link" width="14" height="14"></i>
+        Voir la synthèse
+      </a>
+    </div>
+    <div class="card-body">
+
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <div>
+          <div class="flex justify-between text-sm mb-4" style="margin-bottom:6px">
+            <span class="text-muted">TVA collectée</span>
+            <span class="font-bold text-danger">{{ tva_collectee|floatformat:2 }} €</span>
+          </div>
+          <div class="gauge-bar">
+            <div class="gauge-fill positive" style="width:{% widthratio tva_collectee tva_collectee|add:tva_deductible|default:1 100 %}%"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-sm mb-4" style="margin-bottom:6px">
+            <span class="text-muted">TVA déductible</span>
+            <span class="font-bold text-success">{{ tva_deductible|floatformat:2 }} €</span>
+          </div>
+          <div class="gauge-bar">
+            <div class="gauge-fill negative" style="width:{% widthratio tva_deductible tva_collectee|add:tva_deductible|default:1 100 %}%"></div>
+          </div>
+        </div>
+
+        <div class="divider" style="margin:4px 0"></div>
+
+        <div class="flex justify-between items-center">
+          <span class="font-bold" style="font-size:.9rem">
+            {% if tva_nette >= 0 %}TVA due{% else %}Crédit de TVA{% endif %}
+          </span>
+          <span class="font-bold" style="font-size:1.2rem;color:{% if tva_nette >= 0 %}var(--color-danger){% else %}var(--color-success){% endif %}">
+            {{ tva_nette|floatformat:2 }} €
+          </span>
+        </div>
+
+        {% if decl_courante %}
+        <div>
+          <span class="badge {% if decl_courante.finalisee %}badge-success{% else %}badge-warning{% endif %}">
+            {% if decl_courante.finalisee %}
+            <i data-lucide="check" width="11" height="11"></i> Déclaration finalisée
+            {% else %}
+            <i data-lucide="clock" width="11" height="11"></i> Déclaration en cours
+            {% endif %}
+          </span>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Déclarations récentes -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <i data-lucide="history" width="18" height="18" style="color:var(--color-primary)"></i>
+        Déclarations TVA récentes
+      </div>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if declarations_recentes %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Période</th>
+            <th class="text-right">TVA due</th>
+            <th class="text-right">Crédit</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in declarations_recentes %}
+          <tr>
+            <td>
+              <a href="{% url 'reporting:tva_synthese' %}?mois={{ d.periode|slice:'4:' }}&annee={{ d.periode|slice:':4' }}"
+                 style="color:var(--color-primary);font-weight:600;text-decoration:none;">
+                {{ d.libelle_periode }}
+              </a>
+            </td>
+            <td class="text-right font-mono text-danger">
+              {% if d.ligne_28 > 0 %}{{ d.ligne_28|floatformat:2 }} €{% else %}—{% endif %}
+            </td>
+            <td class="text-right font-mono text-success">
+              {% if d.ligne_27 > 0 %}{{ d.ligne_27|floatformat:2 }} €{% else %}—{% endif %}
+            </td>
+            <td>
+              <span class="badge {% if d.finalisee %}badge-success{% else %}badge-warning{% endif %}">
+                {% if d.finalisee %}Finalisée{% else %}En cours{% endif %}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:32px;text-align:center;color:var(--color-gray-400)">
+        <i data-lucide="inbox" width="36" height="36" style="margin-bottom:10px;opacity:.4;display:block;margin-inline:auto"></i>
+        Aucune déclaration TVA pour le moment
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Raccourcis actions -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <i data-lucide="zap" width="18" height="18" style="color:var(--color-warning)"></i>
+      Actions rapides
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="flex gap-3" style="flex-wrap:wrap">
+      <a href="{% url 'operations:import_csv' %}" class="btn btn-primary">
+        <i data-lucide="upload" width="16" height="16"></i>
+        Importer un relevé CSV
+      </a>
+      {% if ops_pending > 0 %}
+      <a href="{% url 'operations:process_list' %}" class="btn btn-outline" style="border-color:var(--color-warning);color:var(--color-warning)">
+        <i data-lucide="alert-circle" width="16" height="16"></i>
+        {{ ops_pending }} opération{{ ops_pending|pluralize }} à traiter
+      </a>
+      {% endif %}
+      <a href="{% url 'reporting:tva_synthese' %}?mois={{ mois_courant }}&annee={{ annee_courante }}" class="btn btn-outline">
+        <i data-lucide="file-text" width="16" height="16"></i>
+        Déclaration TVA du mois
+      </a>
+      <a href="{% url 'finance:etude_create' %}" class="btn btn-outline">
+        <i data-lucide="plus" width="16" height="16"></i>
+        Nouvelle étude
+      </a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

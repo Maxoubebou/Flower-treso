@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Traitement des opérations — Flower-Tréso{% endblock %}
+{% block page_title %}Opérations bancaires{% endblock %}
+
+{% block topbar_actions %}
+<div class="flex gap-2 items-center" style="margin-left:auto">
+  <select name="statut" form="month-filter-form" onchange="document.getElementById('month-filter-form').submit()"
+          class="form-control" style="width:auto;padding:5px 10px;font-size:.8rem">
+    <option value="pending" {% if filtre_statut == 'pending' %}selected{% endif %}>En attente</option>
+    <option value="processed" {% if filtre_statut == 'processed' %}selected{% endif %}>Traitées</option>
+    <option value="ignored" {% if filtre_statut == 'ignored' %}selected{% endif %}>Ignorées</option>
+    <option value="" {% if not filtre_statut %}selected{% endif %}>Toutes</option>
+  </select>
+  <a href="{% url 'operations:import_csv' %}" class="btn btn-primary btn-sm">
+    <i data-lucide="upload" width="14" height="14"></i>
+    Importer
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if operations %}
+<!-- Stats rapides -->
+<div class="flex gap-3 mb-6" style="flex-wrap:wrap">
+  <div style="background:#fff;border:1px solid var(--color-gray-200);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;gap:8px">
+    <i data-lucide="list" width="16" height="16" style="color:var(--color-primary)"></i>
+    <span class="font-semibold">{{ operations|length }}</span>
+    <span class="text-muted text-sm">opération{{ operations|length|pluralize }}</span>
+  </div>
+  {% with credits=operations|length %}
+  <div style="background:#fff;border:1px solid var(--color-gray-200);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;gap:8px">
+    <i data-lucide="arrow-down-circle" width="16" height="16" style="color:var(--color-success)"></i>
+    <span class="font-semibold text-success">Crédits</span>
+    <span class="text-muted text-sm">Sélectionner "Vente" ou "Ignorer"</span>
+  </div>
+  {% endwith %}
+</div>
+
+<!-- Liste des opérations -->
+{% for op in operations %}
+<a href="{% url 'operations:process_operation' op.pk %}" class="op-card">
+  <div>
+    <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
+         color:{% if op.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
+      {% if op.est_credit %}Crédit{% else %}Débit{% endif %}
+      &bull; {{ op.date_operation|date:"d/m/Y" }}
+    </div>
+    <div style="font-weight:600;color:var(--color-gray-800);margin-bottom:2px">{{ op.libelle }}</div>
+    {% if op.info_complementaire %}
+    <div class="text-sm text-muted truncate" style="max-width:400px">{{ op.info_complementaire }}</div>
+    {% endif %}
+  </div>
+
+  <div class="op-amount {% if op.est_credit %}credit{% else %}debit{% endif %}" style="margin-left:auto">
+    {% if op.est_credit %}+{% else %}−{% endif %}
+    {% if op.est_credit %}{{ op.credit|floatformat:2 }}{% else %}{{ op.debit|floatformat:2 }}{% endif %} €
+  </div>
+
+  <div>
+    <span class="badge badge-gray">
+      <i data-lucide="chevron-right" width="12" height="12"></i>
+      Traiter
+    </span>
+  </div>
+</a>
+{% endfor %}
+
+{% else %}
+<div class="card">
+  <div class="card-body" style="text-align:center;padding:64px">
+    <i data-lucide="check-circle-2" width="56" height="56" style="color:var(--color-success);display:block;margin:0 auto 16px;opacity:.6"></i>
+    <h2 style="font-size:1.1rem;font-weight:700;color:var(--color-gray-700);margin-bottom:8px">
+      Aucune opération en attente
+    </h2>
+    <p class="text-muted text-sm" style="margin-bottom:20px">
+      {% if filtre_mois %}Essayez de changer le filtre de mois ou{% else %}Commencez par{% endif %} importer un fichier CSV.
+    </p>
+    <a href="{% url 'operations:import_csv' %}" class="btn btn-primary">
+      <i data-lucide="upload" width="16" height="16"></i>
+      Importer un relevé
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

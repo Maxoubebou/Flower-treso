@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Bulletins de versement — Flower-Tréso{% endblock %}
+{% block page_title %}Bulletins de versement{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <i data-lucide="users" width="18" height="18" style="color:var(--color-primary)"></i>
+      {{ bulletins|length }} bulletin{{ bulletins|length|pluralize }} de versement
+    </div>
+  </div>
+
+  {% if bulletins %}
+  <div class="table-wrapper" style="border:none;border-radius:0">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>N° BV</th>
+          <th>Intervenant</th>
+          <th>Étude</th>
+          <th>Date op.</th>
+          <th class="text-right">JEH</th>
+          <th>Type</th>
+          <th class="text-right">Assiette (€)</th>
+          <th class="text-right">Cotis. Junior (€)</th>
+          <th class="text-right">Cotis. Étudiant (€)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bv in bulletins %}
+        <tr>
+          <td><span class="font-mono font-bold" style="color:var(--color-primary)">{{ bv.numero }}</span></td>
+          <td>
+            <div class="font-semibold">{{ bv.intervenant_prenom }} {{ bv.intervenant_nom }}</div>
+          </td>
+          <td class="text-muted text-sm">{{ bv.etude.reference|default:"—" }}</td>
+          <td class="text-sm">{{ bv.date_operation|date:"d/m/Y" }}</td>
+          <td class="text-right font-mono">{{ bv.nb_jeh }}</td>
+          <td>
+            <span class="badge {% if bv.type_cotisant == 'junior' %}badge-primary{% else %}badge-gray{% endif %}">
+              {{ bv.get_type_cotisant_display }}
+            </span>
+          </td>
+          <td class="text-right font-mono">{{ bv.assiette|floatformat:2 }}</td>
+          <td class="text-right font-mono text-danger">{{ bv.total_cotisations_junior|floatformat:2 }}</td>
+          <td class="text-right font-mono text-warning">{{ bv.total_cotisations_etudiant|floatformat:2 }}</td>
+          <td>
+            <a href="{% url 'finance:bv_edit' bv.pk %}" class="btn btn-ghost btn-icon" title="Modifier">
+              <i data-lucide="edit-2" width="14" height="14"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body" style="text-align:center;padding:64px">
+    <i data-lucide="users" width="48" height="48" style="display:block;margin:0 auto 16px;opacity:.3;color:var(--color-gray-400)"></i>
+    <h3 style="color:var(--color-gray-600);margin-bottom:8px">Aucun bulletin de versement</h3>
+    <p class="text-muted text-sm">Traitez les opérations de débit pour créer des bulletins de versement.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}{{ facture.numero }} — Flower-Tréso{% endblock %}
+{% block page_title %}Facture {{ facture.numero }}{% endblock %}
+
+{% block content %}
+
+<div class="flex gap-4" style="align-items:flex-start">
+
+  <!-- Carte principale -->
+  <div class="card" style="flex:2">
+    <div class="card-header">
+      <div>
+        <div class="card-title" style="font-size:1.1rem">
+          <i data-lucide="receipt" width="18" height="18" style="color:var(--color-primary)"></i>
+          {{ facture.numero }}
+        </div>
+        <div class="text-muted text-sm" style="margin-top:4px">{{ facture.libelle|default:"—" }}</div>
+      </div>
+      <div class="flex gap-2 items-center">
+        <span class="badge badge-primary">{{ facture.type_facture.suffixe }}</span>
+        <span class="badge {% if facture.pays_tva == 'FR' %}badge-gray{% elif facture.pays_tva == 'intracom' %}badge-primary{% else %}badge-warning{% endif %}">
+          {{ facture.get_pays_tva_display }}
+        </span>
+        <a href="{% url 'finance:vente_edit' facture.pk %}" class="btn btn-outline btn-sm">
+          <i data-lucide="edit-2" width="13" height="13"></i>
+          Modifier
+        </a>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <!-- Montants -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+        <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px;text-align:center">
+          <div class="text-muted text-sm">Montant HT</div>
+          <div class="font-bold font-mono" style="font-size:1.4rem;margin-top:4px">{{ facture.montant_ht|floatformat:2 }} €</div>
+        </div>
+        <div style="background:#fef3c7;border-radius:var(--radius);padding:16px;text-align:center">
+          <div class="text-muted text-sm">TVA {{ facture.taux_tva }}%</div>
+          <div class="font-bold font-mono" style="font-size:1.4rem;margin-top:4px;color:#92400e">{{ facture.montant_tva|floatformat:2 }} €</div>
+        </div>
+        <div style="background:linear-gradient(135deg,var(--color-primary),var(--color-primary-dark));border-radius:var(--radius);padding:16px;text-align:center;color:#fff">
+          <div style="opacity:.8;font-size:.85rem">Total TTC</div>
+          <div class="font-bold font-mono" style="font-size:1.4rem;margin-top:4px">{{ facture.montant_ttc|floatformat:2 }} €</div>
+        </div>
+      </div>
+
+      <!-- Métadonnées -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Type</div>
+          <div>{{ facture.type_facture.nom }}</div>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Étude</div>
+          <div>{{ facture.etude|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Date d'opération</div>
+          <div class="font-mono">{{ facture.date_operation|date:"d/m/Y" }}</div>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Date d'envoi</div>
+          <div class="font-mono">{{ facture.date_envoi|date:"d/m/Y"|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Ligne budgétaire</div>
+          <div>{{ facture.ligne_budgetaire|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Taux mixte</div>
+          <div>{% if facture.taux_mixte %}<span class="badge badge-warning">Oui</span>{% else %}Non{% endif %}</div>
+        </div>
+        {% if facture.lien_drive %}
+        <div style="grid-column:span 2">
+          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Preuve comptable</div>
+          <a href="{{ facture.lien_drive }}" target="_blank" class="btn btn-ghost btn-sm">
+            <i data-lucide="external-link" width="13" height="13"></i>
+            Ouvrir le document
+          </a>
+        </div>
+        {% endif %}
+        {% if facture.commentaire %}
+        <div style="grid-column:span 2">
+          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Commentaire</div>
+          <div class="text-sm" style="background:var(--color-gray-50);padding:10px;border-radius:var(--radius)">{{ facture.commentaire }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Colonne droite : opération bancaire -->
+  <div style="flex:1">
+    {% if facture.operation %}
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title text-sm">
+          <i data-lucide="landmark" width="15" height="15" style="color:var(--color-gray-400)"></i>
+          Opération bancaire liée
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-sm text-muted">Crédit</span>
+          <span class="font-bold font-mono text-success">{{ facture.operation.credit|floatformat:2 }} €</span>
+        </div>
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-sm text-muted">Date</span>
+          <span class="font-mono text-sm">{{ facture.operation.date_operation|date:"d/m/Y" }}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-muted">Libellé</span>
+          <span class="text-sm">{{ facture.operation.libelle|truncatechars:30 }}</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-body">
+        <a href="{% url 'finance:vente_edit' facture.pk %}" class="btn btn-primary w-full mb-4">
+          <i data-lucide="edit-2" width="15" height="15"></i>
+          Modifier la facture
+        </a>
+        <a href="{% url 'finance:ventes_list' %}" class="btn btn-outline w-full">
+          <i data-lucide="arrow-left" width="15" height="15"></i>
+          Retour à la liste
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

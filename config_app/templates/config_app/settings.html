@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Paramètres — Flower-Tréso{% endblock %}
+{% block page_title %}Paramètres de l'application{% endblock %}
+
+{% block content %}
+
+<!-- Onglets -->
+<div class="settings-tabs" role="tablist">
+  <button class="settings-tab active" onclick="showTab('tva', this)">Taux TVA</button>
+  <button class="settings-tab" onclick="showTab('cotisations', this)">Cotisations URSSAF</button>
+  <button class="settings-tab" onclick="showTab('budget', this)">Lignes budgétaires</button>
+  <button class="settings-tab" onclick="showTab('types-vente', this)">Types de vente</button>
+  <button class="settings-tab" onclick="showTab('types-achat', this)">Types d'achat</button>
+</div>
+
+<!-- ─── Taux TVA ───────────────────────────────────────────────────────────── -->
+<div id="tab-tva" class="settings-panel">
+
+  <!-- Forms hors de la table (référencés par id) -->
+  {% for t in taux_tva %}
+  <form method="post" action="{% url 'config:taux_tva_update' t.pk %}" id="form-tva-{{ t.pk }}">
+    {% csrf_token %}
+  </form>
+  {% endfor %}
+  <form method="post" action="{% url 'config:taux_tva_create' %}" id="form-tva-create" class="hidden"></form>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <div class="card-title">
+        <i data-lucide="percent" width="18" height="18" style="color:var(--color-primary)"></i>
+        Taux de TVA configurés
+      </div>
+    </div>
+    <div class="table-wrapper" style="border:none;border-radius:0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Taux (%)</th>
+            <th>Libellé</th>
+            <th>Commentaire d'aide</th>
+            <th>Actif</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in taux_tva %}
+          <tr>
+            <td><input type="number" step="0.01" name="taux" value="{{ t.taux }}" class="form-control font-mono" style="width:90px" form="form-tva-{{ t.pk }}"></td>
+            <td><input type="text" name="libelle" value="{{ t.libelle }}" class="form-control" style="width:180px" form="form-tva-{{ t.pk }}"></td>
+            <td><input type="text" name="commentaire" value="{{ t.commentaire }}" class="form-control" placeholder="Cas d'application..." form="form-tva-{{ t.pk }}"></td>
+            <td>
+              <input type="checkbox" name="actif" {% if t.actif %}checked{% endif %} form="form-tva-{{ t.pk }}" style="width:18px;height:18px;cursor:pointer">
+            </td>
+            <td>
+              <button type="submit" form="form-tva-{{ t.pk }}" class="btn btn-outline btn-sm">
+                <i data-lucide="save" width="13" height="13"></i>
+                Sauvegarder
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Ajouter un taux -->
+    <div class="card-body" style="border-top:1px solid var(--color-gray-200)">
+      <form method="post" action="{% url 'config:taux_tva_create' %}" class="flex gap-3 items-end">
+        {% csrf_token %}
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Taux (%)</label>
+          <input type="number" step="0.01" name="taux" class="form-control font-mono" style="width:100px" placeholder="ex: 2.10">
+        </div>
+        <div class="form-group" style="margin:0;flex:1">
+          <label class="form-label">Libellé</label>
+          <input type="text" name="libelle" class="form-control" placeholder="Taux particulier...">
+        </div>
+        <div class="form-group" style="margin:0;flex:2">
+          <label class="form-label">Commentaire</label>
+          <input type="text" name="commentaire" class="form-control" placeholder="Cas d'application...">
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="plus" width="14" height="14"></i>
+          Ajouter
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ─── Cotisations URSSAF ───────────────────────────────────────────────── -->
+<div id="tab-cotisations" class="settings-panel" style="display:none">
+  {% for pc in params_cotisations %}
+  <div class="card mb-4">
+    <div class="card-header">
+      <div class="card-title">
+        <i data-lucide="users" width="18" height="18" style="color:var(--color-primary)"></i>
+        Cotisations — {{ pc.get_type_cotisant_display }}
+      </div>
+      <span class="badge {% if pc.type_cotisant == 'junior' %}badge-primary{% else %}badge-gray{% endif %}">
+        {{ pc.get_type_cotisant_display }}
+      </span>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{% url 'config:cotisation_update' pc.pk %}">
+        {% csrf_token %}
+        <div class="form-grid-3 mb-4">
+          <div class="form-group">
+            <label class="form-label">Base URSSAF / JEH (€)</label>
+            <input type="number" step="0.01" name="base_urssaf" value="{{ pc.base_urssaf }}" class="form-control font-mono">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Assurance maladie (%)</label>
+            <input type="number" step="0.01" name="assurance_maladie" value="{{ pc.assurance_maladie }}" class="form-control font-mono">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Accident du travail (%)</label>
+            <input type="number" step="0.01" name="accident_travail" value="{{ pc.accident_travail }}" class="form-control font-mono">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vieillesse plafonnée (%)</label>
+            <input type="number" step="0.01" name="vieillesse_plafonnee" value="{{ pc.vieillesse_plafonnee }}" class="form-control font-mono">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vieillesse déplafonnée (%)</label>
+            <input type="number" step="0.01" name="vieillesse_deplafonnee" value="{{ pc.vieillesse_deplafonnee }}" class="form-control font-mono">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Allocations familiales (%)</label>
+            <input type="number" step="0.01" name="allocations_familiales" value="{{ pc.allocations_familiales }}" class="form-control font-mono">
+          </div>
+          <div class="form-group">
+            <label class="form-label">CSG déductible (%)</label>
+            <input type="number" step="0.01" name="csg_deductible" value="{{ pc.csg_deductible }}" class="form-control font-mono">
+          </div>
+          <div class="form-group">
+            <label class="form-label">CSG non déductible (%)</label>
+            <input type="number" step="0.01" name="csg_non_deductible" value="{{ pc.csg_non_deductible }}" class="form-control font-mono">
+          </div>
+        </div>
+        <div class="flex justify-between items-center">
+          <div class="text-sm text-muted">
+            Taux total : <strong class="font-mono">{{ pc.taux_total }}%</strong>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="save" width="15" height="15"></i>
+            Sauvegarder les taux {{ pc.get_type_cotisant_display }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ─── Lignes budgétaires ────────────────────────────────────────────────── -->
+<div id="tab-budget" class="settings-panel" style="display:none">
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <i data-lucide="bar-chart-2" width="18" height="18" style="color:var(--color-primary)"></i>
+          Lignes budgétaires
+        </div>
+      </div>
+      <div class="table-wrapper" style="border:none;border-radius:0">
+        <table class="data-table">
+          <thead><tr><th>Nom</th><th>Statut</th><th></th></tr></thead>
+          <tbody>
+            {% for lb in lignes_budgetaires %}
+            <tr>
+              <td>{{ lb.nom }}</td>
+              <td>
+                <span class="badge {% if lb.active %}badge-success{% else %}badge-gray{% endif %}">
+                  {% if lb.active %}Active{% else %}Inactive{% endif %}
+                </span>
+              </td>
+              <td>
+                <form method="post" action="{% url 'config:ligne_budgetaire_toggle' lb.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-ghost btn-sm">
+                    {% if lb.active %}Désactiver{% else %}Activer{% endif %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="align-self:flex-start">
+      <div class="card-header">
+        <div class="card-title"><i data-lucide="plus-circle" width="18" height="18"></i> Ajouter</div>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'config:ligne_budgetaire_create' %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label">Nom <span class="required">*</span></label>
+            <input type="text" name="nom" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-full">
+            <i data-lucide="plus" width="14" height="14"></i> Créer
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Types de vente ───────────────────────────────────────────────────── -->
+<div id="tab-types-vente" class="settings-panel" style="display:none">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <i data-lucide="receipt" width="18" height="18" style="color:var(--color-primary)"></i>
+        Types de factures de vente
+      </div>
+    </div>
+    <div class="table-wrapper" style="border:none;border-radius:0">
+      <table class="data-table">
+        <thead>
+          <tr><th>Nom</th><th>Code</th><th>Suffixe</th><th>TVA défaut</th><th>Cotisation</th><th>Subvention</th><th>Actif</th></tr>
+        </thead>
+        <tbody>
+          {% for tf in types_facture_vente %}
+          <tr>
+            <td class="font-semibold">{{ tf.nom }}</td>
+            <td><span class="badge badge-gray font-mono">{{ tf.code }}</span></td>
+            <td><span class="badge badge-primary">{{ tf.suffixe }}</span></td>
+            <td class="font-mono">{{ tf.taux_tva_defaut }}%</td>
+            <td>{% if tf.est_cotisation %}<i data-lucide="check" width="14" height="14" style="color:var(--color-success)"></i>{% else %}—{% endif %}</td>
+            <td>{% if tf.est_subvention %}<i data-lucide="check" width="14" height="14" style="color:var(--color-success)"></i>{% else %}—{% endif %}</td>
+            <td>{% if tf.active %}<i data-lucide="check" width="14" height="14" style="color:var(--color-success)"></i>{% else %}<i data-lucide="x" width="14" height="14" style="color:var(--color-gray-400)"></i>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Ajouter -->
+    <div class="card-body" style="border-top:1px solid var(--color-gray-200)">
+      <form method="post" action="{% url 'config:type_facture_vente_create' %}" class="form-grid-3">
+        {% csrf_token %}
+        <div class="form-group"><label class="form-label">Nom</label><input type="text" name="nom" class="form-control" required></div>
+        <div class="form-group"><label class="form-label">Code</label><input type="text" name="code" class="form-control" required style="text-transform:uppercase"></div>
+        <div class="form-group"><label class="form-label">Suffixe</label>
+          <select name="suffixe" class="form-control">
+            <option value="A">A — Acompte</option>
+            <option value="S">S — Solde</option>
+            <option value="C">C — Cotisation</option>
+            <option value="SU">SU — Subvention</option>
+            <option value="AV">AV — Avoir</option>
+            <option value="R">R — Refacturation</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">TVA défaut (%)</label><input type="number" step="0.01" name="taux_tva_defaut" class="form-control" value="20"></div>
+        <div class="form-group" style="display:flex;gap:12px;align-items:flex-end;padding-bottom:2px">
+          <label class="form-switch"><input type="checkbox" name="est_cotisation"><span class="switch-track"></span><span class="switch-label">Cotisation</span></label>
+          <label class="form-switch"><input type="checkbox" name="est_subvention"><span class="switch-track"></span><span class="switch-label">Subvention</span></label>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button type="submit" class="btn btn-primary w-full"><i data-lucide="plus" width="14" height="14"></i> Ajouter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Types d'achat ────────────────────────────────────────────────────── -->
+<div id="tab-types-achat" class="settings-panel" style="display:none">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <i data-lucide="shopping-bag" width="18" height="18" style="color:var(--color-primary)"></i>
+        Types d'achat
+      </div>
+    </div>
+    <div class="table-wrapper" style="border:none;border-radius:0">
+      <table class="data-table">
+        <thead><tr><th>Nom</th><th>Code</th><th>Suffixe</th><th>Actif</th></tr></thead>
+        <tbody>
+          {% for ta in types_achat %}
+          <tr>
+            <td class="font-semibold">{{ ta.nom }}</td>
+            <td><span class="badge badge-gray font-mono">{{ ta.code }}</span></td>
+            <td><span class="badge badge-danger">{{ ta.suffixe }}</span></td>
+            <td>{% if ta.active %}<i data-lucide="check" width="14" height="14" style="color:var(--color-success)"></i>{% else %}<i data-lucide="x" width="14" height="14" style="color:var(--color-gray-400)"></i>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-body" style="border-top:1px solid var(--color-gray-200)">
+      <form method="post" action="{% url 'config:type_achat_create' %}" class="flex gap-3 items-end">
+        {% csrf_token %}
+        <div class="form-group" style="margin:0;flex:1"><label class="form-label">Nom</label><input type="text" name="nom" class="form-control" required></div>
+        <div class="form-group" style="margin:0;width:120px"><label class="form-label">Code</label><input type="text" name="code" class="form-control" required></div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Suffixe</label>
+          <select name="suffixe" class="form-control">
+            <option value="F">F — Fournisseur</option>
+            <option value="NF">NF — Note de frais</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary"><i data-lucide="plus" width="14" height="14"></i> Ajouter</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.settings-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).style.display = '';
+  btn.classList.add('active');
+  lucide.createIcons();
+}
+</script>
+{% endblock %}
