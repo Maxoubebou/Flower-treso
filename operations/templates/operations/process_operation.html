@@ -40,534 +40,484 @@
   </div>
 </div>
 
-<!-- Choix du traitement 
-<div class="wizard-tabs" role="tablist">
-  {% if operation.est_credit %}
-  <button class="wizard-tab active" onclick="switchTab('vente', this)" role="tab" id="tab-vente">
-    <i data-lucide="receipt" width="16" height="16" style="display:inline;vertical-align:middle;margin-right:6px"></i>
-    Vente / Crédit
-  </button>
-  <button class="wizard-tab" onclick="switchTab('ignorer', this)" role="tab">
-    <i data-lucide="eye-off" width="16" height="16" style="display:inline;vertical-align:middle;margin-right:6px"></i>
-    Ignorer (virement interne)
-  </button>
-  {% else %}
-  <button class="wizard-tab danger-tab active" onclick="switchTab('bv', this)" role="tab">
-    <i data-lucide="users" width="16" height="16" style="display:inline;vertical-align:middle;margin-right:6px"></i>
-    Bulletin de versement
-  </button>
-  <button class="wizard-tab danger-tab" onclick="switchTab('achat', this)" role="tab">
-    <i data-lucide="shopping-bag" width="16" height="16" style="display:inline;vertical-align:middle;margin-right:6px"></i>
-    Facture d'achat
-  </button>
-  <button class="wizard-tab" onclick="switchTab('ignorer', this)" role="tab">
-    <i data-lucide="eye-off" width="16" height="16" style="display:inline;vertical-align:middle;margin-right:6px"></i>
-    Ignorer
-  </button>
-  {% endif %}
-</div>
--->
 
 <c-tab.group group_name="basic">
-    <c-tabs variant="segmented">
-        <c-tab name="BV" group_name="basic" icon="users" checked="true">Bulletin de versement</c-tab>
-        <c-tab name="FA" group_name="basic" icon="shopping-bag">Facture d'achat</c-tab>
-        <c-tab name="VI" group_name="basic" icon="eye-off">Virement interne</c-tab>
-    </c-tabs>
+  <c-tabs variant="segmented">
+    {% if operation.est_credit %}
+      <c-tab name="VENTE" group_name="basic" icon="receipt" checked="true">Vente / Crédit</c-tab>
+      <c-tab name="VI" group_name="basic" icon="eye-off">Virement interne / Ignorer</c-tab>
+    {% else %}
+      <c-tab name="FA" group_name="basic" icon="shopping-bag" checked="true">Facture d'achat</c-tab>
+      <c-tab name="BV" group_name="basic" icon="users" >Bulletin de versement</c-tab>
+      <c-tab name="VI" group_name="basic" icon="eye-off">Ignorer</c-tab>
+    {% endif %}
+  </c-tabs>
 
-    <c-tab.panel name="BV" group_name="basic">
-      <!-- ─── Panel BV ──────────────────────────────────────────────────────────── -->
-      <div class="wizard-panel active" id="panel-bv">
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="bv">
+  <!-- ─── Panel VENTE ───────────────────────────────────────────────────────── -->
+  {% if operation.est_credit %}
+  <c-tab.panel name="VENTE" group_name="basic">
+    <form method="post" id="form-vente">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="vente">
 
-          <div class="grid-2 mb-6">
+        <div class="grid-2 mb-6">
+          <!-- Colonne gauche -->
+          <div class="flex flex-col gap-3">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Identification</div></div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Type de facture <span class="required">*</span></label>
+                  <select name="type_facture" class="form-control" required id="type-facture-select" onchange="updateTVAFromType(this)">
+                    {% for tf in types_facture_vente %}
+                    <option value="{{ tf.pk }}" data-taux="{{ tf.taux_tva_defaut }}" data-cot="{{ tf.est_cotisation|yesno:'1,0' }}">
+                      {{ tf.nom }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
 
-            <div class="flex flex-col gap-3">
-              <div class="card">
-                <div class="card-header"><div class="card-title">Identification du BV</div></div>
-                <div class="card-body">
-                  <div class="form-group">
-                    <label class="form-label">Numéro BV</label>
-                    <input type="text" name="numero" class="form-control font-mono"
-                          placeholder="BV_{{ operation.date_operation.year }}-001"
-                          value="">
-                    <div class="form-hint">Généré automatiquement — modifiable. Unicité obligatoire.</div>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Étude associée</label>
-                    <select name="etude" class="form-control">
-                      <option value="">— Sans étude —</option>
-                      {% for e in etudes %}
-                      <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Référence virement</label>
-                    <input type="text" name="reference_virement" class="form-control font-mono"
-                          value="{{ operation.reference }}">
-                  </div>
+                <div class="form-group">
+                  <label class="form-label">Référence d'étude</label>
+                  <select name="etude" class="form-control" id="etude-select">
+                    <option value="">— Sans étude associée —</option>
+                    {% for e in etudes %}
+                    <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="form-hint">Obligatoire pour les factures d'acompte et de solde</div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Libellé</label>
+                  <input type="text" name="libelle" class="form-control" value="{{ operation.info_complementaire }}">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Preuve comptable (lien Drive)</label>
+                  <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
                 </div>
               </div>
+            </div>
 
-              <div class="card">
-                <div class="card-header"><div class="card-title">Dates</div></div>
-                <div class="card-body">
-                  <div class="form-group">
-                    <label class="form-label">Date d'opération</label>
-                    <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Date d'émission du BV</label>
-                    <input type="date" name="date_emission" class="form-control">
-                  </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Budget & Commentaire</div></div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Ligne budgétaire</label>
+                  <select name="ligne_budgetaire" class="form-control">
+                    <option value="">— Non définie —</option>
+                    {% for lb in lignes_budgetaires %}
+                    <option value="{{ lb.pk }}">{{ lb.nom }}</option>
+                    {% endfor %}
+                  </select>
                 </div>
-              </div>
-
-              <div class="card">
-                <div class="card-header"><div class="card-title">Commentaire</div></div>
-                <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Commentaire</label>
                   <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..."></textarea>
                 </div>
               </div>
             </div>
-
-            <div class="flex flex-col gap-3">
-              <div class="card">
-                <div class="card-header"><div class="card-title">Intervenant</div></div>
-                <div class="card-body">
-                  <div class="form-grid-2">
-                    <div class="form-group">
-                      <label class="form-label">Prénom <span class="required">*</span></label>
-                      <input type="text" name="intervenant_prenom" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Nom <span class="required">*</span></label>
-                      <input type="text" name="intervenant_nom" class="form-control" required>
-                    </div>
-                  </div>
-                  <div class="form-grid-2">
-                    <div class="form-group">
-                      <label class="form-label">Nombre de JEH <span class="required">*</span></label>
-                      <input type="number" step="0.5" name="nb_jeh" class="form-control" required
-                            oninput="computeCotisations()" min="0">
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Rétribution brute / JEH (€)</label>
-                      <input type="number" step="0.01" name="retribution_brute_par_jeh" class="form-control" min="0">
-                    </div>
-                  </div>
-                  <div class="form-grid-2">
-                    <div class="form-group">
-                      <label class="form-label">Taux</label>
-                      <select name="taux" class="form-control">
-                        <option value="A">Taux A</option>
-                        <option value="B">Taux B</option>
-                        <option value="C">Taux C</option>
-                        <option value="D">Taux D</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Type de cotisant</label>
-                      <select name="type_cotisant" class="form-control" onchange="computeCotisations()">
-                        <option value="etudiant" selected>Étudiant</option>
-                        <option value="junior">Junior-Entreprise</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Cotisations calculées -->
-              <div class="card" id="cotisations-card">
-                <div class="card-header"><div class="card-title">Cotisations URSSAF (calculées)</div></div>
-                <div class="card-body" style="padding:0">
-                  <table class="data-table" id="cotis-table" style="font-size:.82rem">
-                    <thead>
-                      <tr>
-                        <th>Poste</th>
-                        <th class="text-right">Part Junior (€)</th>
-                        <th class="text-right">Part Étudiant (€)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr><td>Assiette</td><td class="text-right font-mono" id="c-assiette" colspan="2">—</td></tr>
-                      <tr><td>Assurance maladie</td><td class="text-right font-mono" id="c-maladie-j">—</td><td class="text-right font-mono" id="c-maladie-e">—</td></tr>
-                      <tr><td>Accident du travail</td><td class="text-right font-mono" id="c-at-j">—</td><td class="text-right font-mono" id="c-at-e">—</td></tr>
-                      <tr><td>Vieillesse plafonnée</td><td class="text-right font-mono" id="c-vp-j">—</td><td class="text-right font-mono" id="c-vp-e">—</td></tr>
-                      <tr><td>Vieillesse déplafonnée</td><td class="text-right font-mono" id="c-vd-j">—</td><td class="text-right font-mono" id="c-vd-e">—</td></tr>
-                      <tr><td>Allocations familiales</td><td class="text-right font-mono" id="c-af-j">—</td><td class="text-right font-mono" id="c-af-e">—</td></tr>
-                      <tr><td>CSG déductible</td><td class="text-right font-mono" id="c-csgd-j">—</td><td class="text-right font-mono" id="c-csgd-e">—</td></tr>
-                      <tr><td>CSG non déductible</td><td class="text-right font-mono" id="c-csgnd-j">—</td><td class="text-right font-mono" id="c-csgnd-e">—</td></tr>
-                    </tbody>
-                    <tfoot>
-                      <tr><td><strong>Total cotisations</strong></td><td class="text-right font-mono" id="c-total-j"><strong>—</strong></td><td class="text-right font-mono" id="c-total-e"><strong>—</strong></td></tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-            </div>
           </div>
 
-          <div class="flex gap-3 justify-end">
-            <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
-              <i data-lucide="arrow-left" width="15" height="15"></i>
-              Retour
-            </a>
-            <button type="submit" class="btn btn-danger btn-lg">
-              <i data-lucide="save" width="16" height="16"></i>
-              Enregistrer le BV
-            </button>
-          </div>
-        </form>
-      </div><!-- /panel-bv -->
-    </c-tab.panel>
-
-    <c-tab.panel name="FA" group_name="basic">
-      <div class="wizard-panel" id="panel-achat">
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="achat">
-
-          <div class="grid-2 mb-6">
-            <div class="flex flex-col gap-3">
-              <div class="card">
-                <div class="card-header"><div class="card-title">Identification</div></div>
-                <div class="card-body">
-                  <div class="form-group">
-                    <label class="form-label">Type d'achat <span class="required">*</span></label>
-                    <select name="type_achat" class="form-control" required>
-                      {% for ta in types_achat %}
-                      <option value="{{ ta.pk }}">{{ ta.nom }}</option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Fournisseur <span class="required">*</span></label>
-                    <input type="text" name="fournisseur" class="form-control" required>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Libellé</label>
-                    <input type="text" name="libelle" class="form-control" value="{{ operation.info_complementaire }}">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Preuve comptable (lien Drive)</label>
-                    <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
-                  </div>
-                </div>
-              </div>
-
-              <div class="card">
-                <div class="card-header"><div class="card-title">Budget & Commentaire</div></div>
-                <div class="card-body">
-                  <div class="form-group">
-                    <label class="form-label">Ligne budgétaire</label>
-                    <select name="ligne_budgetaire" class="form-control">
-                      <option value="">— Non définie —</option>
-                      {% for lb in lignes_budgetaires %}
-                      <option value="{{ lb.pk }}">{{ lb.nom }}</option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Commentaire</label>
-                    <textarea name="commentaire" class="form-control" rows="3"></textarea>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-3">
-              <div class="card">
-                <div class="card-header"><div class="card-title">Dates & Catégorie</div></div>
-                <div class="card-body">
-                  <div class="form-group">
-                    <label class="form-label">Date d'opération</label>
-                    <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Date de réception de la facture</label>
-                    <input type="date" name="date_reception" class="form-control">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Catégorisation</label>
-                    <select name="categorisation" class="form-control" id="categorisation-select" onchange="checkImmobilisation()">
-                      <option value="service" selected>Service</option>
-                      <option value="bien">Bien</option>
-                    </select>
-                  </div>
-                  <div id="immo-warning" style="display:none;padding:10px;background:var(--color-warning-light);border-radius:var(--radius);border-left:3px solid var(--color-warning)">
-                    <div class="flex gap-2 items-center">
-                      <i data-lucide="alert-triangle" width="15" height="15" style="color:var(--color-warning)"></i>
-                      <span class="text-sm font-semibold" style="color:var(--color-warning)">Passage automatique en Immobilisation (> 500€)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="card">
-                <div class="card-header">
-                  <div class="card-title">TVA & Montants</div>
-                  <label class="form-switch">
-                    <input type="checkbox" name="taux_compose" id="taux-compose-toggle-achat" onchange="toggleTauxComposeAchat(this)">
-                    <span class="switch-track"></span>
-                    <span class="switch-label">Taux composé</span>
-                  </label>
-                </div>
-                <div class="card-body">
-                  <div class="form-group">
-                    <label class="form-label">Taux de TVA</label>
-                    <select name="taux_tva" class="form-control" onchange="computeTVAAchat()">
-                      {% for t in taux_tva_disponibles %}
-                      <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
-                        {{ t.taux }}% — {{ t.libelle }}
-                      </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Pays de TVA</label>
-                    <select name="pays_tva" class="form-control">
-                      <option value="FR" selected>France (FR)</option>
-                      <option value="intracom">Intracom UE</option>
-                      <option value="extracom">Extra UE</option>
-                    </select>
-                  </div>
-                  <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px">
-                    <div class="flex justify-between items-center" style="margin-bottom:10px">
-                      <span class="text-sm text-muted">Montant TTC (fixe)</span>
-                      <span class="font-bold font-mono" style="font-size:1.1rem">{{ operation.debit|floatformat:2 }} €</span>
-                    </div>
-                    <div class="form-grid-2">
-                      <div>
-                        <label class="form-label text-xs">Montant HT</label>
-                        <input type="number" step="0.01" name="montant_ht" id="achat-montant-ht" class="form-control font-mono"
-                              readonly style="background:var(--color-gray-100)">
-                      </div>
-                      <div>
-                        <label class="form-label text-xs">Montant TVA</label>
-                        <input type="number" step="0.01" name="montant_tva" id="achat-montant-tva" class="form-control font-mono"
-                              readonly style="background:var(--color-gray-100)">
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex gap-3 justify-end">
-            <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
-              <i data-lucide="arrow-left" width="15" height="15"></i>
-              Retour
-            </a>
-            <button type="submit" class="btn btn-danger btn-lg">
-              <i data-lucide="save" width="16" height="16"></i>
-              Enregistrer la facture d'achat
-            </button>
-          </div>
-        </form>
-      </div>
-    </c-tab.panel>
-
-    <c-tab.panel name="VI" group_name="basic">
-        <div class="wizard-panel {% if not operation.est_credit and not operation.est_debit %}active{% endif %}" id="panel-ignorer" style="display:none">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">
-                <i data-lucide="eye-off" width="18" height="18"></i>
-                Ignorer cette opération
-              </div>
-            </div>
-            <div class="card-body">
-              <p class="text-muted text-sm" style="margin-bottom:16px">
-                Cette opération sera marquée comme ignorée (virement interne, etc.). Elle ne sera pas prise en compte dans les calculs de TVA.
-              </p>
-              <form method="post">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="ignorer">
+          <!-- Colonne droite -->
+          <div class="flex flex-col gap-3">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Dates</div></div>
+              <div class="card-body">
                 <div class="form-group">
-                  <label class="form-label">Commentaire <span class="text-muted">(facultatif)</span></label>
-                  <textarea name="commentaire" class="form-control" rows="3"
-                            placeholder="Ex.: Virement interne, remboursement de frais anticipé..."></textarea>
+                  <label class="form-label">Date d'opération</label>
+                  <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
+                  <div class="form-hint">Issue du relevé bancaire — non modifiable</div>
                 </div>
-                <div class="flex gap-3 justify-end">
-                  <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
-                    <i data-lucide="arrow-left" width="15" height="15"></i>
-                    Retour
-                  </a>
-                  <button type="submit" class="btn btn-ghost" style="color:var(--color-gray-500)">
-                    <i data-lucide="eye-off" width="15" height="15"></i>
-                    Confirmer l'ignorance
-                  </button>
+                <div class="form-group">
+                  <label class="form-label">Date d'envoi de la facture</label>
+                  <input type="date" name="date_envoi" class="form-control">
                 </div>
-              </form>
+              </div>
+            </div>
+
+            <div class="card" id="tva-card">
+              <div class="card-header">
+                <div class="card-title">TVA & Montants</div>
+                <label class="form-switch">
+                  <input type="checkbox" name="taux_mixte" id="taux-mixte-toggle" onchange="toggleTauxMixte(this)">
+                  <span class="switch-track"></span>
+                  <span class="switch-label">Taux mixte</span>
+                </label>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Taux de TVA</label>
+                  <select name="taux_tva" class="form-control" id="taux-tva-select" onchange="computeTVA()">
+                    {% for t in taux_tva_disponibles %}
+                    <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
+                      {{ t.taux }}% — {{ t.libelle }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Pays de TVA</label>
+                  <select name="pays_tva" class="form-control">
+                    <option value="FR" selected>France (FR)</option>
+                    <option value="intracom">Acquisition intracommunautaire</option>
+                    <option value="extracom">Hors UE (Extra-com)</option>
+                  </select>
+                </div>
+
+                <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px;margin-top:8px">
+                  <div class="flex justify-between items-center mb-4" style="margin-bottom:8px">
+                    <span class="text-sm text-muted">Montant TTC (fixe)</span>
+                    <span class="font-bold font-mono" style="font-size:1.1rem">{{ operation.credit|floatformat:2 }} €</span>
+                  </div>
+                  <div class="form-grid-2">
+                    <div>
+                      <label class="form-label text-xs">Montant HT</label>
+                      <input type="number" step="0.01" name="montant_ht" id="montant-ht" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
+                    </div>
+                    <div>
+                      <label class="form-label text-xs">Montant TVA</label>
+                      <input type="number" step="0.01" name="montant_tva" id="montant-tva" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-    </c-tab.panel>
+
+        <div class="flex gap-3 justify-end">
+          <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
+            <i data-lucide="arrow-left" width="15" height="15"></i> Retour
+          </a>
+          <button type="submit" class="btn btn-primary btn-lg">
+            <i data-lucide="save" width="16" height="16"></i> Enregistrer la vente
+          </button>
+        </div>
+      </form>
+  </c-tab.panel>
+  {% endif %}
+
+  {% if operation.est_debit %}
+  <!-- ─── Panel FA ──────────────────────────────────────────────────────────── -->
+  <c-tab.panel name="FA" group_name="basic">
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="achat">
+
+        <div class="grid-2 mb-6">
+          <div class="flex flex-col gap-3">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Identification</div></div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Type d'achat <span class="required">*</span></label>
+                  <select name="type_achat" class="form-control" required>
+                    {% for ta in types_achat %}
+                    <option value="{{ ta.pk }}">{{ ta.nom }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Fournisseur <span class="required">*</span></label>
+                  <input type="text" name="fournisseur" class="form-control" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Libellé</label>
+                  <input type="text" name="libelle" class="form-control" value="{{ operation.info_complementaire }}">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Preuve comptable (lien Drive)</label>
+                  <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div class="card-title">Budget & Commentaire</div></div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Ligne budgétaire</label>
+                  <select name="ligne_budgetaire" class="form-control">
+                    <option value="">— Non définie —</option>
+                    {% for lb in lignes_budgetaires %}
+                    <option value="{{ lb.pk }}">{{ lb.nom }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Commentaire</label>
+                  <textarea name="commentaire" class="form-control" rows="3"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Dates & Catégorie</div></div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Date d'opération</label>
+                  <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Date de réception de la facture</label>
+                  <input type="date" name="date_reception" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Catégorisation</label>
+                  <select name="categorisation" class="form-control" id="categorisation-select" onchange="checkImmobilisation()">
+                    <option value="service" selected>Service</option>
+                    <option value="bien">Bien</option>
+                  </select>
+                </div>
+                <div id="immo-warning" style="display:none;padding:10px;background:var(--color-warning-light);border-radius:var(--radius);border-left:3px solid var(--color-warning)">
+                  <div class="flex gap-2 items-center">
+                    <i data-lucide="alert-triangle" width="15" height="15" style="color:var(--color-warning)"></i>
+                    <span class="text-sm font-semibold" style="color:var(--color-warning)">Passage automatique en Immobilisation (> 500€)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">TVA & Montants</div>
+                <label class="form-switch">
+                  <input type="checkbox" name="taux_compose" id="taux-compose-toggle-achat" onchange="toggleTauxComposeAchat(this)">
+                  <span class="switch-track"></span>
+                  <span class="switch-label">Taux composé</span>
+                </label>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Taux de TVA</label>
+                  <select name="taux_tva" class="form-control" onchange="computeTVAAchat()">
+                    {% for t in taux_tva_disponibles %}
+                    <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
+                      {{ t.taux }}% — {{ t.libelle }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Pays de TVA</label>
+                  <select name="pays_tva" class="form-control">
+                    <option value="FR" selected>France (FR)</option>
+                    <option value="intracom">Intracom UE</option>
+                    <option value="extracom">Extra UE</option>
+                  </select>
+                </div>
+                <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px">
+                  <div class="flex justify-between items-center" style="margin-bottom:10px">
+                    <span class="text-sm text-muted">Montant TTC (fixe)</span>
+                    <span class="font-bold font-mono" style="font-size:1.1rem">{{ operation.debit|floatformat:2 }} €</span>
+                  </div>
+                  <div class="form-grid-2">
+                    <div>
+                      <label class="form-label text-xs">Montant HT</label>
+                      <input type="number" step="0.01" name="montant_ht" id="achat-montant-ht" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
+                    </div>
+                    <div>
+                      <label class="form-label text-xs">Montant TVA</label>
+                      <input type="number" step="0.01" name="montant_tva" id="achat-montant-tva" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3 justify-end">
+          <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
+            <i data-lucide="arrow-left" width="15" height="15"></i> Retour
+          </a>
+          <button type="submit" class="btn btn-danger btn-lg">
+            <i data-lucide="save" width="16" height="16"></i> Enregistrer la facture d'achat
+          </button>
+        </div>
+      </form>
+  </c-tab.panel>
+  
+  <!-- ─── Panel BV ──────────────────────────────────────────────────────────── -->
+  <c-tab.panel name="BV" group_name="basic">
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="bv">
+
+        <div class="grid-2 mb-6">
+          <div class="flex flex-col gap-3">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Identification du BV</div></div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Numéro BV</label>
+                  <input type="text" name="numero" class="form-control font-mono" placeholder="BV_{{ operation.date_operation.year }}-001" value="">
+                  <div class="form-hint">Généré automatiquement — modifiable. Unicité obligatoire.</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Étude associée</label>
+                  <select name="etude" class="form-control">
+                    <option value="">— Sans étude —</option>
+                    {% for e in etudes %}
+                    <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Référence virement</label>
+                  <input type="text" name="reference_virement" class="form-control font-mono" value="{{ operation.reference }}">
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div class="card-title">Dates</div></div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Date d'opération</label>
+                  <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Date d'émission du BV</label>
+                  <input type="date" name="date_emission" class="form-control">
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div class="card-title">Commentaire</div></div>
+              <div class="card-body">
+                <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Intervenant</div></div>
+              <div class="card-body">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Prénom <span class="required">*</span></label>
+                    <input type="text" name="intervenant_prenom" class="form-control" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Nom <span class="required">*</span></label>
+                    <input type="text" name="intervenant_nom" class="form-control" required>
+                  </div>
+                </div>
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Nombre de JEH <span class="required">*</span></label>
+                    <input type="number" step="0.5" name="nb_jeh" class="form-control" required oninput="computeCotisations()" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Rétribution brute / JEH (€)</label>
+                    <input type="number" step="0.01" name="retribution_brute_par_jeh" class="form-control" min="0">
+                  </div>
+                </div>
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Taux</label>
+                    <select name="taux" class="form-control">
+                      <option value="A">Taux A</option>
+                      <option value="B">Taux B</option>
+                      <option value="C">Taux C</option>
+                      <option value="D">Taux D</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Type de cotisant</label>
+                    <select name="type_cotisant" class="form-control" onchange="computeCotisations()">
+                      <option value="etudiant" selected>Étudiant</option>
+                      <option value="junior">Junior-Entreprise</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cotisations calculées -->
+            <div class="card" id="cotisations-card">
+              <div class="card-header"><div class="card-title">Cotisations URSSAF (calculées)</div></div>
+              <div class="card-body" style="padding:0">
+                <table class="data-table" id="cotis-table" style="font-size:.82rem">
+                  <thead>
+                    <tr>
+                      <th>Poste</th>
+                      <th class="text-right">Part Junior (€)</th>
+                      <th class="text-right">Part Étudiant (€)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Assiette</td><td class="text-right font-mono" id="c-assiette" colspan="2">—</td></tr>
+                    <tr><td>Assurance maladie</td><td class="text-right font-mono" id="c-maladie-j">—</td><td class="text-right font-mono" id="c-maladie-e">—</td></tr>
+                    <tr><td>Accident du travail</td><td class="text-right font-mono" id="c-at-j">—</td><td class="text-right font-mono" id="c-at-e">—</td></tr>
+                    <tr><td>Vieillesse plafonnée</td><td class="text-right font-mono" id="c-vp-j">—</td><td class="text-right font-mono" id="c-vp-e">—</td></tr>
+                    <tr><td>Vieillesse déplafonnée</td><td class="text-right font-mono" id="c-vd-j">—</td><td class="text-right font-mono" id="c-vd-e">—</td></tr>
+                    <tr><td>Allocations familiales</td><td class="text-right font-mono" id="c-af-j">—</td><td class="text-right font-mono" id="c-af-e">—</td></tr>
+                    <tr><td>CSG déductible</td><td class="text-right font-mono" id="c-csgd-j">—</td><td class="text-right font-mono" id="c-csgd-e">—</td></tr>
+                    <tr><td>CSG non déductible</td><td class="text-right font-mono" id="c-csgnd-j">—</td><td class="text-right font-mono" id="c-csgnd-e">—</td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr><td><strong>Total cotisations</strong></td><td class="text-right font-mono" id="c-total-j"><strong>—</strong></td><td class="text-right font-mono" id="c-total-e"><strong>—</strong></td></tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3 justify-end">
+          <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
+            <i data-lucide="arrow-left" width="15" height="15"></i> Retour
+          </a>
+          <button type="submit" class="btn btn-danger btn-lg">
+            <i data-lucide="save" width="16" height="16"></i> Enregistrer le BV
+          </button>
+        </div>
+      </form>
+  </c-tab.panel>
+
+
+  {% endif %}
+  <!-- ─── Panel VI / Ignorer ────────────────────────────────────────────────── -->
+  <c-tab.panel name="VI" group_name="basic">
+    <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i data-lucide="eye-off" width="18" height="18"></i>
+            Ignorer cette opération
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="text-muted text-sm" style="margin-bottom:16px">
+            Cette opération sera marquée comme ignorée (virement interne, etc.). Elle ne sera pas prise en compte dans les calculs de TVA.
+          </p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="ignorer">
+            <div class="form-group">
+              <label class="form-label">Commentaire <span class="text-muted">(facultatif)</span></label>
+              <textarea name="commentaire" class="form-control" rows="3" placeholder="Ex.: Virement interne, remboursement de frais anticipé..."></textarea>
+            </div>
+            <div class="flex gap-3 justify-end">
+              <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
+                <i data-lucide="arrow-left" width="15" height="15"></i> Retour
+              </a>
+              <button type="submit" class="btn btn-ghost" style="color:var(--color-gray-500)">
+                <i data-lucide="eye-off" width="15" height="15"></i> Confirmer l'ignorance
+              </button>
+            </div>
+          </form>
+        </div>
+  </c-tab.panel>
 </c-tab.group>
-
-<!-- ─── Panel VENTE ───────────────────────────────────────────────────────── -->
-{% if operation.est_credit %}
-<div class="wizard-panel active" id="panel-vente">
-  <form method="post" id="form-vente">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="vente">
-
-    <div class="grid-2 mb-6">
-
-      <!-- Colonne gauche -->
-      <div class="flex flex-col gap-3">
-
-        <div class="card">
-          <div class="card-header"><div class="card-title">Identification</div></div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Type de facture <span class="required">*</span></label>
-              <select name="type_facture" class="form-control" required id="type-facture-select" onchange="updateTVAFromType(this)">
-                {% for tf in types_facture_vente %}
-                <option value="{{ tf.pk }}" data-taux="{{ tf.taux_tva_defaut }}" data-cot="{{ tf.est_cotisation|yesno:'1,0' }}">
-                  {{ tf.nom }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Référence d'étude</label>
-              <select name="etude" class="form-control" id="etude-select">
-                <option value="">— Sans étude associée —</option>
-                {% for e in etudes %}
-                <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
-                {% endfor %}
-              </select>
-              <div class="form-hint">Obligatoire pour les factures d'acompte et de solde</div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Libellé</label>
-              <input type="text" name="libelle" class="form-control" value="{{ operation.info_complementaire }}">
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Preuve comptable (lien Drive)</label>
-              <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><div class="card-title">Budget & Commentaire</div></div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Ligne budgétaire</label>
-              <select name="ligne_budgetaire" class="form-control">
-                <option value="">— Non définie —</option>
-                {% for lb in lignes_budgetaires %}
-                <option value="{{ lb.pk }}">{{ lb.nom }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Commentaire</label>
-              <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..."></textarea>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Colonne droite -->
-      <div class="flex flex-col gap-3">
-
-        <div class="card">
-          <div class="card-header"><div class="card-title">Dates</div></div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Date d'opération</label>
-              <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
-              <div class="form-hint">Issue du relevé bancaire — non modifiable</div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Date d'envoi de la facture</label>
-              <input type="date" name="date_envoi" class="form-control">
-            </div>
-          </div>
-        </div>
-
-        <div class="card" id="tva-card">
-          <div class="card-header">
-            <div class="card-title">TVA & Montants</div>
-            <label class="form-switch">
-              <input type="checkbox" name="taux_mixte" id="taux-mixte-toggle" onchange="toggleTauxMixte(this)">
-              <span class="switch-track"></span>
-              <span class="switch-label">Taux mixte</span>
-            </label>
-          </div>
-          <div class="card-body">
-
-            <div class="form-group">
-              <label class="form-label">Taux de TVA</label>
-              <select name="taux_tva" class="form-control" id="taux-tva-select" onchange="computeTVA()">
-                {% for t in taux_tva_disponibles %}
-                <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %}
-                        title="{{ t.commentaire }}">
-                  {{ t.taux }}% — {{ t.libelle }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Pays de TVA</label>
-              <select name="pays_tva" class="form-control">
-                <option value="FR" selected>France (FR)</option>
-                <option value="intracom">Acquisition intracommunautaire</option>
-                <option value="extracom">Hors UE (Extra-com)</option>
-              </select>
-            </div>
-
-            <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px;margin-top:8px">
-              <div class="flex justify-between items-center mb-4" style="margin-bottom:8px">
-                <span class="text-sm text-muted">Montant TTC (fixe)</span>
-                <span class="font-bold font-mono" style="font-size:1.1rem">{{ operation.credit|floatformat:2 }} €</span>
-              </div>
-              <div class="form-grid-2">
-                <div>
-                  <label class="form-label text-xs">Montant HT</label>
-                  <input type="number" step="0.01" name="montant_ht" id="montant-ht" class="form-control font-mono"
-                         readonly style="background:var(--color-gray-100)">
-                </div>
-                <div>
-                  <label class="form-label text-xs">Montant TVA</label>
-                  <input type="number" step="0.01" name="montant_tva" id="montant-tva" class="form-control font-mono"
-                         readonly style="background:var(--color-gray-100)">
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="flex gap-3 justify-end">
-      <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
-        <i data-lucide="arrow-left" width="15" height="15"></i>
-        Retour
-      </a>
-      <button type="submit" class="btn btn-primary btn-lg">
-        <i data-lucide="save" width="16" height="16"></i>
-        Enregistrer la vente
-      </button>
-    </div>
-
-  </form>
-</div>
-{% endif %}
 
 {% endblock %} 
 
@@ -575,30 +525,6 @@
 <script>
 const TTC = {{ operation.credit|default:operation.debit|floatformat:2 }};
 
-// Switch de panel
-function switchTab(panelId, btn) {
-  document.querySelectorAll('.wizard-tab').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
-  document.querySelectorAll('.wizard-panel').forEach(p => {
-    p.style.display = 'none';
-    p.classList.remove('active');
-  });
-  const panel = document.getElementById('panel-' + panelId);
-  if (panel) {
-    panel.style.display = 'block';
-    panel.classList.add('active');
-    lucide.createIcons();
-  }
-}
-
-// Afficher panel-ignorer via son bouton
-document.querySelectorAll('.wizard-tab').forEach(tab => {
-  if (tab.textContent.includes('Ignorer')) {
-    tab.addEventListener('click', () => {
-      document.getElementById('panel-ignorer').style.display = 'block';
-    });
-  }
-});
 
 // ─── TVA Vente ───────────────────────────────────────────────────────────────
 function computeTVA() {
