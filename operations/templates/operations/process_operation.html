@@ -67,6 +67,29 @@
   {% endif %}
 </div>
 
+<c-tab.group group_name="basic">
+    <c-tabs variant="default">
+        <c-tab name="profile" group_name="basic" icon="user" checked="true">Profile</c-tab>
+        <c-tab name="account" group_name="basic" icon="settings">Account</c-tab>
+        <c-tab name="billing" group_name="basic" icon="credit-card">Billing</c-tab>
+    </c-tabs>
+
+    <c-tab.panel name="profile" group_name="basic">
+        <h3>Profile Settings</h3>
+        <p>Manage your profile information...</p>
+    </c-tab.panel>
+
+    <c-tab.panel name="account" group_name="basic">
+        <h3>Account Settings</h3>
+        <p>Configure your account security...</p>
+    </c-tab.panel>
+
+    <c-tab.panel name="billing" group_name="basic">
+        <h3>Billing Information</h3>
+        <p>Manage your payment methods...</p>
+    </c-tab.panel>
+</c-tab.group>
+
 <!-- ─── Panel VENTE ───────────────────────────────────────────────────────── -->
 {% if operation.est_credit %}
 <div class="wizard-panel active" id="panel-vente">

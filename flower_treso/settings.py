@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Third-party
     'django_cotton',
+    'tungsten_ui',
     # Local apps — order matters for django_cotton loader
     'config_app',
     'operations',
