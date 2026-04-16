@@ -41,31 +41,40 @@
 
 <!-- Liste des opérations -->
 {% for op in operations %}
-<a href="{% url 'operations:process_operation' op.pk %}" class="op-card">
-  <div>
-    <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
-         color:{% if op.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
-      {% if op.est_credit %}Crédit{% else %}Débit{% endif %}
-      &bull; {{ op.date_operation|date:"d/m/Y" }}
+<div class="flex items-center gap-3">
+  <a href="{% url 'operations:process_operation' op.pk %}" class="op-card flex-1">
+    <div>
+      <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
+           color:{% if op.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
+        {% if op.est_credit %}Crédit{% else %}Débit{% endif %}
+        &bull; {{ op.date_operation|date:"d/m/Y" }}
+      </div>
+      <div style="font-weight:600;color:var(--color-gray-800);margin-bottom:2px">{{ op.libelle }}</div>
+      {% if op.info_complementaire %}
+      <div class="text-sm text-muted truncate" style="max-width:400px">{{ op.info_complementaire }}</div>
+      {% endif %}
     </div>
-    <div style="font-weight:600;color:var(--color-gray-800);margin-bottom:2px">{{ op.libelle }}</div>
-    {% if op.info_complementaire %}
-    <div class="text-sm text-muted truncate" style="max-width:400px">{{ op.info_complementaire }}</div>
-    {% endif %}
-  </div>
 
-  <div class="op-amount {% if op.est_credit %}credit{% else %}debit{% endif %}" style="margin-left:auto">
-    {% if op.est_credit %}+{% else %}−{% endif %}
-    {% if op.est_credit %}{{ op.credit|floatformat:2 }}{% else %}{{ op.debit|floatformat:2 }}{% endif %} €
-  </div>
+    <div class="op-amount {% if op.est_credit %}credit{% else %}debit{% endif %}" style="margin-left:auto; margin-right: 16px">
+      {% if op.est_credit %}+{% else %}−{% endif %}
+      {% if op.est_credit %}{{ op.credit|floatformat:2 }}{% else %}{{ op.debit|floatformat:2 }}{% endif %} €
+    </div>
 
-  <div>
-    <span class="badge badge-gray">
-      <i data-lucide="chevron-right" width="12" height="12"></i>
-      Traiter
-    </span>
-  </div>
-</a>
+    <div>
+      <span class="badge badge-gray">
+        <i data-lucide="chevron-right" width="12" height="12"></i>
+        Traiter
+      </span>
+    </div>
+  </a>
+  
+  <a href="{% url 'operations:operation_delete' op.pk %}?next={{ request.get_full_path|urlencode }}" 
+     class="btn btn-ghost btn-sm text-danger" 
+     onclick="return confirm('Supprimer définitivement cette opération ?')"
+     title="Supprimer l'opération">
+    <i data-lucide="trash-2" width="18" height="18"></i>
+  </a>
+</div>
 {% endfor %}
 
 {% else %}

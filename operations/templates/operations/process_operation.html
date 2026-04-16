@@ -20,7 +20,7 @@
       <div class="flex-1">
         <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
              color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
-          {% if operation.est_credit %}Crédit{% else %}Débit{% endif %} &bull; {{ operation.date_operation|date:"d F Y" }}
+          {% if operation.est_credit %}Crédit{% else %}Débit{% endif %} &bull; {{ operation.date_operation|date:"d/m/Y" }}
         </div>
         <div style="font-size:1.05rem;font-weight:700;color:var(--color-gray-900)">{{ operation.libelle }}</div>
         {% if operation.info_complementaire %}
@@ -149,9 +149,9 @@
               <div class="card-body">
                 <div class="form-group">
                   <label class="form-label">Taux de TVA</label>
-                  <select name="taux_tva" id = "taux-tva-select" class="form-control" onchange="computeTVA()">
+                  <select name="taux_tva" id="vente-taux-tva-select" class="form-control" onchange="computeTVA()">
                     {% for t in taux_tva_disponibles %}
-                    <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
+                    <option value="{{ t.taux|stringformat:'.2f' }}" {% if t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
                       {{ t.taux }}% — {{ t.libelle }}
                     </option>
                     {% endfor %}
@@ -175,11 +175,11 @@
                   <div class="form-grid-2">
                     <div>
                       <label class="form-label text-xs">Montant HT</label>
-                      <input type="number" step="0.01" name="montant_ht" id="montant-ht" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
+                      <input type="number" step="0.01" name="montant_ht" id="vente-montant-ht" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
                     </div>
                     <div>
                       <label class="form-label text-xs">Montant TVA</label>
-                      <input type="number" step="0.01" name="montant_tva" id="montant-tva" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
+                      <input type="number" step="0.01" name="montant_tva" id="vente-montant-tva" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
                     </div>
                   </div>
                 </div>
@@ -188,13 +188,22 @@
           </div>
         </div>
 
-        <div class="flex gap-3 justify-end">
+        <div class="flex gap-3 justify-end items-center">
           <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
-            <i data-lucide="arrow-left" width="15" height="15"></i> Retour
+            <i data-lucide="arrow-left" width="15" height="15"></i>
+            Retour à la liste
           </a>
-          <button type="submit" class="btn btn-primary btn-lg">
-            <i data-lucide="save" width="16" height="16"></i> Enregistrer la vente
-          </button>
+          
+          <div class="flex gap-2">
+            <button type="submit" name="save_only" class="btn btn-secondary">
+              <i data-lucide="save" width="16" height="16"></i>
+              Enregistrer
+            </button>
+            <button type="submit" name="save_next" class="btn btn-primary btn-lg">
+              <i data-lucide="step-forward" width="18" height="18"></i>
+              Enregistrer & Suivant
+            </button>
+          </div>
         </div>
       </form>
   </c-tab.panel>
@@ -224,7 +233,9 @@
                   <label class="form-label">Fournisseur <span class="required">*</span></label>
                   {% with lib_lower=operation.libelle|lower %}
                     <input type="text" name="fournisseur" class="form-control" required value ="{% if 'cotis' in lib_lower %}BPGO
-                                                                                                {%elif 'test' in lib_lower %}Test% 
+                                                                                                {% elif 'sage' in lib_lower %}SAGE
+                                                                                                {% elif 'intermarche' in lib_lower %}Intermarché
+                                                                                                {% else %}{{ operation.libelle }}
                                                                                                 {% endif %}">
                   {% endwith %}
                 </div>
@@ -233,8 +244,9 @@
                   <!-- detection automatique de mot clé pour suggestion de libellé-->
                   {% with lib_lower=operation.libelle|lower %}
                     <input type="text" name="libelle" class="form-control" value="{% if 'cotis' in lib_lower %}Frais bancaire
-                                                                                  {%elif 'test' in lib_lower %}Test% 
-                                                                                  {%else %}{{ operation.info_complementaire }}
+                                                                                  {% elif 'sage' in lib_lower %}Mensuel logiciel comptable
+                                                                                  {% elif 'intermarche' in lib_lower %}Course Intermarché
+                                                                                  {% else %}{{ operation.libelle }}
                                                                                   {% endif %}">
                   {% endwith %}
                 </div>
@@ -305,15 +317,15 @@
               <div class="card-body">
                 <div class="form-group">
                   <label class="form-label">Taux de TVA</label>
-                  <select name="taux_tva" id="taux-tva-select" class="form-control" onchange="computeTVAAchat(this)">
+                  <select name="taux_tva" id="achat-taux-tva-select" class="form-control" onchange="computeTVAAchat(this)">
                     {% for t in taux_tva_disponibles %}
                     <!-- detection automatique de mot clé pour suggestion de TVA-->
-                    <option value="{{ t.taux }}" 
+                    <option value="{{ t.taux|stringformat:'.2f' }}" 
                       {% with libelle_test=operation.libelle|lower %}
                         {% if "cotis frequence asso" in libelle_test %}
                           {% if t.taux == 0 %}selected{% endif %}
-                        {% elif "test" in libelle_test %}
-                          {% if t.taux == 10 %}selected{% endif %}
+                        {% elif "Intermarche" in libelle_test %}
+                          {% if t.taux == 5.5 %}selected{% endif %}
                         {% else %}
                           {% if t.taux == 20 %}selected{% endif %}
                         {% endif %}
@@ -353,13 +365,22 @@
           </div>
         </div>
 
-        <div class="flex gap-3 justify-end">
+        <div class="flex gap-3 justify-end items-center">
           <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
-            <i data-lucide="arrow-left" width="15" height="15"></i> Retour
+            <i data-lucide="arrow-left" width="15" height="15"></i>
+            Retour à la liste
           </a>
-          <button type="submit" class="btn btn-danger btn-lg">
-            <i data-lucide="save" width="16" height="16"></i> Enregistrer la facture d'achat
-          </button>
+          
+          <div class="flex gap-2">
+            <button type="submit" name="save_only" class="btn btn-secondary">
+              <i data-lucide="save" width="16" height="16"></i>
+              Enregistrer
+            </button>
+            <button type="submit" name="save_next" class="btn btn-danger btn-lg">
+              <i data-lucide="step-forward" width="18" height="18"></i>
+              Enregistrer & Suivant
+            </button>
+          </div>
         </div>
       </form>
   </c-tab.panel>
@@ -494,13 +515,22 @@
           </div>
         </div>
 
-        <div class="flex gap-3 justify-end">
+        <div class="flex gap-3 justify-end items-center">
           <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
-            <i data-lucide="arrow-left" width="15" height="15"></i> Retour
+            <i data-lucide="arrow-left" width="15" height="15"></i>
+            Retour à la liste
           </a>
-          <button type="submit" class="btn btn-danger btn-lg">
-            <i data-lucide="save" width="16" height="16"></i> Enregistrer le BV
-          </button>
+          
+          <div class="flex gap-2">
+            <button type="submit" name="save_only" class="btn btn-secondary">
+              <i data-lucide="save" width="16" height="16"></i>
+              Enregistrer
+            </button>
+            <button type="submit" name="save_next" class="btn btn-danger btn-lg">
+              <i data-lucide="step-forward" width="18" height="18"></i>
+              Enregistrer & Suivant
+            </button>
+          </div>
         </div>
       </form>
   </c-tab.panel>
@@ -543,18 +573,19 @@
 {% endblock %} 
 
 {% block extra_js %}
+{% load l10n %}
 <script>
-const TTC = parseFloat("{{ operation.credit|default:operation.debit|stringformat:'.2f' }}");
+const TTC = {{ operation.montant|default:0|unlocalize }};
 
 // ─── TVA Vente ───────────────────────────────────────────────────────────────
 function computeTVA() {
-  const sel = document.getElementById('taux-tva-select');
+  const sel = document.getElementById('vente-taux-tva-select');
   if (!sel) return;
   const taux = parseFloat(sel.value || 20);
   const ht = TTC / (1 + taux / 100);
   const tva = TTC - ht;
-  const htInput = document.getElementById('montant-ht');
-  const tvaInput = document.getElementById('montant-tva');
+  const htInput = document.getElementById('vente-montant-ht');
+  const tvaInput = document.getElementById('vente-montant-tva');
   if (htInput) htInput.value = ht.toFixed(2);
   if (tvaInput) tvaInput.value = tva.toFixed(2);
 }
@@ -562,7 +593,7 @@ function computeTVA() {
 function updateTVAFromType(sel) {
   const taux = sel.options[sel.selectedIndex].dataset.taux;
   const isCot = sel.options[sel.selectedIndex].dataset.cot === '1';
-  const tvaSelect = document.getElementById('taux-tva-select');
+  const tvaSelect = document.getElementById('vente-taux-tva-select');
   if (tvaSelect && taux) {
     for (let opt of tvaSelect.options) {
       if (parseFloat(opt.value) === parseFloat(taux)) { opt.selected = true; break; }
@@ -572,8 +603,8 @@ function updateTVAFromType(sel) {
 }
 
 function toggleTauxMixte(cb) {
-  const htInput = document.getElementById('montant-ht');
-  const tvaInput = document.getElementById('montant-tva');
+  const htInput = document.getElementById('vente-montant-ht');
+  const tvaInput = document.getElementById('vente-montant-tva');
   if (htInput) {
     htInput.readOnly = !cb.checked;
     htInput.style.background = cb.checked ? '#fff' : '';
@@ -587,12 +618,12 @@ function toggleTauxMixte(cb) {
 // ─── TVA Achat ────────────────────────────────────────────────────────────────
 function computeTVAAchat(sel) {
   // Si sel n'est pas fourni (au chargement), on va le chercher par son ID
-  const selectEl = sel || document.getElementById('taux-tva-select');
+  const selectEl = sel || document.getElementById('achat-taux-tva-select');
   if (!selectEl) return;
 
   const taux = parseFloat(selectEl.value || 20);
-  const ht = TTC / (1 + taux / 100);
-  const tva = TTC - ht;
+  const ht = Math.abs(TTC) / (1 + taux / 100);
+  const tva = Math.abs(TTC) - ht;
   const htInput = document.getElementById('achat-montant-ht');
   const tvaInput = document.getElementById('achat-montant-tva');
   if (htInput) htInput.value = ht.toFixed(2);

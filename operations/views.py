@@ -3,7 +3,20 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import Operation, ImportBatch
 from .services import parse_csv
+from decimal import Decimal, InvalidOperation
 
+def to_decimal(value, default='0'):
+    """Convertit une chaîne en Decimal proprement (gestion virgule, espaces, vide)."""
+    if value is None:
+        return Decimal(default)
+    # Nettoyage : suppression espaces, remplacement virgule par point
+    clean_val = str(value).strip().replace(' ', '').replace(',', '.')
+    if not clean_val:
+        return Decimal(default)
+    try:
+        return Decimal(clean_val)
+    except (InvalidOperation, ValueError):
+        return Decimal(default)
 
 def import_csv(request):
     """Vue d'import du fichier CSV bancaire."""
@@ -112,8 +125,11 @@ def process_operation(request, operation_id):
     return render(request, 'operations/process_operation.html', context)
 
 
-def _redirect_next(operation):
-    """Redirige vers la prochaine opération pending."""
+def _redirect_next(operation, to_next=True):
+    """Redirige vers la prochaine opération pending (si to_next=True) ou la liste."""
+    if not to_next:
+        return redirect('operations:process_list')
+
     next_op = Operation.objects.filter(
         statut='pending',
         date_operation__gte=operation.date_operation,
@@ -132,15 +148,15 @@ def _process_vente(request, operation):
 
     try:
         type_facture = TypeFactureVente.objects.get(pk=request.POST.get('type_facture'))
-        taux_tva = __import__('decimal').Decimal(request.POST.get('taux_tva', '20'))
+        taux_tva = to_decimal(request.POST.get('taux_tva', '20'))
         montant_ttc = operation.credit
-
+        
         calcul = calculate_tva(montant_ttc, taux_tva)
         taux_mixte = request.POST.get('taux_mixte') == 'on'
 
         if taux_mixte:
-            montant_ht = __import__('decimal').Decimal(request.POST.get('montant_ht', calcul['ht']))
-            montant_tva = __import__('decimal').Decimal(request.POST.get('montant_tva', calcul['tva']))
+            montant_ht = to_decimal(request.POST.get('montant_ht'), default=str(calcul['ht']))
+            montant_tva = to_decimal(request.POST.get('montant_tva'), default=str(calcul['tva']))
         else:
             montant_ht = calcul['ht']
             montant_tva = calcul['tva']
@@ -183,7 +199,10 @@ def _process_vente(request, operation):
         operation.statut = 'processed'
         operation.save()
         messages.success(request, f"Facture de vente {fv.numero} créée avec succès.")
-        return _redirect_next(operation)
+        
+        # Choix de redirection
+        to_next = 'save_next' in request.POST
+        return _redirect_next(operation, to_next=to_next)
 
     except Exception as e:
         messages.error(request, f"Erreur lors de la création de la facture : {e}")
@@ -200,8 +219,8 @@ def _process_bv(request, operation):
 
     try:
         type_cotisant = request.POST.get('type_cotisant', 'etudiant')
-        nb_jeh = Decimal(request.POST.get('nb_jeh', '0'))
-        retrib = Decimal(request.POST.get('retribution_brute_par_jeh', '0'))
+        nb_jeh = to_decimal(request.POST.get('nb_jeh', '0'))
+        retrib = to_decimal(request.POST.get('retribution_brute_par_jeh', '0'))
 
         try:
             params = ParametreCotisation.objects.get(type_cotisant=type_cotisant)
@@ -250,7 +269,10 @@ def _process_bv(request, operation):
         operation.statut = 'processed'
         operation.save()
         messages.success(request, f"Bulletin de versement {bv.numero} créé avec succès.")
-        return _redirect_next(operation)
+        
+        # Choix de redirection
+        to_next = 'save_next' in request.POST
+        return _redirect_next(operation, to_next=to_next)
 
     except Exception as e:
         messages.error(request, f"Erreur lors de la création du BV : {e}")
@@ -267,13 +289,13 @@ def _process_achat(request, operation):
 
     try:
         type_achat = TypeAchat.objects.get(pk=request.POST.get('type_achat'))
-        taux_tva = Decimal(request.POST.get('taux_tva', '20'))
+        taux_tva = to_decimal(request.POST.get('taux_tva', '20'))
         montant_ttc = operation.debit
         taux_compose = request.POST.get('taux_compose') == 'on'
 
         if taux_compose:
-            montant_ht = Decimal(request.POST.get('montant_ht', '0'))
-            montant_tva = Decimal(request.POST.get('montant_tva', '0'))
+            montant_ht = to_decimal(request.POST.get('montant_ht'), default='0')
+            montant_tva = to_decimal(request.POST.get('montant_tva'), default='0')
         else:
             calcul = calculate_tva(montant_ttc, taux_tva)
             montant_ht = calcul['ht']
@@ -313,7 +335,10 @@ def _process_achat(request, operation):
         operation.statut = 'processed'
         operation.save()
         messages.success(request, f"Facture d'achat {fa.numero} créée avec succès.")
-        return _redirect_next(operation)
+        
+        # Choix de redirection
+        to_next = 'save_next' in request.POST
+        return _redirect_next(operation, to_next=to_next)
 
     except Exception as e:
         messages.error(request, f"Erreur lors de la création de la facture d'achat : {e}")
@@ -328,4 +353,18 @@ def operation_ignore(request, operation_id):
         operation.commentaire_ignoree = request.POST.get('commentaire', '')
         operation.save()
         messages.success(request, f"Opération ignorée.")
+    return redirect('operations:process_list')
+
+
+def operation_delete(request, pk):
+    """Supprime manuellement une opération (pour tests)."""
+    operation = get_object_or_404(Operation, pk=pk)
+    libelle = operation.libelle
+    operation.delete()
+    messages.success(request, f"Opération « {libelle} » supprimée avec succès.")
+    
+    # Redirection intelligente
+    next_url = request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect('operations:process_list')

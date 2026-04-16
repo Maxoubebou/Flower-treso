@@ -48,9 +48,19 @@
           <td class="text-right font-mono text-danger">{{ bv.total_cotisations_junior|floatformat:2 }}</td>
           <td class="text-right font-mono text-warning">{{ bv.total_cotisations_etudiant|floatformat:2 }}</td>
           <td>
-            <a href="{% url 'finance:bv_edit' bv.pk %}" class="btn btn-ghost btn-icon" title="Modifier">
-              <i data-lucide="edit-2" width="14" height="14"></i>
-            </a>
+            <div class="flex gap-1 justify-end">
+              <a href="{% url 'finance:bv_edit' bv.pk %}" class="btn btn-ghost btn-icon" title="Modifier">
+                <i data-lucide="edit-2" width="14" height="14"></i>
+              </a>
+              {% if bv.operation %}
+              <a href="{% url 'operations:operation_delete' bv.operation.pk %}?next={{ request.get_full_path|urlencode }}" 
+                 class="btn btn-ghost btn-icon text-danger" 
+                 onclick="return confirm('Attention : cela supprimera l\'opération bancaire ET ce bulletin. Continuer ?')"
+                 title="Supprimer l'opération et le bulletin">
+                <i data-lucide="trash-2" width="14" height="14"></i>
+              </a>
+              {% endif %}
+            </div>
           </td>
         </tr>
         {% endfor %}

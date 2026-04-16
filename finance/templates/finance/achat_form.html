@@ -128,17 +128,28 @@
 {% endblock %}
 
 {% block extra_js %}
+{% load l10n %}
 <script>
-const TTC_ACHAT = {{ facture.montant_ttc|floatformat:2 }};
+const TTC_ACHAT = {{ facture.montant_ttc|default:0|unlocalize }};
 
 function recomputeAchatEdit() {
   const toggle = document.getElementById('achat-compose-toggle');
   if (toggle && toggle.checked) return;
-  const taux = parseFloat(document.getElementById('achat-edit-taux').value);
-  const ht = TTC_ACHAT / (1 + taux / 100);
-  document.getElementById('achat-edit-ht').value = ht.toFixed(2);
-  document.getElementById('achat-edit-tva').value = (TTC_ACHAT - ht).toFixed(2);
+  const sel = document.getElementById('achat-edit-taux');
+  if (!sel) return;
+  const taux = parseFloat(sel.value);
+  const ht = Math.abs(TTC_ACHAT) / (1 + taux / 100);
+  const tva = Math.abs(TTC_ACHAT) - ht;
+  const htInput = document.getElementById('achat-edit-ht');
+  const tvaInput = document.getElementById('achat-edit-tva');
+  if (htInput) htInput.value = ht.toFixed(2);
+  if (tvaInput) tvaInput.value = tva.toFixed(2);
 }
+
+// Initialiser au chargement
+document.addEventListener('DOMContentLoaded', () => {
+  recomputeAchatEdit();
+});
 
 function toggleAchatCompose(cb) {
   const ht = document.getElementById('achat-edit-ht');

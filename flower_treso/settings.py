@@ -103,6 +103,10 @@ TIME_ZONE = 'Europe/Paris'
 USE_I18N = True
 USE_TZ = True
 
+DATE_FORMAT = 'd/m/Y'
+DATETIME_FORMAT = 'd/m/Y H:i'
+SHORT_DATE_FORMAT = 'd/m/Y'
+
 # ---------------------------------------------------------------------------
 # Static files
 # ---------------------------------------------------------------------------

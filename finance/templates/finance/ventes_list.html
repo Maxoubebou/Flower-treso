@@ -74,9 +74,19 @@
           <td class="text-right font-mono text-muted">{{ f.montant_tva|floatformat:2 }}</td>
           <td class="text-right font-mono font-bold">{{ f.montant_ttc|floatformat:2 }}</td>
           <td>
-            <a href="{% url 'finance:vente_edit' f.pk %}" class="btn btn-ghost btn-icon" title="Modifier">
-              <i data-lucide="edit-2" width="14" height="14"></i>
-            </a>
+            <div class="flex gap-1 justify-end">
+              <a href="{% url 'finance:vente_edit' f.pk %}" class="btn btn-ghost btn-icon" title="Modifier">
+                <i data-lucide="edit-2" width="14" height="14"></i>
+              </a>
+              {% if f.operation %}
+              <a href="{% url 'operations:operation_delete' f.operation.pk %}?next={{ request.get_full_path|urlencode }}" 
+                 class="btn btn-ghost btn-icon text-danger" 
+                 onclick="return confirm('Attention : cela supprimera l\'opération bancaire ET cette facture. Continuer ?')"
+                 title="Supprimer l'opération et la facture">
+                <i data-lucide="trash-2" width="14" height="14"></i>
+              </a>
+              {% endif %}
+            </div>
           </td>
         </tr>
         {% endfor %}

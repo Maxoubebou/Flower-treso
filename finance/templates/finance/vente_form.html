@@ -126,8 +126,9 @@
 {% endblock %}
 
 {% block extra_js %}
+{% load l10n %}
 <script>
-const TTC_EDIT = {{ facture.montant_ttc|floatformat:2 }};
+const TTC_EDIT = {{ facture.montant_ttc|default:0|unlocalize }};
 
 function recomputeEdit() {
   const sel = document.getElementById('edit-taux-tva');
@@ -136,9 +137,17 @@ function recomputeEdit() {
   if (!sel) return;
   const taux = parseFloat(sel.value);
   const ht = TTC_EDIT / (1 + taux / 100);
-  document.getElementById('edit-ht').value = ht.toFixed(2);
-  document.getElementById('edit-tva').value = (TTC_EDIT - ht).toFixed(2);
+  const tva = TTC_EDIT - ht;
+  const htInput = document.getElementById('edit-ht');
+  const tvaInput = document.getElementById('edit-tva');
+  if (htInput) htInput.value = ht.toFixed(2);
+  if (tvaInput) tvaInput.value = tva.toFixed(2);
 }
+
+// Initialiser au chargement
+document.addEventListener('DOMContentLoaded', () => {
+  recomputeEdit();
+});
 
 function toggleEditMixte(cb) {
   const ht = document.getElementById('edit-ht');
