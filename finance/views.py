@@ -50,6 +50,18 @@ def _appliquer_filtres(qs, mois, annee, champ_date='date_operation'):
     return qs
 
 
+def _to_decimal(val, default='0'):
+    from decimal import Decimal, InvalidOperation
+    if not val:
+        return Decimal(default)
+    try:
+        # Nettoyage : supprimer espaces et remplacer virgule par point
+        clean_val = str(val).replace(' ', '').replace(',', '.')
+        return Decimal(clean_val)
+    except (InvalidOperation, ValueError):
+        return Decimal(default)
+
+
 # ─── Ventes ──────────────────────────────────────────────────────────────────
 
 def ventes_list(request):
@@ -78,17 +90,16 @@ def vente_edit(request, pk):
 
     if request.method == 'POST':
         try:
-            from decimal import Decimal
             from datetime import datetime
             from finance.services import calculate_tva
 
             type_facture = TypeFactureVente.objects.get(pk=request.POST['type_facture'])
-            taux_tva = Decimal(request.POST.get('taux_tva', '20'))
+            taux_tva = _to_decimal(request.POST.get('taux_tva', '20'))
             taux_mixte = request.POST.get('taux_mixte') == 'on'
 
             if taux_mixte:
-                montant_ht = Decimal(request.POST['montant_ht'])
-                montant_tva_v = Decimal(request.POST['montant_tva'])
+                montant_ht = _to_decimal(request.POST['montant_ht'])
+                montant_tva_v = _to_decimal(request.POST['montant_tva'])
             else:
                 calcul = calculate_tva(fv.montant_ttc, taux_tva)
                 montant_ht = calcul['ht']
@@ -96,6 +107,14 @@ def vente_edit(request, pk):
 
             date_envoi_raw = request.POST.get('date_envoi', '')
             date_envoi = datetime.strptime(date_envoi_raw, '%Y-%m-%d').date() if date_envoi_raw else None
+
+            date_op_raw = request.POST.get('date_operation', '')
+            if date_op_raw:
+                new_date_op = datetime.strptime(date_op_raw, '%Y-%m-%d').date()
+                fv.date_operation = new_date_op
+                if fv.operation:
+                    fv.operation.date_operation = new_date_op
+                    fv.operation.save()
 
             etude_pk = request.POST.get('etude')
             ligne_bud_pk = request.POST.get('ligne_budgetaire')
@@ -148,19 +167,27 @@ def bv_edit(request, pk):
 
     if request.method == 'POST':
         try:
-            from decimal import Decimal
             from datetime import datetime
             from finance.services import calculate_cotisations_urssaf
 
             type_cotisant = request.POST.get('type_cotisant', bv.type_cotisant)
-            nb_jeh = Decimal(request.POST.get('nb_jeh', bv.nb_jeh))
-            retrib = Decimal(request.POST.get('retribution_brute_par_jeh', bv.retribution_brute_par_jeh))
+            nb_jeh = _to_decimal(request.POST.get('nb_jeh', bv.nb_jeh))
+            retrib = _to_decimal(request.POST.get('retribution_brute_par_jeh', bv.retribution_brute_par_jeh))
 
             params = ParametreCotisation.objects.filter(type_cotisant=type_cotisant).first()
             cotis = calculate_cotisations_urssaf(nb_jeh, type_cotisant, params)
 
             date_emission_raw = request.POST.get('date_emission', '')
             date_emission = datetime.strptime(date_emission_raw, '%Y-%m-%d').date() if date_emission_raw else None
+
+            date_op_raw = request.POST.get('date_operation', '')
+            if date_op_raw:
+                new_date_op = datetime.strptime(date_op_raw, '%Y-%m-%d').date()
+                bv.date_operation = new_date_op
+                if bv.operation:
+                    bv.operation.date_operation = new_date_op
+                    bv.operation.save()
+
             etude_pk = request.POST.get('etude')
 
             bv.etude = Etude.objects.get(pk=etude_pk) if etude_pk else None
@@ -219,17 +246,16 @@ def achat_edit(request, pk):
 
     if request.method == 'POST':
         try:
-            from decimal import Decimal
             from datetime import datetime
             from finance.services import calculate_tva
 
             type_achat = TypeAchat.objects.get(pk=request.POST['type_achat'])
-            taux_tva = Decimal(request.POST.get('taux_tva', '20'))
+            taux_tva = _to_decimal(request.POST.get('taux_tva', '20'))
             taux_compose = request.POST.get('taux_compose') == 'on'
 
             if taux_compose:
-                montant_ht = Decimal(request.POST['montant_ht'])
-                montant_tva_v = Decimal(request.POST['montant_tva'])
+                montant_ht = _to_decimal(request.POST['montant_ht'])
+                montant_tva_v = _to_decimal(request.POST['montant_tva'])
             else:
                 calcul = calculate_tva(fa.montant_ttc, taux_tva)
                 montant_ht = calcul['ht']
@@ -237,6 +263,15 @@ def achat_edit(request, pk):
 
             date_reception_raw = request.POST.get('date_reception', '')
             date_reception = datetime.strptime(date_reception_raw, '%Y-%m-%d').date() if date_reception_raw else None
+
+            date_op_raw = request.POST.get('date_operation', '')
+            if date_op_raw:
+                new_date_op = datetime.strptime(date_op_raw, '%Y-%m-%d').date()
+                fa.date_operation = new_date_op
+                if fa.operation:
+                    fa.operation.date_operation = new_date_op
+                    fa.operation.save()
+
             ligne_bud_pk = request.POST.get('ligne_budgetaire')
 
             fa.type_achat = type_achat

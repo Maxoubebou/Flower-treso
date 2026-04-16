@@ -59,8 +59,8 @@
 
         <div>
           <div class="form-group">
-            <label class="form-label">Date d'opération <span class="text-muted">(non modifiable)</span></label>
-            <input type="date" class="form-control" value="{{ facture.date_operation|date:'Y-m-d' }}" disabled>
+            <label class="form-label">Date d'opération</label>
+            <input type="date" name="date_operation" class="form-control" value="{{ facture.date_operation|date:'Y-m-d' }}">
           </div>
           <div class="form-group">
             <label class="form-label">Date d'envoi de la facture</label>
