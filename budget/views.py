@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Sum, F
 from django.contrib import messages
+import re
 
 from .models import BudgetSubCategory, BudgetItem
 from config_app.models import LigneBudgetaire
@@ -11,6 +12,8 @@ from flower_treso.utils import to_decimal, evaluate_budget_formula
 
 def budget_dashboard(request):
     """Vue principale du budget avec calculs en temps réel et support du nesting."""
+    selected_year = request.GET.get('year')
+    
     # On récupère toutes les sous-catégories
     all_subcats = BudgetSubCategory.objects.prefetch_related('items__ligne_budgetaire').all()
     
@@ -44,46 +47,65 @@ def budget_dashboard(request):
                 item.progress_percent = 0
                 item.over_budget = False
 
-    # Organisation hiérarchique : Group (Part) -> Root SubCat -> Child SubCat
-    produits_roots = all_subcats.filter(group='produit', parent__isnull=True)
-    charges_roots = all_subcats.filter(group='charge', parent__isnull=True)
+    # On injecte les IDs et on récupère les objets en liste pour conserver les attributs
+    all_subcats_list, items_flat = _inject_ids(all_subcats)
+    
+    # Organisation hiérarchique
+    produits_roots = [sc for sc in all_subcats_list if sc.group == 'produit' and sc.parent_id is None]
+    charges_roots = [sc for sc in all_subcats_list if sc.group == 'charge' and sc.parent_id is None]
 
     # Calcul des budgets par catégorie
-    for sc in all_subcats:
-        sc.total_moyen = sum(item.scenario_moyen for item in sc.items.all())
-        # Si c'est un parent, on peut aussi additionner ses enfants pour l'affichage ?
-        # Le user demande "le budget associé à une catégorie". 
-        # On va afficher le total de la section (sc + ses items + ses enfants).
+    for sc in all_subcats_list:
+        sc.total_moyen = sum(item.scenario_moyen for item in sc.prefetched_items)
         child_total = 0
         for child in sc.children.all():
+            # Attention: children.items might not have IDs if not injected
+            # Mais ici on utilise juste pour le total
             child_total += sum(item.scenario_moyen for item in child.items.all())
         sc.total_moyen_cumule = sc.total_moyen + child_total
 
-    # Calcul des totaux globaux pour le bandeau
+    # Calcul des totaux globaux
     totals = {
-        'visé': sum(item.scenario_moyen for sc in all_subcats if sc.group == 'produit' for item in sc.items.all()),
-        'réalisé_p': sum(item.realise for sc in all_subcats if sc.group == 'produit' for item in sc.items.all()),
-        'réalisé_c': sum(item.realise for sc in all_subcats if sc.group == 'charge' for item in sc.items.all()),
+        'visé': sum(item.scenario_moyen for item in items_flat if item.subcategory.group == 'produit'),
+        'réalisé_p': sum(item.realise for item in items_flat if item.subcategory.group == 'produit'),
+        'réalisé_c': sum(item.realise for item in items_flat if item.subcategory.group == 'charge'),
     }
-    # Solde prévu et réel
-    totals['solde_prevu'] = totals['visé'] - sum(item.scenario_moyen for sc in all_subcats if sc.group == 'charge' for item in sc.items.all())
+    totals['solde_prevu'] = totals['visé'] - sum(item.scenario_moyen for item in items_flat if item.subcategory.group == 'charge')
     totals['solde_reel'] = totals['réalisé_p'] - totals['réalisé_c']
 
     # ─── Graphique d'évolution (Hebdomadaire) ─────────────────
     from django.db.models.functions import TruncWeek
     import json
-    from datetime import date
+    from datetime import datetime, date
 
-    # On récupère les ventes par semaine
-    ventes_semaine = FactureVente.objects.annotate(week=TruncWeek('date_operation')) \
+    # Filtrage par année pour le graphique
+    ventes_qs = FactureVente.objects.all()
+    achats_qs = FactureAchat.objects.all()
+    bv_qs = BulletinVersement.objects.all()
+
+    # On récupère les années disponibles dynamiquement
+    v_years = set(FactureVente.objects.dates('date_operation', 'year').values_list('date_operation__year', flat=True))
+    a_years = set(FactureAchat.objects.dates('date_operation', 'year').values_list('date_operation__year', flat=True))
+    b_years = set(BulletinVersement.objects.dates('date_operation', 'year').values_list('date_operation__year', flat=True))
+    available_years = sorted(list(v_years | a_years | b_years), reverse=True)
+
+    if selected_year and selected_year.isdigit():
+        year_int = int(selected_year)
+        ventes_qs = ventes_qs.filter(date_operation__year=year_int)
+        achats_qs = achats_qs.filter(date_operation__year=year_int)
+        bv_qs = bv_qs.filter(date_operation__year=year_int)
+    else:
+        # Par défaut, on peut montrer l'année en cours ou tout
+        # Si on veut rester "simple" et que l'utilisateur n'a pas choisi, on montre tout ou l'année max
+        pass
+
+    ventes_semaine = ventes_qs.annotate(week=TruncWeek('date_operation')) \
         .values('week').annotate(total=Sum('montant_ht')).order_by('week')
     
-    # On récupère les achats par semaine
-    achats_semaine = FactureAchat.objects.annotate(week=TruncWeek('date_operation')) \
+    achats_semaine = achats_qs.annotate(week=TruncWeek('date_operation')) \
         .values('week').annotate(total=Sum('montant_ht')).order_by('week')
     
-    # On récupère les BV par semaine (brut + cotisations junior)
-    bv_semaine = BulletinVersement.objects.annotate(week=TruncWeek('date_operation')) \
+    bv_semaine = bv_qs.annotate(week=TruncWeek('date_operation')) \
         .values('week').annotate(total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh') + F('total_cotisations_junior'))) \
         .order_by('week')
 
@@ -118,14 +140,21 @@ def budget_dashboard(request):
         'expenses': chart_expenses,
     }
 
-    return render(request, 'budget/dashboard.html', {
+    context = {
         'produits': produits_roots,
         'charges': charges_roots,
         'totals': totals,
         'all_subcats': all_subcats,
         'lignes_libres': LigneBudgetaire.objects.filter(active=True).exclude(budget_items__isnull=False).order_by('nom'),
         'chart_data_json': json.dumps(chart_data),
-    })
+        'available_years': available_years,
+        'selected_year': selected_year,
+    }
+
+    if request.headers.get('HX-Request') and request.GET.get('chart_only'):
+        return render(request, 'budget/partials/dashboard_chart.html', context)
+        
+    return render(request, 'budget/dashboard.html', context)
 
 @require_POST
 def budget_item_update(request, pk):
@@ -136,33 +165,95 @@ def budget_item_update(request, pk):
     
     if field == 'scenario_moyen':
         # On détecte si c'est une formule
-        if value_raw.startswith('=') or '[' in value_raw:
+        if value_raw.startswith('=') or '[' in value_raw or re.search(r'[A-Z]{2,}\d+', value_raw):
             item.formula_moyen = value_raw
-            # On laisse le champ scenario_moyen tel quel pour l'instant, 
-            # il sera mis à jour par recalculate_budget_items
         else:
             item.formula_moyen = None
             item.scenario_moyen = to_decimal(value_raw)
         
         item.save()
-        
-        # Recalcul global pour mettre à jour les dépendances
         recalculate_budget_items()
-        
-        # On recharge l'item pour avoir la valeur calculée
         item.refresh_from_db()
-        return render(request, 'budget/partials/budget_row_item.html', {'item': item})
+        
+    elif field == 'nom':
+        new_name = value_raw
+        # Vérification de doublon
+        if LigneBudgetaire.objects.filter(nom=new_name).exclude(pk=item.ligne_budgetaire.pk).exists():
+            return HttpResponse(
+                f'Une ligne nommée "{new_name}" existe déjà.',
+                status=409
+            )
+        lb = item.ligne_budgetaire
+        lb.nom = new_name
+        lb.save()
         
     elif field in ['scenario_bas', 'scenario_haut']:
         value = to_decimal(value_raw)
         setattr(item, field, value)
         item.save()
-        return render(request, 'budget/partials/budget_row_item.html', {'item': item})
         
     elif field == 'commentaire':
         item.commentaire = value_raw
         item.save()
-        return render(request, 'budget/partials/budget_row_item.html', {'item': item})
+    
+    # On ré-injecte les IDs pour le rendu de la ligne
+    all_subcats = BudgetSubCategory.objects.prefetch_related('items__ligne_budgetaire', 'subcategory').all()
+    _, items_with_ids = _inject_ids(all_subcats)
+    
+    # On retrouve l'item injecté pour avoir son short_id, puis on calcule son réalisé
+    for it in items_with_ids:
+        if it.pk == item.pk:
+            # S'assurer que les relations nécessaires sont chargées pour _compute_realise
+            # Note: _inject_ids a déjà chargé ligne_budgetaire et subcategory via l'it actuel
+            _compute_realise(it)
+            return render(request, 'budget/partials/budget_row_item.html', {'item': it})
+
+    # Fallback pour s'assurer que l'objet direct a aussi son réalisé calculé
+    _compute_realise(item)
+    return render(request, 'budget/partials/budget_row_item.html', {'item': item})
+
+
+def _compute_realise(item):
+    """Calcule item.realise en fonction de son groupe de catégorie."""
+    lb = item.ligne_budgetaire
+    group = item.subcategory.group
+    if group == 'produit':
+        res = FactureVente.objects.filter(ligne_budgetaire=lb).aggregate(total=Sum('montant_ht'))
+        item.realise = res['total'] or 0
+    else:
+        res_achats = FactureAchat.objects.filter(ligne_budgetaire=lb).aggregate(total=Sum('montant_ht'))
+        realise_achats = res_achats['total'] or 0
+        if "cotisation" in lb.nom.lower() and "urssaf" in lb.nom.lower():
+            res_bv = BulletinVersement.objects.filter(ligne_budgetaire=lb).aggregate(total=Sum('total_cotisations_junior'))
+        else:
+            res_bv = BulletinVersement.objects.filter(ligne_budgetaire=lb).aggregate(
+                total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh'))
+            )
+        realise_bv = res_bv['total'] or 0
+        item.realise = realise_achats + realise_bv
+
+
+def _inject_ids(subcats):
+    """Calcule et injecte les short_ids dans les items des catégories."""
+    prefixes = {}
+    items_flat = []
+    subcats_list = list(subcats)
+    for sc in subcats_list:
+        # Base: les 2 premières lettres alphanum
+        base = "".join(filter(str.isalnum, sc.name))[:2].upper()
+        if not base: base = "XX"
+        prefix = base
+        i = 2
+        while prefix in prefixes.values():
+            prefix = f"{base}{i}"
+            i += 1
+        prefixes[sc.id] = prefix
+        
+        sc.prefetched_items = list(sc.items.all())
+        for idx, item in enumerate(sc.prefetched_items, 1):
+            item.short_id = f"{prefix}{idx}"
+            items_flat.append(item)
+    return subcats_list, items_flat
     
     return HttpResponse("Erreur", status=400)
 
@@ -172,16 +263,27 @@ def recalculate_budget_items():
     Recalcule toutes les lignes budgétaires ayant une formule.
     Gère les dépendances en plusieurs passes.
     """
-    items = list(BudgetItem.objects.all().select_related('ligne_budgetaire'))
+    # On récupère tout pour avoir le contexte complet (noms + IDs)
+    all_subcats = BudgetSubCategory.objects.prefetch_related('items__ligne_budgetaire').all()
     
     # On fait au maximum N passes pour gérer les cascades de formules
-    max_passes = len(items)
+    items_flat = []
+    for sc in all_subcats:
+        items_flat.extend(list(sc.items.all()))
+        
+    max_passes = len(items_flat)
     for _ in range(max_passes):
         has_changed = False
-        # Context : nom -> valeur scenario_moyen
-        context = {it.ligne_budgetaire.nom: float(it.scenario_moyen) for it in items}
         
-        for it in items:
+        # On génère le contexte (IDs + Noms) à chaque passe via le helper
+        _, all_items = _inject_ids(all_subcats)
+        context = {}
+        for it in all_items:
+            val = float(it.scenario_moyen)
+            context[it.ligne_budgetaire.nom] = val
+            context[it.short_id] = val
+        
+        for it in items_flat:
             if it.formula_moyen:
                 new_val = evaluate_budget_formula(it.formula_moyen, context)
                 if new_val != it.scenario_moyen:
@@ -241,4 +343,40 @@ def delete_ligne_budgetaire(request, pk):
 def delete_line(request, pk):
     item = get_object_or_404(BudgetItem, pk=pk)
     item.delete()
+    return redirect('budget:dashboard')
+
+@require_POST
+def move_subcategory(request, pk, direction):
+    """Déplace une sous-catégorie vers le haut ou le bas au sein de son groupe."""
+    sc = get_object_or_404(BudgetSubCategory, pk=pk)
+    # On récupère toutes les catégories sœurs (même groupe, même parent)
+    siblings = list(BudgetSubCategory.objects.filter(group=sc.group, parent=sc.parent).order_by('ordre', 'name'))
+    
+    # Normalisation des ordres pour assurer une suite logique stable
+    for i, sibling in enumerate(siblings):
+        if sibling.ordre != i:
+            sibling.ordre = i
+            sibling.save(update_fields=['ordre'])
+            
+    current_index = next(i for i, sib in enumerate(siblings) if sib.pk == sc.pk)
+    
+    target_index = None
+    if direction == 'up' and current_index > 0:
+        target_index = current_index - 1
+    elif direction == 'down' and current_index < len(siblings) - 1:
+        target_index = current_index + 1
+        
+    if target_index is not None:
+        other = siblings[target_index]
+        # Swap des ordres
+        sc.ordre, other.ordre = other.ordre, sc.ordre
+        sc.save(update_fields=['ordre'])
+        other.save(update_fields=['ordre'])
+        
+    if request.headers.get('HX-Request'):
+        # On renvoie tout le dashboard, HTMX fera le hx-select="body" 
+        # (ou mieux, on pourrait extraire juste la partie nécessaire ici, 
+        # mais hx-select sur le client est plus simple pour l'instant)
+        return budget_dashboard(request)
+        
     return redirect('budget:dashboard')

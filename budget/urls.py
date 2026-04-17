@@ -11,4 +11,5 @@ urlpatterns = [
     path('line/add/', views.add_budget_line, name='add_line'),
     path('line/delete/<int:pk>/', views.delete_line, name='delete_line'),
     path('ligne-budgetaire/delete/<int:pk>/', views.delete_ligne_budgetaire, name='delete_ligne_budgetaire'),
+    path('subcategory/move/<int:pk>/<str:direction>/', views.move_subcategory, name='move_subcategory'),
 ]

@@ -1,0 +1,101 @@
+<div id="evolution-chart-container" class="budget-chart-container relative group">
+    <!-- Filtre par année -->
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="trending-up" width="14"></i>
+            Évolution du solde
+        </h3>
+        <form hx-get="{% url 'budget:dashboard' %}" 
+              hx-trigger="change" 
+              hx-target="#evolution-chart-container" 
+              hx-swap="outerHTML"
+              hx-vals='{"chart_only": "1"}'
+              class="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-lg border border-gray-200">
+            <label class="text-[10px] font-bold text-gray-400 uppercase">Année</label>
+            <select name="year" class="text-xs border-none bg-transparent focus:ring-0 py-1 pl-1 pr-8 text-gray-600 font-semibold cursor-pointer">
+                <option value="">Toutes les années</option>
+                {% for y in available_years %}
+                    <option value="{{ y }}" {% if selected_year == y|stringformat:"i" %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <div style="height: 220px;">
+        <canvas id="evolutionChart"></canvas>
+    </div>
+    
+    <script>
+    (function() {
+        const data = JSON.parse('{{ chart_data_json|safe }}');
+        const valeurVisee = parseFloat("{{ totals.visé|stringformat:'.2f' }}") || 0;
+        const ctx = document.getElementById('evolutionChart').getContext('2d');
+        
+        // Destruire le graphe existant si nécessaire (Chart.js garde une trace si on ne fait pas attention)
+        const existingChart = Chart.getChart("evolutionChart");
+        if (existingChart) existingChart.destroy();
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: 'Income',
+                        data: data.income,
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Expenses',
+                        data: data.expenses,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Objectif',
+                        data: Array(data.labels.length).fill(valeurVisee),
+                        borderColor: '#3b82f6',
+                        borderWidth: 1.5,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 800 },
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { 
+                        display: true,
+                        ticks: { font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
+                        grid: { display: false }
+                    },
+                    y: { 
+                        display: true,
+                        beginAtZero: true,
+                        suggestedMax: valeurVisee * 1.2, 
+                        ticks: { font: { size: 9 }, callback: function(value) { return value + ' €'; } },
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                    }
+                }
+            }
+        });
+        
+        // Re-init Lucide icon in the filter
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    })();
+    </script>
+</div>

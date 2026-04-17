@@ -6,6 +6,15 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    @keyframes bounce-short {
+        0%, 100% { transform: translate(-50%, 0); }
+        50% { transform: translate(-50%, -10px); }
+    }
+    .animate-bounce-short {
+        animation: bounce-short 0.5s ease-in-out 3;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -42,14 +51,10 @@
 
 </div>
 
-<!-- Evolution Chart (Separate Box) -->
-<div class="budget-chart-container">
-    <div style="height: 220px;">
-        <canvas id="evolutionChart"></canvas>
-    </div>
-</div>
+<!-- evolution Chart -->
+{% include "budget/partials/dashboard_chart.html" %}
 
-<div class="budget-main-column">
+<div id="budget-main-content" class="budget-main-column">
 
     <!-- ─── PRODUITS ────────────────────────────────────────── -->
     <div class="budget-section-header">
@@ -71,7 +76,29 @@
                         <span class="font-bold text-gray-800 uppercase tracking-wide">{{ sc.name }}</span>
                         <span class="category-budget-tag">{{ sc.total_moyen_cumule|floatformat:2 }} €</span>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 items-center">
+                        <div class="flex items-center border-r border-gray-200 pr-2 mr-1 gap-1">
+                            <form hx-post="{% url 'budget:move_subcategory' sc.pk 'up' %}" 
+                                  hx-target="#budget-main-content" 
+                                  hx-select="#budget-main-content" 
+                                  hx-swap="outerHTML" 
+                                  class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-indigo-600 transition-colors" title="Monter">
+                                    <i data-lucide="chevron-up" width="16"></i>
+                                </button>
+                            </form>
+                            <form hx-post="{% url 'budget:move_subcategory' sc.pk 'down' %}" 
+                                  hx-target="#budget-main-content" 
+                                  hx-select="#budget-main-content" 
+                                  hx-swap="outerHTML" 
+                                  class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-indigo-600 transition-colors" title="Descendre">
+                                    <i data-lucide="chevron-down" width="16"></i>
+                                </button>
+                            </form>
+                        </div>
                         <button class="btn btn-ghost btn-sm text-primary" onclick="openAddLineModal('{{ sc.id }}', '{{ sc.name }}')">
                             <i data-lucide="plus-circle" width="14" class="mr-1"></i> Ajouter une ligne
                         </button>
@@ -86,15 +113,15 @@
                 <table class="budget-table w-full" style="table-layout: fixed;">
                     <thead>
                         <tr class="text-xs text-muted uppercase">
-                            <th class="text-left py-2 px-4" style="width: 25%">Ligne</th>
+                            <th class="text-left py-2 px-4" style="width: 30%">Ligne</th>
                             <th class="text-right py-2 px-4" style="width: 15%">Budget Moyen</th>
                             <th class="text-right py-2 px-4" style="width: 15%">Réalisé</th>
-                            <th class="text-left py-2 px-4" style="width: 40%">Commentaire</th>
+                            <th class="text-left py-2 px-4" style="width: 35%">Commentaire</th>
                             <th class="py-2 px-4" style="width: 5%"></th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in sc.items.all %}
+                        {% for item in sc.prefetched_items %}
                             {% include "budget/partials/budget_row_item.html" with item=item %}
                         {% endfor %}
                     </tbody>
@@ -122,7 +149,29 @@
                         <span class="font-bold text-gray-800 uppercase tracking-wide">{{ sc.name }}</span>
                         <span class="category-budget-tag">{{ sc.total_moyen_cumule|floatformat:2 }} €</span>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 items-center">
+                        <div class="flex items-center border-r border-gray-200 pr-2 mr-1 gap-1">
+                            <form hx-post="{% url 'budget:move_subcategory' sc.pk 'up' %}" 
+                                  hx-target="#budget-main-content" 
+                                  hx-select="#budget-main-content" 
+                                  hx-swap="outerHTML" 
+                                  class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-indigo-600 transition-colors" title="Monter">
+                                    <i data-lucide="chevron-up" width="16"></i>
+                                </button>
+                            </form>
+                            <form hx-post="{% url 'budget:move_subcategory' sc.pk 'down' %}" 
+                                  hx-target="#budget-main-content" 
+                                  hx-select="#budget-main-content" 
+                                  hx-swap="outerHTML" 
+                                  class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-indigo-600 transition-colors" title="Descendre">
+                                    <i data-lucide="chevron-down" width="16"></i>
+                                </button>
+                            </form>
+                        </div>
                         <button class="btn btn-ghost btn-sm text-primary" onclick="openAddLineModal('{{ sc.id }}', '{{ sc.name }}')">
                             <i data-lucide="plus-circle" width="14" class="mr-1"></i> Ajouter une ligne
                         </button>
@@ -137,15 +186,15 @@
                 <table class="budget-table w-full" style="table-layout: fixed;">
                     <thead>
                         <tr class="text-xs text-muted uppercase">
-                            <th class="text-left py-2 px-4" style="width: 25%">Ligne</th>
+                            <th class="text-left py-2 px-4" style="width: 30%">Ligne</th>
                             <th class="text-right py-2 px-4" style="width: 15%">Budget Moyen</th>
                             <th class="text-right py-2 px-4" style="width: 15%">Réalisé</th>
-                            <th class="text-left py-2 px-4" style="width: 40%">Commentaire</th>
+                            <th class="text-left py-2 px-4" style="width: 35%">Commentaire</th>
                             <th class="py-2 px-4" style="width: 5%"></th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in sc.items.all %}
+                        {% for item in sc.prefetched_items %}
                             {% include "budget/partials/budget_row_item.html" with item=item %}
                         {% endfor %}
                     </tbody>
@@ -207,7 +256,10 @@
             <div class="card-title">Nouvelle ligne — <span id="modal-subcat-name" class="text-primary"></span></div>
         </div>
         <div class="card-body">
-            <form action="{% url 'budget:add_line' %}" method="post" class="space-y-4">
+            <form hx-post="{% url 'budget:add_line' %}" 
+                  hx-target="body" 
+                  hx-push-url="false"
+                  class="space-y-4">
                 {% csrf_token %}
                 <input type="hidden" name="subcategory_id" id="modal-subcat-id">
                 <div class="form-group">
@@ -241,86 +293,39 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Chart.js Evolution
-document.addEventListener('DOMContentLoaded', function() {
-    const data = JSON.parse('{{ chart_data_json|safe }}');
-    // On récupère la valeur cible depuis Django
-    const valeurVisee = parseFloat("{{ totals.visé|stringformat:'.2f' }}") || 0;
-    
-    const ctx = document.getElementById('evolutionChart').getContext('2d');
-    
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.labels,
-            datasets: [
-                {
-                    label: 'Income',
-                    data: data.income,
-                    borderColor: '#22c55e',
-                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0
-                },
-                {
-                    label: 'Expenses',
-                    data: data.expenses,
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0
-                },
-                {
-                    // --- Ligne horizontale d'objectif ---
-                    label: 'Objectif',
-                    // On crée une liste de la même taille que les labels avec la même valeur partout
-                    data: Array(data.labels.length).fill(valeurVisee),
-                    borderColor: '#3b82f6', // Bleu
-                    borderWidth: 2,
-                    borderDash: [5, 5],    // Ligne pointillée
-                    fill: false,
-                    pointRadius: 0,
-                    order: 1               // Pour qu'elle passe derrière ou devant
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { 
-                    display: true,
-                    ticks: {
-                        font: { size: 9 },
-                        maxRotation: 0,
-                        autoSkip: true,
-                        maxTicksLimit: 8
-                    },
-                    grid: { display: false }
-                },
-                y: { 
-                    display: true, // On l'affiche pour donner de la hauteur
-                    beginAtZero: true,
-                    // On force le graphique à monter un peu plus haut que la valeur visée
-                    suggestedMax: valeurVisee * 1.2, 
-                    ticks: {
-                        font: { size: 9 },
-                        callback: function(value) { return value + ' €'; }
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                }
-            }
+// Warning toast pour doublon de nom
+function budgetNomError(el, event) {
+    if (event.detail.xhr.status === 409) {
+        // Restaurer le nom d'origine stocké dans data-orig-nom
+        if (el.dataset.origNom) {
+            el.innerText = el.dataset.origNom;
         }
-    });
+        
+        // Affichage d'un toast plus moderne
+        const msg = event.detail.xhr.responseText;
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 bg-red-600 text-white px-6 py-3 rounded-xl shadow-2xl animate-bounce-short';
+        toast.innerHTML = `
+            <i data-lucide="alert-circle" width="18"></i>
+            <span class="font-medium">${msg}</span>
+        `;
+        document.body.appendChild(toast);
+        
+        // Initializer l'icône dans le toast
+        if (typeof lucide !== 'undefined') lucide.createIcons({attrs: {"data-lucide": "alert-circle"}});
+        
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+            setTimeout(() => toast.remove(), 500);
+        }, 3500);
+    }
+}
+
+// Fix Lucide icons after HTMX swap
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 });
 </script>
 

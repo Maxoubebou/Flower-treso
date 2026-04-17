@@ -48,16 +48,21 @@ def evaluate_budget_formula(formula, context, default=Decimal('0')):
     # 1. On nettoie la formule (enlever le = initial si présent)
     clean_formula = str(formula).strip().lstrip('=')
 
-    # 2. On substitue les variables [Nom de ligne]
-    # Les noms de lignes sont extraits entre crochets.
-    matches = re.findall(r'\[(.*?)\]', clean_formula)
-    
-    # On trie les matches par longueur décroissante pour éviter que "[Salaire]" remplace "[Salaire Brut]" partiellement
-    for match in sorted(set(matches), key=len, reverse=True):
+    # 2. On substitue les variables [Nom de ligne] ou les IDs (ex: ET1)
+    # On commence par les crochets [...] qui sont explicites
+    bracket_matches = re.findall(r'\[(.*?)\]', clean_formula)
+    for match in sorted(set(bracket_matches), key=len, reverse=True):
         val = context.get(match, 0)
-        # On remplace [match] par la valeur numérique
-        # On met des parenthèses au cas où la valeur est négative
         clean_formula = clean_formula.replace(f'[{match}]', f'({val})')
+
+    # Ensuite on cherche les IDs "nus" (ex: ET1, SA2)
+    # Pattern: 2+ lettres majuscules suivies de chiffres, isolés par des limites de mots
+    naked_matches = re.findall(r'\b([A-Z]{2,}\d+)\b', clean_formula)
+    for match in sorted(set(naked_matches), key=len, reverse=True):
+        if match in context:
+            val = context.get(match, 0)
+            # On utilise une substitution par regex pour respecter les \b
+            clean_formula = re.sub(rf'\b{match}\b', f'({val})', clean_formula)
 
     # 3. Sécurité : on n'accepte que des caractères sûrs pour eval
     # Chiffres, opérateurs, parenthèses, point, virgule, espace

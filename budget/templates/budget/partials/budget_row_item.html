@@ -1,11 +1,21 @@
 <tr class="budget-row-item {% if is_nested %}budget-row-nested{% endif %} group">
     <td class="py-3 px-4">
-        <div class="font-medium text-gray-800">{{ item.ligne_budgetaire.nom }}</div>
+        <div class="flex items-center gap-2.5">
+            <span class="font-mono font-black text-[10px] text-indigo-600 opacity-60 tracking-tight" title="ID utilisable dans les formules">{{ item.short_id }}</span>
+            <div class="font-medium text-gray-800 editable-cell px-2 py-0.5 rounded transition-colors hover:bg-gray-100 cursor-edit min-w-0"
+                 contenteditable="true"
+                 data-orig-nom="{{ item.ligne_budgetaire.nom }}"
+                 hx-post="{% url 'budget:item_update' item.pk %}"
+                 hx-trigger="blur"
+                 hx-target="closest tr"
+                 hx-swap="outerHTML"
+                 hx-vals='js:{"field": "nom", "value": event.target.innerText}'
+                 hx-on::response-error="budgetNomError(this, event)">
+                {{ item.ligne_budgetaire.nom }}
+            </div>
+        </div>
     </td>
     <td class="text-right py-3 px-4 font-mono relative">
-        {% if item.formula_moyen %}
-            <span class="absolute left-0 top-1/2 -translate-y-1/2 text-[10px] bg-indigo-100 text-indigo-600 px-1 rounded opacity-50 font-sans" title="{{ item.formula_moyen }}">fx</span>
-        {% endif %}
         <span class="editable-cell cursor-edit px-2 py-1 rounded hover:bg-gray-100" 
               contenteditable="true"
               data-formula="{{ item.formula_moyen|default:'' }}"
@@ -22,8 +32,8 @@
         {{ item.realise|floatformat:2 }}
     </td>
     <td class="py-3 px-4">
-        <div class="budget-comment-cell cursor-edit" 
-            style="min-height: 2.8rem; border: 1px solid var(--color-gray-200); border-radius: 4px; padding: 4px 8px; background-color: #fafafa; word-break: break-word; overflow-wrap: anywhere; white-space: normal;"
+        <div class="budget-comment-cell editable-cell cursor-edit" 
+            style="max-height: 4rem; overflow-y: auto; border: 1px solid var(--color-gray-200); border-radius: 4px; padding: 4px 8px; background-color: #fafafa; word-break: break-word; overflow-wrap: anywhere; white-space: normal; font-size: 0.85rem;"
             contenteditable="true"
             hx-post="{% url 'budget:item_update' item.pk %}"
             hx-trigger="blur"
