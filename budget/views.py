@@ -73,8 +73,8 @@ def budget_dashboard(request):
     totals['solde_prevu'] = totals['visé'] - sum(item.scenario_moyen for item in items_flat if item.subcategory.group == 'charge')
     totals['solde_reel'] = totals['réalisé_p'] - totals['réalisé_c']
 
-    # ─── Graphique d'évolution (Hebdomadaire) ─────────────────
-    from django.db.models.functions import TruncWeek
+    # ─── Graphique d'évolution ─────────────────
+    from django.db.models.functions import TruncWeek, TruncMonth
     import json
     from datetime import datetime, date
 
@@ -89,50 +89,95 @@ def budget_dashboard(request):
     b_years = set(BulletinVersement.objects.dates('date_operation', 'year').values_list('date_operation__year', flat=True))
     available_years = sorted(list(v_years | a_years | b_years), reverse=True)
 
+    is_year_view = False
     if selected_year and selected_year.isdigit():
         year_int = int(selected_year)
         ventes_qs = ventes_qs.filter(date_operation__year=year_int)
         achats_qs = achats_qs.filter(date_operation__year=year_int)
         bv_qs = bv_qs.filter(date_operation__year=year_int)
-    else:
-        # Par défaut, on peut montrer l'année en cours ou tout
-        # Si on veut rester "simple" et que l'utilisateur n'a pas choisi, on montre tout ou l'année max
-        pass
+        is_year_view = True
 
-    ventes_semaine = ventes_qs.annotate(week=TruncWeek('date_operation')) \
-        .values('week').annotate(total=Sum('montant_ht')).order_by('week')
-    
-    achats_semaine = achats_qs.annotate(week=TruncWeek('date_operation')) \
-        .values('week').annotate(total=Sum('montant_ht')).order_by('week')
-    
-    bv_semaine = bv_qs.annotate(week=TruncWeek('date_operation')) \
-        .values('week').annotate(total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh') + F('total_cotisations_junior'))) \
-        .order_by('week')
-
-    # Fusion des données hebdomadaires
-    all_weeks = sorted(list(set(
-        [v['week'] for v in ventes_semaine] + 
-        [a['week'] for a in achats_semaine] + 
-        [b['week'] for b in bv_semaine]
-    )))
-
-    chart_labels = [w.strftime('%d/%m') for w in all_weeks]
     chart_income = []
     chart_expenses = []
-    
-    cumul_i = 0
-    cumul_e = 0
-    
-    for w in all_weeks:
-        v_val = next((v['total'] for v in ventes_semaine if v['week'] == w), 0)
-        a_val = next((a['total'] for a in achats_semaine if a['week'] == w), 0)
-        b_val = next((b['total'] for b in bv_semaine if b['week'] == w), 0)
+    chart_labels = []
+
+    if is_year_view:
+        # Vue par mois (12 mois fixes)
+        chart_labels = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"]
         
-        cumul_i += float(v_val)
-        cumul_e += float(a_val + b_val)
+        # Agrégation par mois
+        ventes_data = ventes_qs.annotate(month=TruncMonth('date_operation')) \
+            .values('month').annotate(total=Sum('montant_ht')).order_by('month')
+        achats_data = achats_qs.annotate(month=TruncMonth('date_operation')) \
+            .values('month').annotate(total=Sum('montant_ht')).order_by('month')
+        bv_data = bv_qs.annotate(month=TruncMonth('date_operation')) \
+            .values('month').annotate(total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh') + F('total_cotisations_junior'))) \
+            .order_by('month')
+            
+        cumul_i = 0
+        cumul_e = 0
+        for m in range(1, 13):
+            v_val = next((v['total'] for v in ventes_data if v['month'] and v['month'].month == m), 0)
+            a_val = next((a['total'] for a in achats_data if a['month'] and a['month'].month == m), 0)
+            b_val = next((b['total'] for b in bv_data if b['month'] and b['month'].month == m), 0)
+            
+            cumul_i += float(v_val or 0)
+            cumul_e += float((a_val or 0) + (b_val or 0))
+            
+            chart_income.append(round(cumul_i, 2))
+            chart_expenses.append(round(cumul_e, 2))
+    else:
+        # Vue "Toutes les années" -> Hebdomadaire (CONTINUE)
+        from datetime import timedelta
         
-        chart_income.append(cumul_i)
-        chart_expenses.append(cumul_e)
+        # Récupération des données brutes par semaine
+        ventes_data = ventes_qs.annotate(week=TruncWeek('date_operation')) \
+            .values('week').annotate(total=Sum('montant_ht')).order_by('week')
+        achats_data = achats_qs.annotate(week=TruncWeek('date_operation')) \
+            .values('week').annotate(total=Sum('montant_ht')).order_by('week')
+        bv_data = bv_qs.annotate(week=TruncWeek('date_operation')) \
+            .values('week').annotate(total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh') + F('total_cotisations_junior'))) \
+            .order_by('week')
+
+        # Trouver les bornes
+        all_raw_weeks = [v['week'] for v in ventes_data if v['week']] + \
+                         [a['week'] for a in achats_data if a['week']] + \
+                         [b['week'] for b in bv_data if b['week']]
+        
+        if all_raw_weeks:
+            min_w = min(all_raw_weeks)
+            max_w = max(all_raw_weeks)
+            
+            # Conversion en dict pour perfs O(1)
+            v_dict = {(v['week'].date() if hasattr(v['week'], 'date') else v['week']): v['total'] for v in ventes_data if v['week']}
+            a_dict = {(a['week'].date() if hasattr(a['week'], 'date') else a['week']): a['total'] for a in achats_data if a['week']}
+            b_dict = {(b['week'].date() if hasattr(b['week'], 'date') else b['week']): b['total'] for b in bv_data if b['week']}
+            
+            # Générer TOUTES les semaines entre min et max
+            current_w = min_w
+            if isinstance(current_w, datetime): current_w = current_w.date()
+            if isinstance(max_w, datetime): max_w = max_w.date()
+            
+            cumul_i = 0
+            cumul_e = 0
+            
+            while current_w <= max_w:
+                v_val = v_dict.get(current_w, 0)
+                a_val = a_dict.get(current_w, 0)
+                b_val = b_dict.get(current_w, 0)
+                
+                cumul_i += float(v_val or 0)
+                cumul_e += float((a_val or 0) + (b_val or 0))
+                
+                chart_labels.append(current_w.strftime('%d/%m/%y'))
+                chart_income.append(round(cumul_i, 2))
+                chart_expenses.append(round(cumul_e, 2))
+                
+                current_w += timedelta(days=7)
+        else:
+            chart_labels = ["Pas de données"]
+            chart_income = [0]
+            chart_expenses = [0]
 
     chart_data = {
         'labels': chart_labels,
