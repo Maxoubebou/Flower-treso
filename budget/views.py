@@ -246,19 +246,27 @@ def budget_item_update(request, pk):
         item.commentaire = value_raw
         item.save()
     
-    # On ré-injecte les IDs pour le rendu de la ligne
-    all_subcats = BudgetSubCategory.objects.prefetch_related('items__ligne_budgetaire', 'subcategory').all()
+    # On ré-injecte les IDs et on s'assure d'avoir les DERNIÈRES valeurs pour l'item actuel
+    all_subcats = BudgetSubCategory.objects.prefetch_related('items__ligne_budgetaire').all()
+    # On génère le contexte pour pouvoir évaluer immédiatement pour l'item actuel si besoin
     _, items_with_ids = _inject_ids(all_subcats)
     
-    # On retrouve l'item injecté pour avoir son short_id, puis on calcule son réalisé
+    context = {}
+    for it in items_with_ids:
+        context[it.ligne_budgetaire.nom] = float(it.scenario_moyen)
+        context[it.short_id] = float(it.scenario_moyen)
+
+    # On cherche l'item dans items_with_ids pour avoir son short_id
     for it in items_with_ids:
         if it.pk == item.pk:
-            # S'assurer que les relations nécessaires sont chargées pour _compute_realise
-            # Note: _inject_ids a déjà chargé ligne_budgetaire et subcategory via l'it actuel
+            # S'il y a une formule, on l'évalue ENCORE une fois localement pour être SÛR 
+            # de ne pas renvoyer de valeur périmée au client HTMX
+            if it.formula_moyen:
+                it.scenario_moyen = evaluate_budget_formula(it.formula_moyen, context)
+            
             _compute_realise(it)
             return render(request, 'budget/partials/budget_row_item.html', {'item': it})
 
-    # Fallback pour s'assurer que l'objet direct a aussi son réalisé calculé
     _compute_realise(item)
     return render(request, 'budget/partials/budget_row_item.html', {'item': item})
 
@@ -424,9 +432,26 @@ def move_subcategory(request, pk, direction):
         other.save(update_fields=['ordre'])
         
     if request.headers.get('HX-Request'):
-        # On renvoie tout le dashboard, HTMX fera le hx-select="body" 
-        # (ou mieux, on pourrait extraire juste la partie nécessaire ici, 
-        # mais hx-select sur le client est plus simple pour l'instant)
         return budget_dashboard(request)
         
     return redirect('budget:dashboard')
+
+
+@require_POST
+def reorder_categories(request):
+    """Réordonne les catégories via Drag & Drop (liste d'IDs)."""
+    import json
+    from django.http import JsonResponse
+    from django.db import transaction
+    
+    try:
+        data = json.loads(request.body)
+        order = data.get('order', [])
+        
+        with transaction.atomic():
+            for index, sc_id in enumerate(order):
+                BudgetSubCategory.objects.filter(pk=sc_id).update(ordre=index)
+                
+        return JsonResponse({'status': 'ok'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

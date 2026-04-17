@@ -1225,69 +1225,138 @@ dialog::backdrop {
   backdrop-filter: blur(4px) !important;
 }
 
-.budget-comment-cell {
-  width: 300px !important;
-  max-width: 300px !important;
-  min-height: 4.5em !important;
-  max-height: 8em !important;
-  overflow-y: auto !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  white-space: normal !important;
-  border: 1px solid var(--color-gray-200) !important;
-  padding: 8px !important;
-  border-radius: var(--radius-md) !important;
+/* ─── Budget Theme Segments (Ultra-Compact Style) ──────────── */
+
+.budget-main-column {
+  background-color: #f8fafc !important;
+  padding: 16px !important;
+}
+
+.card.sortable-item {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  margin-bottom: 40px !important; /* Airy spacing */
   background: #fff !important;
+  overflow: hidden;
 }
 
-.budget-comment-cell:focus {
-  outline: 2px solid var(--color-primary) !important;
-  border-color: transparent !important;
+.card-header {
+  padding: 6px 16px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
 }
 
-/* ─── Budget Refinement : Heavy Stat Rectangles ──────────── */
-.budget-summary-grid {
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  gap: 20px !important;
+/* PRODUITS (Income) - Indigo Theme */
+.budget-card-produit {
+  border-left: 6px solid #4f46e5 !important;
+  background-color: #f5f7ff !important;
+}
+
+.budget-card-produit .card-header {
+  background: rgba(79, 70, 229, 0.08) !important; 
+  border-bottom: 1px solid rgba(79, 70, 229, 0.1) !important;
+}
+
+.budget-card-produit .card-header span {
+  color: #4338ca !important;
+  font-weight: 800 !important;
+  font-size: 0.75rem !important;
+}
+
+/* CHARGES (Expenses) - Rose Theme */
+.budget-card-charge {
+  border-left: 6px solid #e11d48 !important;
+  background-color: #fff5f6 !important;
+}
+
+.budget-card-charge .card-header {
+  background: rgba(225, 29, 72, 0.08) !important;
+  border-bottom: 1px solid rgba(225, 29, 72, 0.1) !important;
+}
+
+.budget-card-charge .card-header span {
+  color: #be123c !important;
+  font-weight: 800 !important;
+  font-size: 0.75rem !important;
+}
+
+.budget-table {
+  background: transparent !important;
+  width: 100% !important;
+}
+
+.budget-table thead th {
+  background-color: rgba(0,0,0,0.02) !important;
+  padding: 6px 16px !important;
+  font-size: 0.65rem !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+}
+
+.budget-table td {
+  padding: 6px 16px !important;
+  border-bottom: 1px solid rgba(0,0,0,0.03) !important;
+  font-size: 0.8rem !important;
+}
+
+/* Section Headers - Banner Style */
+.budget-section-banner-produit {
+  background: rgba(79, 70, 229, 0.1) !important;
+  border-left: 8px solid #4f46e5 !important;
+  padding: 12px 20px !important;
+  border-radius: 8px !important;
+  margin-top: 32px !important;
   margin-bottom: 24px !important;
 }
 
-.summary-card {
-  background: #fff !important;
-  border: 2px solid var(--color-gray-100) !important;
-  border-radius: 12px !important;
-  padding: 24px !important;
-  text-align: center !important;
-  transition: border-color 0.2s !important;
+.budget-section-banner-charge {
+  background: rgba(225, 29, 72, 0.1) !important;
+  border-left: 8px solid #e11d48 !important;
+  padding: 12px 20px !important;
+  border-radius: 8px !important;
+  margin-top: 48px !important;
+  margin-bottom: 24px !important;
 }
 
-.summary-card:hover {
-  border-color: var(--color-primary-100) !important;
+.category-budget-tag {
+  font-size: 0.65rem !important;
+  padding: 1px 6px !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  margin-left: 8px !important;
 }
 
-.summary-label {
+.budget-card-produit .category-budget-tag {
+  background: #e0e7ff !important;
+  color: #4338ca !important;
+}
+
+.budget-card-charge .category-budget-tag {
+  background: #ffe4e6 !important;
+  color: #be123c !important;
+}
+
+.btn-xs {
+  padding: 2px 6px !important;
   font-size: 0.7rem !important;
-  font-weight: 800 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  color: var(--color-gray-500) !important;
-  margin-bottom: 8px !important;
 }
 
-.summary-value {
-  font-size: 1.75rem !important;
-  font-weight: 900 !important;
-  color: var(--color-gray-900) !important;
-  line-height: 1 !important;
+/* Success Flash Animation */
+@keyframes budget-success-flash {
+  0% { background-color: rgba(34, 197, 94, 0.2); }
+  100% { background-color: transparent; }
 }
 
-.budget-chart-container {
-  background: #fff !important;
-  border: 1px solid var(--color-gray-200) !important;
-  border-radius: 12px !important;
-  padding: 24px !important;
-  height: auto !important;
-  margin-bottom: 48px !important;
-  box-shadow: var(--shadow-sm) !important;
+.budget-row-updated {
+  animation: budget-success-flash 1s ease-out;
+}
+
+.editable-cell:focus {
+  outline: none;
+  background-color: #fff !important;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2) !important;
 }

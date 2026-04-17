@@ -12,4 +12,5 @@ urlpatterns = [
     path('line/delete/<int:pk>/', views.delete_line, name='delete_line'),
     path('ligne-budgetaire/delete/<int:pk>/', views.delete_ligne_budgetaire, name='delete_ligne_budgetaire'),
     path('subcategory/move/<int:pk>/<str:direction>/', views.move_subcategory, name='move_subcategory'),
+    path('subcategory/reorder/', views.reorder_categories, name='reorder_categories'),
 ]

@@ -6,6 +6,7 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <style>
     @keyframes bounce-short {
         0%, 100% { transform: translate(-50%, 0); }
@@ -13,6 +14,17 @@
     }
     .animate-bounce-short {
         animation: bounce-short 0.5s ease-in-out 3;
+    }
+    .sortable-ghost {
+        opacity: 0.4;
+        background: var(--color-primary-light) !important;
+        border: 2px dashed var(--color-primary) !important;
+    }
+    .drag-handle {
+        cursor: grab;
+    }
+    .drag-handle:active {
+        cursor: grabbing;
     }
 </style>
 {% endblock %}
@@ -57,9 +69,9 @@
 <div id="budget-main-content" class="budget-main-column">
 
     <!-- ─── PRODUITS ────────────────────────────────────────── -->
-    <div class="budget-section-header">
-        <h2 class="flex items-center gap-2 m-0">
-            <i data-lucide="trending-up" class="text-success"></i>
+    <div class="budget-section-banner-produit flex justify-between items-center">
+        <h2 class="flex items-center gap-3 m-0">
+            <i data-lucide="trending-up" class="text-indigo-600"></i>
             Produits (Recettes)
             <span class="text-xs text-muted font-normal ml-2">Solde prév: {{ totals.solde_prevu|floatformat:0 }}€</span>
         </h2>
@@ -67,44 +79,25 @@
             <i data-lucide="plus" width="16" class="mr-1"></i> Ajouter une catégorie
         </button>
     </div>
-
-    <div class="space-y-8">
-        {% for sc in produits %}
-            <div class="card overflow-hidden">
-                <div class="card-header flex justify-between items-center py-3 bg-gray-50">
-                    <div class="flex items-center">
-                        <span class="font-bold text-gray-800 uppercase tracking-wide">{{ sc.name }}</span>
-                        <span class="category-budget-tag">{{ sc.total_moyen_cumule|floatformat:2 }} €</span>
+    <div id="sortable-produits" class="space-y-12">
+        {% for sc in all_subcats %}
+            {% if sc.group == 'produit' %}
+            <div class="card sortable-item group budget-card-produit" data-id="{{ sc.id }}">
+                <div class="card-header border-b border-gray-100 bg-gray-50/50">
+                    <div class="flex items-center gap-3">
+                        <div class="drag-handle cursor-grab text-gray-300 hover:text-gray-600 transition-colors">
+                            <i data-lucide="grip-vertical" width="18"></i>
+                        </div>
+                        <span class="text-sm font-bold">{{ sc.name|upper }}</span>
+                        <span class="category-budget-tag">PRÉVU: {{ sc.total_prevu|floatformat:0 }}€</span>
                     </div>
                     <div class="flex gap-2 items-center">
-                        <div class="flex items-center border-r border-gray-200 pr-2 mr-1 gap-1">
-                            <form hx-post="{% url 'budget:move_subcategory' sc.pk 'up' %}" 
-                                  hx-target="#budget-main-content" 
-                                  hx-select="#budget-main-content" 
-                                  hx-swap="outerHTML" 
-                                  class="inline">
-                                {% csrf_token %}
-                                <button type="submit" class="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-indigo-600 transition-colors" title="Monter">
-                                    <i data-lucide="chevron-up" width="16"></i>
-                                </button>
-                            </form>
-                            <form hx-post="{% url 'budget:move_subcategory' sc.pk 'down' %}" 
-                                  hx-target="#budget-main-content" 
-                                  hx-select="#budget-main-content" 
-                                  hx-swap="outerHTML" 
-                                  class="inline">
-                                {% csrf_token %}
-                                <button type="submit" class="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-indigo-600 transition-colors" title="Descendre">
-                                    <i data-lucide="chevron-down" width="16"></i>
-                                </button>
-                            </form>
-                        </div>
-                        <button class="btn btn-ghost btn-sm text-primary" onclick="openAddLineModal('{{ sc.id }}', '{{ sc.name }}')">
-                            <i data-lucide="plus-circle" width="14" class="mr-1"></i> Ajouter une ligne
+                        <button class="btn btn-xs btn-ghost text-primary" onclick="openAddLineModal('{{ sc.id }}', '{{ sc.name }}')">
+                            <i data-lucide="plus-circle" width="12" class="mr-1"></i> Ligne
                         </button>
-                        <form action="{% url 'budget:delete_subcategory' sc.pk %}" method="post" onsubmit="return confirm('Supprimer cette catégorie et toutes ses lignes ?')">
+                        <form action="{% url 'budget:delete_subcategory' sc.pk %}" method="post" onsubmit="return confirm('Supprimer ?')">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-ghost btn-sm text-danger opacity-50 hover:opacity-100">
+                            <button type="submit" class="p-1 text-gray-300 hover:text-danger hover:bg-danger-light rounded transition-all">
                                 <i data-lucide="trash-2" width="14"></i>
                             </button>
                         </form>
@@ -127,62 +120,44 @@
                     </tbody>
                 </table>
             </div>
+            {% endif %}
         {% endfor %}
     </div>
 
     <!-- ─── CHARGES ─────────────────────────────────────────── -->
-    <div class="budget-section-header">
-        <h2 class="flex items-center gap-2 m-0">
-            <i data-lucide="trending-down" class="text-danger"></i>
+    <div class="budget-section-banner-charge flex justify-between items-center">
+        <h2 class="flex items-center gap-3 m-0">
+            <i data-lucide="trending-down" class="text-rose-600"></i>
             Charges (Dépenses)
         </h2>
         <button class="btn btn-sm btn-outline" onclick="document.getElementById('dialog-add-subcat-charge').showModal()">
             <i data-lucide="plus" width="16" class="mr-1"></i> Ajouter une catégorie
         </button>
     </div>
-
-    <div class="space-y-8">
-        {% for sc in charges %}
-            <div class="card overflow-hidden">
-                <div class="card-header flex justify-between items-center py-3 bg-gray-50 border-b">
+    <div id="sortable-charges" class="space-y-12">
+        {% for sc in all_subcats %}
+            {% if sc.group == 'charge' %}
+            <div class="card overflow-hidden sortable-item budget-card-charge" data-id="{{ sc.id }}">
+                <div class="card-header flex justify-between items-center">
                     <div class="flex items-center">
-                        <span class="font-bold text-gray-800 uppercase tracking-wide">{{ sc.name }}</span>
-                        <span class="category-budget-tag">{{ sc.total_moyen_cumule|floatformat:2 }} €</span>
+                        <div class="drag-handle mr-3 text-gray-300 hover:text-rose-600 transition-colors">
+                            <i data-lucide="grip-vertical" width="18"></i>
+                        </div>
+                        <span class="font-bold text-sm tracking-tight uppercase">{{ sc.name }}</span>
+                        <span class="category-budget-tag">PRÉVU: {{ sc.total_prevu|floatformat:0 }}€</span>
                     </div>
                     <div class="flex gap-2 items-center">
-                        <div class="flex items-center border-r border-gray-200 pr-2 mr-1 gap-1">
-                            <form hx-post="{% url 'budget:move_subcategory' sc.pk 'up' %}" 
-                                  hx-target="#budget-main-content" 
-                                  hx-select="#budget-main-content" 
-                                  hx-swap="outerHTML" 
-                                  class="inline">
-                                {% csrf_token %}
-                                <button type="submit" class="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-indigo-600 transition-colors" title="Monter">
-                                    <i data-lucide="chevron-up" width="16"></i>
-                                </button>
-                            </form>
-                            <form hx-post="{% url 'budget:move_subcategory' sc.pk 'down' %}" 
-                                  hx-target="#budget-main-content" 
-                                  hx-select="#budget-main-content" 
-                                  hx-swap="outerHTML" 
-                                  class="inline">
-                                {% csrf_token %}
-                                <button type="submit" class="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-indigo-600 transition-colors" title="Descendre">
-                                    <i data-lucide="chevron-down" width="16"></i>
-                                </button>
-                            </form>
-                        </div>
-                        <button class="btn btn-ghost btn-sm text-primary" onclick="openAddLineModal('{{ sc.id }}', '{{ sc.name }}')">
-                            <i data-lucide="plus-circle" width="14" class="mr-1"></i> Ajouter une ligne
+                        <button class="btn btn-xs btn-ghost text-danger" onclick="openAddLineModal('{{ sc.id }}', '{{ sc.name }}')">
+                            <i data-lucide="plus-circle" width="12" class="mr-1"></i> Ligne
                         </button>
                         <form hx-post="{% url 'budget:delete_subcategory' sc.pk %}" 
                               hx-target="#budget-main-content" 
                               hx-select="#budget-main-content" 
                               hx-swap="outerHTML show:none"
-                              hx-confirm="Supprimer cette catégorie ?"
+                              hx-confirm="Supprimer ?"
                               class="inline">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-ghost btn-sm text-danger opacity-50 hover:opacity-100">
+                            <button type="submit" class="p-1 text-gray-300 hover:text-danger hover:bg-danger-light rounded transition-all">
                                 <i data-lucide="trash-2" width="14"></i>
                             </button>
                         </form>
@@ -205,6 +180,7 @@
                     </tbody>
                 </table>
             </div>
+            {% endif %}
         {% endfor %}
     </div>
 </div>
@@ -342,6 +318,12 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
         lucide.createIcons();
     }
     
+    // Si la cible du swap est une ligne de budget, ajouter l'animation de flash
+    if (evt.detail.target.classList.contains('budget-row-item')) {
+        evt.detail.target.classList.add('budget-row-updated');
+        setTimeout(() => evt.detail.target.classList.remove('budget-row-updated'), 1100);
+    }
+    
     // Si la cible du swap (ou son parent) contenait le formulaire qui a été envoyé
     const dialogs = document.querySelectorAll('dialog[open]');
     dialogs.forEach(dlg => {
@@ -350,6 +332,53 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
         dlg.close();
     });
 });
+
+// Initialization of SortableJS
+document.addEventListener('DOMContentLoaded', function() {
+    initSortables();
+});
+
+// Re-init after HTMX swap
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    initSortables();
+});
+
+function initSortables() {
+    const containers = [
+        document.getElementById('sortable-produits'),
+        document.getElementById('sortable-charges')
+    ];
+    
+    containers.forEach(container => {
+        if (!container || container.dataset.sortableInit) return;
+        
+        new Sortable(container, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            onEnd: function(evt) {
+                // Collecter le nouvel ordre
+                const order = Array.from(container.children).map(el => el.dataset.id);
+                
+                // Envoyer au serveur
+                fetch("{% url 'budget:reorder_categories' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ order: order })
+                }).then(response => {
+                    if (!response.ok) {
+                        console.error("Erreur lors du réordonnancement");
+                    }
+                });
+            }
+        });
+        
+        container.dataset.sortableInit = "true";
+    });
+}
 </script>
 
 {% endblock %}
