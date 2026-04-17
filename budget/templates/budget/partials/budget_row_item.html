@@ -44,11 +44,15 @@
         </div>
     </td>
     <td class="text-right py-3 px-4">
-        <form action="{% url 'budget:delete_ligne_budgetaire' item.ligne_budgetaire.pk %}" method="post" class="inline">
+        <form hx-post="{% url 'budget:delete_line' item.pk %}" 
+              hx-target="#budget-main-content" 
+              hx-select="#budget-main-content" 
+              hx-swap="outerHTML show:none"
+              hx-confirm="Supprimer cette ligne ?"
+              class="inline">
             {% csrf_token %}
             <button type="submit" class="text-danger opacity-20 hover:opacity-100 transition-opacity" 
-                    onclick="return confirm('Supprimer cette ligne DEFINITIVEMENT de tout le système ?')"
-                    title="Suppression GLOBALE">
+                    title="Supprimer">
                 <i data-lucide="trash-2" width="16"></i>
             </button>
         </form>

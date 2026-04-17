@@ -175,7 +175,12 @@
                         <button class="btn btn-ghost btn-sm text-primary" onclick="openAddLineModal('{{ sc.id }}', '{{ sc.name }}')">
                             <i data-lucide="plus-circle" width="14" class="mr-1"></i> Ajouter une ligne
                         </button>
-                        <form action="{% url 'budget:delete_subcategory' sc.pk %}" method="post" onsubmit="return confirm('Supprimer cette catégorie ?')">
+                        <form hx-post="{% url 'budget:delete_subcategory' sc.pk %}" 
+                              hx-target="#budget-main-content" 
+                              hx-select="#budget-main-content" 
+                              hx-swap="outerHTML show:none"
+                              hx-confirm="Supprimer cette catégorie ?"
+                              class="inline">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-ghost btn-sm text-danger opacity-50 hover:opacity-100">
                                 <i data-lucide="trash-2" width="14"></i>
@@ -212,7 +217,11 @@
             <div class="card-title">Nouvelle catégorie (Produit)</div>
         </div>
         <div class="card-body">
-            <form action="{% url 'budget:add_subcategory' %}" method="post" class="space-y-4">
+            <form hx-post="{% url 'budget:add_subcategory' %}" 
+                  hx-target="#budget-main-content" 
+                  hx-select="#budget-main-content" 
+                  hx-swap="outerHTML show:none"
+                  class="space-y-4">
                 {% csrf_token %}
                 <input type="hidden" name="group" value="produit">
                 <div class="form-group">
@@ -234,7 +243,11 @@
             <div class="card-title">Nouvelle catégorie (Charge)</div>
         </div>
         <div class="card-body">
-            <form action="{% url 'budget:add_subcategory' %}" method="post" class="space-y-4">
+            <form hx-post="{% url 'budget:add_subcategory' %}" 
+                  hx-target="#budget-main-content" 
+                  hx-select="#budget-main-content" 
+                  hx-swap="outerHTML show:none"
+                  class="space-y-4">
                 {% csrf_token %}
                 <input type="hidden" name="group" value="charge">
                 <div class="form-group">
@@ -257,7 +270,9 @@
         </div>
         <div class="card-body">
             <form hx-post="{% url 'budget:add_line' %}" 
-                  hx-target="body" 
+                  hx-target="#budget-main-content" 
+                  hx-select="#budget-main-content" 
+                  hx-swap="outerHTML show:none"
                   hx-push-url="false"
                   class="space-y-4">
                 {% csrf_token %}
@@ -321,11 +336,19 @@ function budgetNomError(el, event) {
     }
 }
 
-// Fix Lucide icons after HTMX swap
+// Fermer les dialogs après succès HTMX si le formulaire était dedans
 document.body.addEventListener('htmx:afterSwap', function(evt) {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+    
+    // Si la cible du swap (ou son parent) contenait le formulaire qui a été envoyé
+    const dialogs = document.querySelectorAll('dialog[open]');
+    dialogs.forEach(dlg => {
+        const form = dlg.querySelector('form');
+        if (form) form.reset();
+        dlg.close();
+    });
 });
 </script>
 
