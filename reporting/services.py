@@ -55,32 +55,32 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
         type_facture__est_cotisation=True
     ).exclude(pays_tva='extracom')
 
-    ligne_A1 = _round2(sum(v.montant_ht for v in ventes_imposables if v.montant_ht))
+    ligne_A1 = _round2(abs(sum(v.montant_ht for v in ventes_imposables if v.montant_ht)))
 
     # ─── E2 : Opérations non imposables = cotisations ────────────────────────
     ventes_cotisation = ventes_qs.filter(type_facture__est_cotisation=True)
-    ligne_E2 = _round2(sum(v.montant_ht for v in ventes_cotisation if v.montant_ht))
+    ligne_E2 = _round2(abs(sum(v.montant_ht for v in ventes_cotisation if v.montant_ht)))
 
     # ─── E1 : Exportations extra-UE ──────────────────────────────────────────
     ventes_extra = ventes_qs.filter(pays_tva='extracom')
-    ligne_E1 = _round2(sum(v.montant_ht for v in ventes_extra if v.montant_ht))
+    ligne_E1 = _round2(abs(sum(v.montant_ht for v in ventes_extra if v.montant_ht)))
 
     # ─── B2 : Acquisitions intracommunautaires (achats intracom biens) ────────
     achats_intracom = achats_qs.filter(pays_tva='intracom')
-    ligne_B2 = _round2(sum(a.montant_ht for a in achats_intracom if a.montant_ht))
+    ligne_B2 = _round2(abs(sum(a.montant_ht for a in achats_intracom if a.montant_ht)))
 
     # ─── Ligne 08 : TVA 20% ──────────────────────────────────────────────────
     ventes_20 = ventes_imposables.filter(taux_tva=20, pays_tva='FR')
-    ligne_08_base = _round2(sum(v.montant_ht for v in ventes_20 if v.montant_ht))
+    ligne_08_base = _round2(abs(sum(v.montant_ht for v in ventes_20 if v.montant_ht)))
     ligne_08_taxe = _round2(ligne_08_base * Decimal('0.20'))
 
     # Lignes 09 / 09b (taux réduits) — valeur 0 par défaut (pas de ventes à taux réduit)
     ventes_10 = ventes_imposables.filter(taux_tva=10, pays_tva='FR')
-    ligne_09_base = _round2(sum(v.montant_ht for v in ventes_10 if v.montant_ht))
+    ligne_09_base = _round2(abs(sum(v.montant_ht for v in ventes_10 if v.montant_ht)))
     ligne_09_taxe = _round2(ligne_09_base * Decimal('0.10'))
 
     ventes_55 = ventes_imposables.filter(taux_tva__in=[Decimal('5.5'), Decimal('5.50')], pays_tva='FR')
-    ligne_09b_base = _round2(sum(v.montant_ht for v in ventes_55 if v.montant_ht))
+    ligne_09b_base = _round2(abs(sum(v.montant_ht for v in ventes_55 if v.montant_ht)))
     ligne_09b_taxe = _round2(ligne_09b_base * Decimal('0.055'))
 
     # ─── Ligne 16 : Total TVA brute ──────────────────────────────────────────
@@ -90,7 +90,7 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
     ligne_17 = _round2(ligne_B2 * Decimal('0.20'))
 
     # ─── Ligne 20 : TVA déductible sur achats ────────────────────────────────
-    ligne_20 = _round2(sum(a.montant_tva for a in achats_qs if a.montant_tva))
+    ligne_20 = _round2(abs(sum(a.montant_tva for a in achats_qs if a.montant_tva)))
 
     return {
         # Section A

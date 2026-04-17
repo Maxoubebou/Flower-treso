@@ -138,8 +138,9 @@ function recomputeAchatEdit() {
   const sel = document.getElementById('achat-edit-taux');
   if (!sel) return;
   const taux = parseFloat(sel.value);
-  const ht = Math.abs(TTC_ACHAT) / (1 + taux / 100);
-  const tva = Math.abs(TTC_ACHAT) - ht;
+  const ttc = Math.abs(TTC_ACHAT);
+  const ht = ttc / (1 + taux / 100);
+  const tva = ttc - ht;
   const htInput = document.getElementById('achat-edit-ht');
   const tvaInput = document.getElementById('achat-edit-tva');
   if (htInput) htInput.value = ht.toFixed(2);

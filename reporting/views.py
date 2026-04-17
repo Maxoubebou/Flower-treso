@@ -5,6 +5,7 @@ from django.utils import timezone
 from .models import DeclarationTVA
 from .services import compute_declaration_tva, finalise_declaration
 from finance.models import FactureVente, BulletinVersement, FactureAchat
+from flower_treso.utils import to_decimal
 
 
 def dashboard(request):
@@ -92,6 +93,17 @@ def tva_synthese(request):
         defaults={'switch_calcul': 'operation'}
     )
 
+    if created:
+        # Initialisation automatique de la ligne 22 (report mois précédent)
+        mois_prec = mois - 1 if mois > 1 else 12
+        annee_prec = annee if mois > 1 else annee - 1
+        periode_prec = f"{annee_prec}{mois_prec:02d}"
+        decl_prec = DeclarationTVA.objects.filter(periode=periode_prec).first()
+        if decl_prec:
+            decl.ligne_22 = decl_prec.ligne_27
+            decl.save()
+            finalise_declaration(decl)
+
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -114,8 +126,7 @@ def tva_synthese(request):
 
         elif action == 'modifier_ligne_22':
             try:
-                from decimal import Decimal
-                decl.ligne_22 = Decimal(request.POST.get('ligne_22', '0'))
+                decl.ligne_22 = to_decimal(request.POST.get('ligne_22', '0'))
                 decl.ligne_22_modifiee_manuellement = True
                 decl.save()
                 finalise_declaration(decl)

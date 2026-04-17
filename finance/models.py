@@ -61,6 +61,13 @@ class FactureVente(models.Model):
         verbose_name = "Facture de vente"
         verbose_name_plural = "Factures de vente"
 
+    def save(self, *args, **kwargs):
+        # Force positive values
+        if self.montant_ttc: self.montant_ttc = abs(self.montant_ttc)
+        if self.montant_ht: self.montant_ht = abs(self.montant_ht)
+        if self.montant_tva: self.montant_tva = abs(self.montant_tva)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.numero} — {self.libelle} ({self.montant_ttc}€)"
 
@@ -134,6 +141,15 @@ class BulletinVersement(models.Model):
     def retribution_brute_totale(self):
         return self.nb_jeh * self.retribution_brute_par_jeh
 
+    def save(self, *args, **kwargs):
+        # Force positive values
+        if self.nb_jeh: self.nb_jeh = abs(self.nb_jeh)
+        if self.retribution_brute_par_jeh: self.retribution_brute_par_jeh = abs(self.retribution_brute_par_jeh)
+        if self.assiette: self.assiette = abs(self.assiette)
+        if self.total_cotisations_junior: self.total_cotisations_junior = abs(self.total_cotisations_junior)
+        if self.total_cotisations_etudiant: self.total_cotisations_etudiant = abs(self.total_cotisations_etudiant)
+        super().save(*args, **kwargs)
+
     @property
     def total_cotisations(self):
         return self.total_cotisations_junior + self.total_cotisations_etudiant
@@ -193,6 +209,11 @@ class FactureAchat(models.Model):
         return f"{self.numero} — {self.fournisseur} ({self.montant_ttc}€)"
 
     def save(self, *args, **kwargs):
+        # Force positive values
+        if self.montant_ttc: self.montant_ttc = abs(self.montant_ttc)
+        if self.montant_ht: self.montant_ht = abs(self.montant_ht)
+        if self.montant_tva: self.montant_tva = abs(self.montant_tva)
+
         # Immobilisation automatique si Bien > 500€
         if self.categorisation == 'bien' and self.montant_ttc and self.montant_ttc > 500:
             self.immobilisation = True

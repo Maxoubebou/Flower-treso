@@ -3,20 +3,9 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import Operation, ImportBatch
 from .services import parse_csv
-from decimal import Decimal, InvalidOperation
+from flower_treso.utils import to_decimal
 
-def to_decimal(value, default='0'):
-    """Convertit une chaîne en Decimal proprement (gestion virgule, espaces, vide)."""
-    if value is None:
-        return Decimal(default)
-    # Nettoyage : suppression espaces, remplacement virgule par point
-    clean_val = str(value).strip().replace(' ', '').replace(',', '.')
-    if not clean_val:
-        return Decimal(default)
-    try:
-        return Decimal(clean_val)
-    except (InvalidOperation, ValueError):
-        return Decimal(default)
+
 
 def import_csv(request):
     """Vue d'import du fichier CSV bancaire."""
@@ -170,17 +159,17 @@ def _process_vente(request, operation):
     try:
         type_facture = TypeFactureVente.objects.get(pk=request.POST.get('type_facture'))
         taux_tva = to_decimal(request.POST.get('taux_tva', '20'))
-        montant_ttc = operation.credit
+        montant_ttc = abs(operation.credit)
         
         calcul = calculate_tva(montant_ttc, taux_tva)
         taux_mixte = request.POST.get('taux_mixte') == 'on'
 
         if taux_mixte:
-            montant_ht = to_decimal(request.POST.get('montant_ht'), default=str(calcul['ht']))
-            montant_tva = to_decimal(request.POST.get('montant_tva'), default=str(calcul['tva']))
+            montant_ht = abs(to_decimal(request.POST.get('montant_ht'), default=str(calcul['ht'])))
+            montant_tva = abs(to_decimal(request.POST.get('montant_tva'), default=str(calcul['tva'])))
         else:
-            montant_ht = calcul['ht']
-            montant_tva = calcul['tva']
+            montant_ht = abs(calcul['ht'])
+            montant_tva = abs(calcul['tva'])
 
         ligne_bud_pk = request.POST.get('ligne_budgetaire')
         etude_pk = request.POST.get('etude')
@@ -240,8 +229,8 @@ def _process_bv(request, operation):
 
     try:
         type_cotisant = request.POST.get('type_cotisant', 'etudiant')
-        nb_jeh = to_decimal(request.POST.get('nb_jeh', '0'))
-        retrib = to_decimal(request.POST.get('retribution_brute_par_jeh', '0'))
+        nb_jeh = abs(to_decimal(request.POST.get('nb_jeh', '0')))
+        retrib = abs(to_decimal(request.POST.get('retribution_brute_par_jeh', '0')))
 
         try:
             params = ParametreCotisation.objects.get(type_cotisant=type_cotisant)
@@ -311,16 +300,16 @@ def _process_achat(request, operation):
     try:
         type_achat = TypeAchat.objects.get(pk=request.POST.get('type_achat'))
         taux_tva = to_decimal(request.POST.get('taux_tva', '20'))
-        montant_ttc = operation.debit
+        montant_ttc = abs(operation.debit)
         taux_compose = request.POST.get('taux_compose') == 'on'
 
         if taux_compose:
-            montant_ht = to_decimal(request.POST.get('montant_ht'), default='0')
-            montant_tva = to_decimal(request.POST.get('montant_tva'), default='0')
+            montant_ht = abs(to_decimal(request.POST.get('montant_ht'), default='0'))
+            montant_tva = abs(to_decimal(request.POST.get('montant_tva'), default='0'))
         else:
             calcul = calculate_tva(montant_ttc, taux_tva)
-            montant_ht = calcul['ht']
-            montant_tva = calcul['tva']
+            montant_ht = abs(calcul['ht'])
+            montant_tva = abs(calcul['tva'])
 
         ligne_bud_pk = request.POST.get('ligne_budgetaire')
         date_reception_raw = request.POST.get('date_reception', '')

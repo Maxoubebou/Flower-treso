@@ -4,6 +4,7 @@ from django.db.models import Q
 
 from .models import FactureVente, BulletinVersement, FactureAchat, Etude
 from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, ParametreCotisation
+from flower_treso.utils import to_decimal
 
 
 def _get_filtres(request):
@@ -50,16 +51,7 @@ def _appliquer_filtres(qs, mois, annee, champ_date='date_operation'):
     return qs
 
 
-def _to_decimal(val, default='0'):
-    from decimal import Decimal, InvalidOperation
-    if not val:
-        return Decimal(default)
-    try:
-        # Nettoyage : supprimer espaces et remplacer virgule par point
-        clean_val = str(val).replace(' ', '').replace(',', '.')
-        return Decimal(clean_val)
-    except (InvalidOperation, ValueError):
-        return Decimal(default)
+
 
 
 # ─── Ventes ──────────────────────────────────────────────────────────────────
@@ -94,16 +86,16 @@ def vente_edit(request, pk):
             from finance.services import calculate_tva
 
             type_facture = TypeFactureVente.objects.get(pk=request.POST['type_facture'])
-            taux_tva = _to_decimal(request.POST.get('taux_tva', '20'))
+            taux_tva = to_decimal(request.POST.get('taux_tva', '20'))
             taux_mixte = request.POST.get('taux_mixte') == 'on'
 
             if taux_mixte:
-                montant_ht = _to_decimal(request.POST['montant_ht'])
-                montant_tva_v = _to_decimal(request.POST['montant_tva'])
+                montant_ht = abs(to_decimal(request.POST['montant_ht']))
+                montant_tva_v = abs(to_decimal(request.POST['montant_tva']))
             else:
                 calcul = calculate_tva(fv.montant_ttc, taux_tva)
-                montant_ht = calcul['ht']
-                montant_tva_v = calcul['tva']
+                montant_ht = abs(calcul['ht'])
+                montant_tva_v = abs(calcul['tva'])
 
             date_envoi_raw = request.POST.get('date_envoi', '')
             date_envoi = datetime.strptime(date_envoi_raw, '%Y-%m-%d').date() if date_envoi_raw else None
@@ -171,8 +163,8 @@ def bv_edit(request, pk):
             from finance.services import calculate_cotisations_urssaf
 
             type_cotisant = request.POST.get('type_cotisant', bv.type_cotisant)
-            nb_jeh = _to_decimal(request.POST.get('nb_jeh', bv.nb_jeh))
-            retrib = _to_decimal(request.POST.get('retribution_brute_par_jeh', bv.retribution_brute_par_jeh))
+            nb_jeh = abs(to_decimal(request.POST.get('nb_jeh', bv.nb_jeh)))
+            retrib = abs(to_decimal(request.POST.get('retribution_brute_par_jeh', bv.retribution_brute_par_jeh)))
 
             params = ParametreCotisation.objects.filter(type_cotisant=type_cotisant).first()
             cotis = calculate_cotisations_urssaf(nb_jeh, type_cotisant, params)
@@ -250,16 +242,16 @@ def achat_edit(request, pk):
             from finance.services import calculate_tva
 
             type_achat = TypeAchat.objects.get(pk=request.POST['type_achat'])
-            taux_tva = _to_decimal(request.POST.get('taux_tva', '20'))
+            taux_tva = to_decimal(request.POST.get('taux_tva', '20'))
             taux_compose = request.POST.get('taux_compose') == 'on'
 
             if taux_compose:
-                montant_ht = _to_decimal(request.POST['montant_ht'])
-                montant_tva_v = _to_decimal(request.POST['montant_tva'])
+                montant_ht = abs(to_decimal(request.POST['montant_ht']))
+                montant_tva_v = abs(to_decimal(request.POST['montant_tva']))
             else:
                 calcul = calculate_tva(fa.montant_ttc, taux_tva)
-                montant_ht = calcul['ht']
-                montant_tva_v = calcul['tva']
+                montant_ht = abs(calcul['ht'])
+                montant_tva_v = abs(calcul['tva'])
 
             date_reception_raw = request.POST.get('date_reception', '')
             date_reception = datetime.strptime(date_reception_raw, '%Y-%m-%d').date() if date_reception_raw else None
