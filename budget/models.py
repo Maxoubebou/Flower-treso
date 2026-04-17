@@ -28,6 +28,7 @@ class BudgetItem(models.Model):
     scenario_bas = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     scenario_moyen = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     scenario_haut = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    formula_moyen = models.CharField(max_length=255, null=True, blank=True)
 
     ordre = models.PositiveIntegerField(default=0)
     commentaire = models.TextField(blank=True, null=True)

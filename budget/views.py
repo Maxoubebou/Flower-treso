@@ -7,7 +7,7 @@ from django.contrib import messages
 from .models import BudgetSubCategory, BudgetItem
 from config_app.models import LigneBudgetaire
 from finance.models import FactureVente, FactureAchat, BulletinVersement
-from flower_treso.utils import to_decimal
+from flower_treso.utils import to_decimal, evaluate_budget_formula
 
 def budget_dashboard(request):
     """Vue principale du budget avec calculs en temps réel et support du nesting."""
@@ -129,23 +129,68 @@ def budget_dashboard(request):
 
 @require_POST
 def budget_item_update(request, pk):
-    """Mise à jour inline via HTMX d'une valeur de scénario."""
+    """Mise à jour inline via HTMX d'une valeur de scénario ou d'une formule."""
     item = get_object_or_404(BudgetItem, pk=pk)
     field = request.POST.get('field')
-    value_raw = request.POST.get('value', '0')
+    value_raw = request.POST.get('value', '').strip()
     
-    if field in ['scenario_bas', 'scenario_moyen', 'scenario_haut']:
+    if field == 'scenario_moyen':
+        # On détecte si c'est une formule
+        if value_raw.startswith('=') or '[' in value_raw:
+            item.formula_moyen = value_raw
+            # On laisse le champ scenario_moyen tel quel pour l'instant, 
+            # il sera mis à jour par recalculate_budget_items
+        else:
+            item.formula_moyen = None
+            item.scenario_moyen = to_decimal(value_raw)
+        
+        item.save()
+        
+        # Recalcul global pour mettre à jour les dépendances
+        recalculate_budget_items()
+        
+        # On recharge l'item pour avoir la valeur calculée
+        item.refresh_from_db()
+        return render(request, 'budget/partials/budget_row_item.html', {'item': item})
+        
+    elif field in ['scenario_bas', 'scenario_haut']:
         value = to_decimal(value_raw)
         setattr(item, field, value)
         item.save()
-        formatted = f"{value:,.2f}".replace(',', ' ').replace('.', ',')
-        return HttpResponse(formatted)
+        return render(request, 'budget/partials/budget_row_item.html', {'item': item})
+        
     elif field == 'commentaire':
         item.commentaire = value_raw
         item.save()
-        return HttpResponse(value_raw)
+        return render(request, 'budget/partials/budget_row_item.html', {'item': item})
     
     return HttpResponse("Erreur", status=400)
+
+
+def recalculate_budget_items():
+    """
+    Recalcule toutes les lignes budgétaires ayant une formule.
+    Gère les dépendances en plusieurs passes.
+    """
+    items = list(BudgetItem.objects.all().select_related('ligne_budgetaire'))
+    
+    # On fait au maximum N passes pour gérer les cascades de formules
+    max_passes = len(items)
+    for _ in range(max_passes):
+        has_changed = False
+        # Context : nom -> valeur scenario_moyen
+        context = {it.ligne_budgetaire.nom: float(it.scenario_moyen) for it in items}
+        
+        for it in items:
+            if it.formula_moyen:
+                new_val = evaluate_budget_formula(it.formula_moyen, context)
+                if new_val != it.scenario_moyen:
+                    it.scenario_moyen = new_val
+                    it.save(update_fields=['scenario_moyen'])
+                    has_changed = True
+        
+        if not has_changed:
+            break
 
 @require_POST
 def add_subcategory(request):
