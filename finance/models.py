@@ -101,6 +101,9 @@ class BulletinVersement(models.Model):
     etude = models.ForeignKey(
         Etude, on_delete=models.SET_NULL, null=True, blank=True, related_name='bulletins'
     )
+    ligne_budgetaire = models.ForeignKey(
+        LigneBudgetaire, on_delete=models.SET_NULL, null=True, blank=True, related_name='bulletins'
+    )
     date_operation = models.DateField()
     date_emission = models.DateField(null=True, blank=True)
     reference_virement = models.CharField(max_length=100, blank=True)

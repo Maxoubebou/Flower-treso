@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Gestion Budget — Flower-Tréso{% endblock %}
+{% block page_title %}Pilotage Budgétaire HT{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- ─── BANDEAU RÉCAPITULATIF (RÉGLETTE) ───────────────── -->
+<div style="display: flex; gap: 20px; width: 100%; margin-bottom: 30px;">
+    
+    <div style="flex: 1; padding: 24px; border: 2px solid var(--color-gray-200); border-radius: 12px; background: #fff; text-align: center; box-shadow: var(--shadow-sm);">
+        <div style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; color: var(--color-gray-500); letter-spacing: 0.5px; margin-bottom: 8px;">
+            Entrée d'argent visée
+        </div>
+        <div class="text-primary" style="font-size: 1.8rem; font-weight: 900;">
+            {{ totals.visé|floatformat:2 }} €
+        </div>
+    </div>
+
+    <div style="flex: 1; padding: 24px; border: 2px solid var(--color-success-light); border-radius: 12px; background: #fff; text-align: center; box-shadow: var(--shadow-sm);">
+        <div style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; color: var(--color-gray-500); letter-spacing: 0.5px; margin-bottom: 8px;">
+            Entrée d'argent réalisée
+        </div>
+        <div class="text-success" style="font-size: 1.8rem; font-weight: 900;">
+            {{ totals.réalisé_p|floatformat:2 }} €
+        </div>
+    </div>
+
+    <div style="flex: 1; padding: 24px; border: 2px solid var(--color-danger-light); border-radius: 12px; background: #fff; text-align: center; box-shadow: var(--shadow-sm);">
+        <div style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; color: var(--color-gray-500); letter-spacing: 0.5px; margin-bottom: 8px;">
+            Sortie d'argent faite
+        </div>
+        <div class="text-danger" style="font-size: 1.8rem; font-weight: 900;">
+            {{ totals.réalisé_c|floatformat:2 }} €
+        </div>
+    </div>
+
+</div>
+
+<!-- Evolution Chart (Separate Box) -->
+<div class="budget-chart-container">
+    <div style="height: 220px;">
+        <canvas id="evolutionChart"></canvas>
+    </div>
+</div>
+
+<div class="budget-main-column">
+
+    <!-- ─── PRODUITS ────────────────────────────────────────── -->
+    <div class="budget-section-header">
+        <h2 class="flex items-center gap-2 m-0">
+            <i data-lucide="trending-up" class="text-success"></i>
+            Produits (Recettes)
+            <span class="text-xs text-muted font-normal ml-2">Solde prév: {{ totals.solde_prevu|floatformat:0 }}€</span>
+        </h2>
+        <button class="btn btn-sm btn-primary" onclick="document.getElementById('dialog-add-subcat-produit').showModal()">
+            <i data-lucide="plus" width="16" class="mr-1"></i> Ajouter une catégorie
+        </button>
+    </div>
+
+    <div class="space-y-8">
+        {% for sc in produits %}
+            <div class="card overflow-hidden">
+                <div class="card-header flex justify-between items-center py-3 bg-gray-50">
+                    <div class="flex items-center">
+                        <span class="font-bold text-gray-800 uppercase tracking-wide">{{ sc.name }}</span>
+                        <span class="category-budget-tag">{{ sc.total_moyen_cumule|floatformat:2 }} €</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-ghost btn-sm text-primary" onclick="openAddLineModal('{{ sc.id }}', '{{ sc.name }}')">
+                            <i data-lucide="plus-circle" width="14" class="mr-1"></i> Ajouter une ligne
+                        </button>
+                        <form action="{% url 'budget:delete_subcategory' sc.pk %}" method="post" onsubmit="return confirm('Supprimer cette catégorie et toutes ses lignes ?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ghost btn-sm text-danger opacity-50 hover:opacity-100">
+                                <i data-lucide="trash-2" width="14"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <table class="budget-table w-full" style="table-layout: fixed;">
+                    <thead>
+                        <tr class="text-xs text-muted uppercase">
+                            <th class="text-left py-2 px-4" style="width: 25%">Ligne</th>
+                            <th class="text-right py-2 px-4" style="width: 15%">Budget Moyen</th>
+                            <th class="text-right py-2 px-4" style="width: 15%">Réalisé</th>
+                            <th class="text-left py-2 px-4" style="width: 40%">Commentaire</th>
+                            <th class="py-2 px-4" style="width: 5%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in sc.items.all %}
+                            {% include "budget/partials/budget_row_item.html" with item=item %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- ─── CHARGES ─────────────────────────────────────────── -->
+    <div class="budget-section-header">
+        <h2 class="flex items-center gap-2 m-0">
+            <i data-lucide="trending-down" class="text-danger"></i>
+            Charges (Dépenses)
+        </h2>
+        <button class="btn btn-sm btn-outline" onclick="document.getElementById('dialog-add-subcat-charge').showModal()">
+            <i data-lucide="plus" width="16" class="mr-1"></i> Ajouter une catégorie
+        </button>
+    </div>
+
+    <div class="space-y-8">
+        {% for sc in charges %}
+            <div class="card overflow-hidden">
+                <div class="card-header flex justify-between items-center py-3 bg-gray-50 border-b">
+                    <div class="flex items-center">
+                        <span class="font-bold text-gray-800 uppercase tracking-wide">{{ sc.name }}</span>
+                        <span class="category-budget-tag">{{ sc.total_moyen_cumule|floatformat:2 }} €</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-ghost btn-sm text-primary" onclick="openAddLineModal('{{ sc.id }}', '{{ sc.name }}')">
+                            <i data-lucide="plus-circle" width="14" class="mr-1"></i> Ajouter une ligne
+                        </button>
+                        <form action="{% url 'budget:delete_subcategory' sc.pk %}" method="post" onsubmit="return confirm('Supprimer cette catégorie ?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ghost btn-sm text-danger opacity-50 hover:opacity-100">
+                                <i data-lucide="trash-2" width="14"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <table class="budget-table w-full" style="table-layout: fixed;">
+                    <thead>
+                        <tr class="text-xs text-muted uppercase">
+                            <th class="text-left py-2 px-4" style="width: 25%">Ligne</th>
+                            <th class="text-right py-2 px-4" style="width: 15%">Budget Moyen</th>
+                            <th class="text-right py-2 px-4" style="width: 15%">Réalisé</th>
+                            <th class="text-left py-2 px-4" style="width: 40%">Commentaire</th>
+                            <th class="py-2 px-4" style="width: 5%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in sc.items.all %}
+                            {% include "budget/partials/budget_row_item.html" with item=item %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ─── MODALS ─────────────────────────────────────────── -->
+
+<dialog id="dialog-add-subcat-produit" class="border-none p-0 bg-transparent" style="width: 400px">
+    <div class="card shadow-2xl">
+        <div class="card-header">
+            <div class="card-title">Nouvelle catégorie (Produit)</div>
+        </div>
+        <div class="card-body">
+            <form action="{% url 'budget:add_subcategory' %}" method="post" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="group" value="produit">
+                <div class="form-group">
+                    <label class="form-label">Nom de la catégorie</label>
+                    <input type="text" name="name" class="form-control" placeholder="ex: Subventions Exceptionnelles" required>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" class="btn btn-ghost" onclick="this.closest('dialog').close()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<dialog id="dialog-add-subcat-charge" class="border-none p-0 bg-transparent" style="width: 400px">
+    <div class="card shadow-2xl">
+        <div class="card-header">
+            <div class="card-title">Nouvelle catégorie (Charge)</div>
+        </div>
+        <div class="card-body">
+            <form action="{% url 'budget:add_subcategory' %}" method="post" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="group" value="charge">
+                <div class="form-group">
+                    <label class="form-label">Nom de la catégorie</label>
+                    <input type="text" name="name" class="form-control" placeholder="ex: Frais de déplacement" required>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" class="btn btn-ghost" onclick="this.closest('dialog').close()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<dialog id="dialog-add-line" class="border-none p-0 bg-transparent" style="width: 420px">
+    <div class="card shadow-2xl">
+        <div class="card-header">
+            <div class="card-title">Nouvelle ligne — <span id="modal-subcat-name" class="text-primary"></span></div>
+        </div>
+        <div class="card-body">
+            <form action="{% url 'budget:add_line' %}" method="post" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="subcategory_id" id="modal-subcat-id">
+                <div class="form-group">
+                    <label class="form-label">Nom de la ligne budgétaire</label>
+                    <input type="text" name="new_lb_nom" class="form-control" placeholder="ex: Frais de déplacement" required autofocus>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" class="btn btn-ghost" onclick="this.closest('dialog').close()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<script>
+function openAddLineModal(id, name) {
+    document.getElementById('modal-subcat-id').value = id;
+    document.getElementById('modal-subcat-name').innerText = name;
+    const dlg = document.getElementById('dialog-add-line');
+    dlg.showModal();
+    // Focus sur l'input après ouverture
+    setTimeout(() => dlg.querySelector('input[name=new_lb_nom]').focus(), 50);
+}
+
+// Validation des cellules budget au clavier Entrée (sans retour à la ligne)
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.classList.contains('editable-cell')) {
+        e.preventDefault();
+        e.target.blur(); // déclenche le hx-trigger="blur" → envoi HTMX
+    }
+});
+
+// Chart.js Evolution
+document.addEventListener('DOMContentLoaded', function() {
+    const data = JSON.parse('{{ chart_data_json|safe }}');
+    // On récupère la valeur cible depuis Django
+    const valeurVisee = parseFloat("{{ totals.visé|stringformat:'.2f' }}") || 0;
+    
+    const ctx = document.getElementById('evolutionChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [
+                {
+                    label: 'Income',
+                    data: data.income,
+                    borderColor: '#22c55e',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0
+                },
+                {
+                    label: 'Expenses',
+                    data: data.expenses,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0
+                },
+                {
+                    // --- Ligne horizontale d'objectif ---
+                    label: 'Objectif',
+                    // On crée une liste de la même taille que les labels avec la même valeur partout
+                    data: Array(data.labels.length).fill(valeurVisee),
+                    borderColor: '#3b82f6', // Bleu
+                    borderWidth: 2,
+                    borderDash: [5, 5],    // Ligne pointillée
+                    fill: false,
+                    pointRadius: 0,
+                    order: 1               // Pour qu'elle passe derrière ou devant
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { 
+                    display: true,
+                    ticks: {
+                        font: { size: 9 },
+                        maxRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 8
+                    },
+                    grid: { display: false }
+                },
+                y: { 
+                    display: true, // On l'affiche pour donner de la hauteur
+                    beginAtZero: true,
+                    // On force le graphique à monter un peu plus haut que la valeur visée
+                    suggestedMax: valeurVisee * 1.2, 
+                    ticks: {
+                        font: { size: 9 },
+                        callback: function(value) { return value + ' €'; }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+{% endblock %}

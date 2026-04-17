@@ -1,0 +1,37 @@
+<tr class="budget-row-item {% if is_nested %}budget-row-nested{% endif %} group">
+    <td class="py-3 px-4">
+        <div class="font-medium text-gray-800">{{ item.ligne_budgetaire.nom }}</div>
+    </td>
+    <td class="text-right py-3 px-4 font-mono">
+        <span class="editable-cell cursor-edit px-2 py-1 rounded hover:bg-gray-100" 
+              contenteditable="true"
+              hx-post="{% url 'budget:item_update' item.pk %}"
+              hx-trigger="blur"
+              hx-vals='js:{"field": "scenario_moyen", "value": event.target.innerText}'>
+            {{ item.scenario_moyen|floatformat:2 }}
+        </span>
+    </td>
+    <td class="text-right py-3 px-4 font-mono text-muted">
+        {{ item.realise|floatformat:2 }}
+    </td>
+    <td class="py-3 px-4">
+        <div class="budget-comment-cell cursor-edit" 
+            style="min-height: 2.8rem; border: 1px solid var(--color-gray-200); border-radius: 4px; padding: 4px 8px; background-color: #fafafa; word-break: break-word; overflow-wrap: anywhere; white-space: normal;"
+            contenteditable="true"
+            hx-post="{% url 'budget:item_update' item.pk %}"
+            hx-trigger="blur"
+            hx-vals='js:{"field": "commentaire", "value": event.target.innerText}'>
+            {{ item.commentaire|default:"" }}
+        </div>
+    </td>
+    <td class="text-right py-3 px-4">
+        <form action="{% url 'budget:delete_ligne_budgetaire' item.ligne_budgetaire.pk %}" method="post" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="text-danger opacity-20 hover:opacity-100 transition-opacity" 
+                    onclick="return confirm('Supprimer cette ligne DEFINITIVEMENT de tout le système ?')"
+                    title="Suppression GLOBALE">
+                <i data-lucide="trash-2" width="16"></i>
+            </button>
+        </form>
+    </td>
+</tr>

@@ -17,4 +17,6 @@ urlpatterns = [
     # Études
     path('etudes/', views.etudes_list, name='etudes_list'),
     path('etudes/nouvelle/', views.etude_create, name='etude_create'),
+    # Utils
+    path('quick-assign-budget/', views.set_budget_line, name='set_budget_line'),
 ]

@@ -91,6 +91,11 @@
         <i data-lucide="file-text" width="17" height="17"></i>
         Synthèse TVA
       </a>
+      <a href="{% url 'budget:dashboard' %}"
+         class="nav-item {% if 'budget' in request.path %}active{% endif %}">
+        <i data-lucide="pie-chart" width="17" height="17"></i>
+        Gestion Budget
+      </a>
     </div>
 
     <div class="sidebar-footer">

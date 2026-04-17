@@ -20,12 +20,38 @@
           <th>N° BV</th>
           <th>Intervenant</th>
           <th>Étude</th>
-          <th>Date op.</th>
-          <th class="text-right">JEH</th>
+          <th class="cursor-pointer">
+            <a href="?sort=date_operation&order={% if current_sort == 'date_operation' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
+              Date op.
+              {% if current_sort == 'date_operation' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+            </a>
+          </th>
+          <th class="text-right cursor-pointer">
+            <a href="?sort=nb_jeh&order={% if current_sort == 'nb_jeh' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
+              JEH
+              {% if current_sort == 'nb_jeh' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+            </a>
+          </th>
           <th>Type</th>
-          <th class="text-right">Assiette (€)</th>
-          <th class="text-right">Cotis. Junior (€)</th>
-          <th class="text-right">Cotis. Étudiant (€)</th>
+          <th class="text-right cursor-pointer">
+            <a href="?sort=assiette&order={% if current_sort == 'assiette' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
+              Assiette (€)
+              {% if current_sort == 'assiette' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+            </a>
+          </th>
+          <th class="text-right cursor-pointer">
+            <a href="?sort=total_cotisations_junior&order={% if current_sort == 'total_cotisations_junior' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
+              Cotis. Junior (€)
+              {% if current_sort == 'total_cotisations_junior' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+            </a>
+          </th>
+          <th class="text-right cursor-pointer">
+            <a href="?sort=total_cotisations_etudiant&order={% if current_sort == 'total_cotisations_etudiant' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
+              Cotis. Étudiant (€)
+              {% if current_sort == 'total_cotisations_etudiant' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+            </a>
+          </th>
+          <th style="min-width:140px">Ligne Budg.</th>
           <th></th>
         </tr>
       </thead>
@@ -47,6 +73,18 @@
           <td class="text-right font-mono">{{ bv.assiette|floatformat:2 }}</td>
           <td class="text-right font-mono text-danger">{{ bv.total_cotisations_junior|floatformat:2 }}</td>
           <td class="text-right font-mono text-warning">{{ bv.total_cotisations_etudiant|floatformat:2 }}</td>
+          <td>
+            <select class="form-control" style="font-size:.7rem;padding:4px 8px;border-radius:6px"
+                    hx-post="{% url 'finance:set_budget_line' %}"
+                    hx-trigger="change"
+                    hx-swap="none"
+                    hx-vals='js:{"type": "bv", "id": "{{ bv.id }}", "lb_id": event.target.value}'>
+              <option value="">—</option>
+              {% for lb in all_budget_lines %}
+              <option value="{{ lb.id }}" {% if bv.ligne_budgetaire_id == lb.id %}selected{% endif %}>{{ lb.nom }}</option>
+              {% endfor %}
+            </select>
+          </td>
           <td>
             <div class="flex gap-1 justify-end">
               <a href="{% url 'finance:bv_edit' bv.pk %}" class="btn btn-ghost btn-icon" title="Modifier">

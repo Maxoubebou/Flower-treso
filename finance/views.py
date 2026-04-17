@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Q
+from django.http import HttpResponse
+from django.views.decorators.http import require_POST
 
 from .models import FactureVente, BulletinVersement, FactureAchat, Etude
 from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, ParametreCotisation
@@ -51,7 +53,17 @@ def _appliquer_filtres(qs, mois, annee, champ_date='date_operation'):
     return qs
 
 
-
+def _ordonner_qs(qs, request, allowed_fields):
+    """Helper pour trier les querysets selon les paramètres GET."""
+    sort_by = request.GET.get('sort', None)
+    order = request.GET.get('order', 'asc')
+    
+    if sort_by in allowed_fields:
+        if order == 'desc':
+            qs = qs.order_by(f'-{sort_by}')
+        else:
+            qs = qs.order_by(sort_by)
+    return qs
 
 
 # ─── Ventes ──────────────────────────────────────────────────────────────────
@@ -62,6 +74,10 @@ def ventes_list(request):
         FactureVente.objects.select_related('type_facture', 'etude', 'ligne_budgetaire'),
         mois, annee
     )
+    # Sorting
+    allowed_fields = ['date_operation', 'taux_tva', 'montant_ht', 'montant_tva', 'montant_ttc']
+    qs = _ordonner_qs(qs, request, allowed_fields)
+
     return render(request, 'finance/ventes_list.html', {
         'factures': qs,
         'filtre_mois': mois,
@@ -69,6 +85,9 @@ def ventes_list(request):
         'total_ht': sum(f.montant_ht for f in qs),
         'total_tva': sum(f.montant_tva for f in qs),
         'total_ttc': sum(f.montant_ttc for f in qs),
+        'all_budget_lines': LigneBudgetaire.objects.filter(active=True),
+        'current_sort': request.GET.get('sort'),
+        'current_order': request.GET.get('order', 'asc'),
     })
 
 
@@ -147,10 +166,17 @@ def bv_list(request):
         BulletinVersement.objects.select_related('etude'),
         mois, annee
     )
+    # Sorting
+    allowed_fields = ['date_operation', 'nb_jeh', 'assiette', 'total_cotisations_junior', 'total_cotisations_etudiant']
+    qs = _ordonner_qs(qs, request, allowed_fields)
+
     return render(request, 'finance/bv_list.html', {
         'bulletins': qs,
         'filtre_mois': mois,
         'filtre_annee': annee,
+        'all_budget_lines': LigneBudgetaire.objects.filter(active=True),
+        'current_sort': request.GET.get('sort'),
+        'current_order': request.GET.get('order', 'asc'),
     })
 
 
@@ -223,6 +249,10 @@ def achats_list(request):
         FactureAchat.objects.select_related('type_achat', 'ligne_budgetaire'),
         mois, annee
     )
+    # Sorting
+    allowed_fields = ['date_operation', 'taux_tva', 'montant_ht', 'montant_tva', 'montant_ttc']
+    qs = _ordonner_qs(qs, request, allowed_fields)
+
     return render(request, 'finance/achats_list.html', {
         'factures': qs,
         'filtre_mois': mois,
@@ -230,6 +260,9 @@ def achats_list(request):
         'total_ht': sum(f.montant_ht for f in qs),
         'total_tva': sum(f.montant_tva for f in qs),
         'total_ttc': sum(f.montant_ttc for f in qs),
+        'all_budget_lines': LigneBudgetaire.objects.filter(active=True),
+        'current_sort': request.GET.get('sort'),
+        'current_order': request.GET.get('order', 'asc'),
     })
 
 
@@ -313,3 +346,26 @@ def etude_create(request):
             messages.error(request, f"Erreur : {e}")
         return redirect('finance:etudes_list')
     return render(request, 'finance/etude_form.html', {})
+
+@require_POST
+def set_budget_line(request):
+    """Endpoint HTMX pour changer la ligne budgétaire d'un objet."""
+    obj_type = request.POST.get('type')
+    obj_id = request.POST.get('id')
+    lb_id = request.POST.get('lb_id')
+    
+    lb = get_object_or_404(LigneBudgetaire, pk=lb_id) if lb_id else None
+    
+    if obj_type == 'vente':
+        obj = get_object_or_404(FactureVente, pk=obj_id)
+    elif obj_type == 'achat':
+        obj = get_object_or_404(FactureAchat, pk=obj_id)
+    elif obj_type == 'bv':
+        obj = get_object_or_404(BulletinVersement, pk=obj_id)
+    else:
+        return HttpResponse("Type inconnu", status=400)
+    
+    obj.ligne_budgetaire = lb
+    obj.save()
+    
+    return HttpResponse(lb.nom if lb else "—")

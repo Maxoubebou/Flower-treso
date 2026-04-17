@@ -45,12 +45,38 @@
           <th>Type</th>
           <th>Libellé</th>
           <th>Étude</th>
-          <th>Date op.</th>
+          <th class="cursor-pointer">
+            <a href="?sort=date_operation&order={% if current_sort == 'date_operation' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
+              Date op.
+              {% if current_sort == 'date_operation' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+            </a>
+          </th>
           <th>Pays TVA</th>
-          <th>Taux</th>
-          <th class="text-right">HT (€)</th>
-          <th class="text-right">TVA (€)</th>
-          <th class="text-right">TTC (€)</th>
+          <th class="cursor-pointer">
+            <a href="?sort=taux_tva&order={% if current_sort == 'taux_tva' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
+              Taux
+              {% if current_sort == 'taux_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+            </a>
+          </th>
+          <th class="text-right cursor-pointer">
+            <a href="?sort=montant_ht&order={% if current_sort == 'montant_ht' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
+              HT (€)
+              {% if current_sort == 'montant_ht' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+            </a>
+          </th>
+          <th class="text-right cursor-pointer">
+            <a href="?sort=montant_tva&order={% if current_sort == 'montant_tva' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
+              TVA (€)
+              {% if current_sort == 'montant_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+            </a>
+          </th>
+          <th class="text-right cursor-pointer">
+            <a href="?sort=montant_ttc&order={% if current_sort == 'montant_ttc' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
+              TTC (€)
+              {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+            </a>
+          </th>
+          <th style="min-width:140px">Ligne Budg.</th>
           <th></th>
         </tr>
       </thead>
@@ -73,6 +99,18 @@
           <td class="text-right font-mono">{{ f.montant_ht|floatformat:2 }}</td>
           <td class="text-right font-mono text-muted">{{ f.montant_tva|floatformat:2 }}</td>
           <td class="text-right font-mono font-bold">{{ f.montant_ttc|floatformat:2 }}</td>
+          <td>
+            <select class="form-control" style="font-size:.7rem;padding:4px 8px;border-radius:6px"
+                    hx-post="{% url 'finance:set_budget_line' %}"
+                    hx-trigger="change"
+                    hx-swap="none"
+                    hx-vals='js:{"type": "vente", "id": "{{ f.id }}", "lb_id": event.target.value}'>
+              <option value="">—</option>
+              {% for lb in all_budget_lines %}
+              <option value="{{ lb.id }}" {% if f.ligne_budgetaire_id == lb.id %}selected{% endif %}>{{ lb.nom }}</option>
+              {% endfor %}
+            </select>
+          </td>
           <td>
             <div class="flex gap-1 justify-end">
               <a href="{% url 'finance:vente_edit' f.pk %}" class="btn btn-ghost btn-icon" title="Modifier">
