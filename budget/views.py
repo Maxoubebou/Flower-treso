@@ -12,7 +12,12 @@ from flower_treso.utils import to_decimal, evaluate_budget_formula
 
 def budget_dashboard(request):
     """Vue principale du budget avec calculs en temps réel et support du nesting."""
-    selected_year = request.GET.get('year')
+    # Persistance de l'année sélectionnée via session
+    if 'year' in request.GET:
+        selected_year = request.GET.get('year')
+        request.session['budget_selected_year'] = selected_year
+    else:
+        selected_year = request.session.get('budget_selected_year')
     
     # On récupère toutes les sous-catégories
     all_subcats = BudgetSubCategory.objects.prefetch_related('items__ligne_budgetaire').all()
