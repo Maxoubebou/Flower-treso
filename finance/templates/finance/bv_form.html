@@ -34,6 +34,16 @@
             </select>
           </div>
           <div class="form-group">
+            <label class="form-label">Ligne budgétaire</label>
+            <input list="budget-lines-list" 
+                   name="ligne_budgetaire_name"
+                   class="form-control" 
+                   placeholder="Rechercher une ligne..."
+                   value="{{ bv.ligne_budgetaire.nom|default:'' }}"
+                   onchange="syncBudgetLineId(this)">
+            <input type="hidden" name="ligne_budgetaire" id="id_ligne_budgetaire" value="{{ bv.ligne_budgetaire_id|default:'' }}">
+          </div>
+          <div class="form-group">
             <label class="form-label">Commentaire</label>
             <textarea name="commentaire" class="form-control" rows="3">{{ bv.commentaire }}</textarea>
           </div>
@@ -110,4 +120,21 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function syncBudgetLineId(input) {
+  const list = document.getElementById('budget-lines-list');
+  const hidden = document.getElementById('id_ligne_budgetaire');
+  const option = Array.from(list.options).find(o => o.value === input.value);
+  hidden.value = option ? option.dataset.id : '';
+}
+</script>
+
+<datalist id="budget-lines-list">
+  {% for lb in lignes_budgetaires %}
+  <option value="{{ lb.nom }}" data-id="{{ lb.id }}"></option>
+  {% endfor %}
+</datalist>
 {% endblock %}

@@ -73,17 +73,18 @@
           <td class="text-right font-mono">{{ bv.assiette|floatformat:2 }}</td>
           <td class="text-right font-mono text-danger">{{ bv.total_cotisations_junior|floatformat:2 }}</td>
           <td class="text-right font-mono text-warning">{{ bv.total_cotisations_etudiant|floatformat:2 }}</td>
-          <td>
-            <select class="form-control" style="font-size:.7rem;padding:4px 8px;border-radius:6px"
-                    hx-post="{% url 'finance:set_budget_line' %}"
-                    hx-trigger="change"
-                    hx-swap="none"
-                    hx-vals='js:{"type": "bv", "id": "{{ bv.id }}", "lb_id": event.target.value}'>
-              <option value="">—</option>
-              {% for lb in all_budget_lines %}
-              <option value="{{ lb.id }}" {% if bv.ligne_budgetaire_id == lb.id %}selected{% endif %}>{{ lb.nom }}</option>
-              {% endfor %}
-            </select>
+          <td class="relative">
+            <input list="budget-lines-list" 
+                   class="form-control" 
+                   style="font-size:.7rem;padding:4px 8px;border-radius:6px"
+                   placeholder="Ligne..."
+                   value="{{ bv.ligne_budgetaire.nom|default:'' }}"
+                   hx-post="{% url 'finance:set_budget_line' %}"
+                   hx-trigger="change"
+                   hx-swap="none"
+                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                   hx-vals='js:{"type": "bv", "id": "{{ bv.id }}", "lb_name": event.target.value, "lb_id": (Array.from(document.getElementById("budget-lines-list").options).find(o => o.value.trim() === event.target.value.trim()))?.dataset.id || ""}'
+                   onhtmx:after-request="if(event.detail.successful) { this.classList.add('success-flash'); setTimeout(() => this.classList.remove('success-flash'), 1000); }">
           </td>
           <td>
             <div class="flex gap-1 justify-end">
@@ -113,5 +114,13 @@
   </div>
   {% endif %}
 </div>
+
+
+<!-- Shared Budget Lines Datalist -->
+<datalist id="budget-lines-list">
+  {% for lb in all_budget_lines %}
+  <option value="{{ lb.nom }}" data-id="{{ lb.id }}"></option>
+  {% endfor %}
+</datalist>
 
 {% endblock %}

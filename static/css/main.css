@@ -1360,3 +1360,13 @@ dialog::backdrop {
   background-color: #fff !important;
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2) !important;
 }
+
+/* Success flash for budget inputs */
+@keyframes success-pulse {
+    0% { background-color: transparent; }
+    50% { background-color: #d1fae5; border-color: #10b981; }
+    100% { background-color: transparent; }
+}
+.success-flash {
+    animation: success-pulse 1s ease-out;
+}

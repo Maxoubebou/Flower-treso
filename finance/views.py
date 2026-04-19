@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Sum, F
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 
@@ -78,6 +78,9 @@ def ventes_list(request):
     allowed_fields = ['date_operation', 'taux_tva', 'montant_ht', 'montant_tva', 'montant_ttc']
     qs = _ordonner_qs(qs, request, allowed_fields)
 
+    # Filtrage des lignes budgétaires : uniquement celles présentes dans le budget actif
+    all_budget_lines = LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct()
+
     return render(request, 'finance/ventes_list.html', {
         'factures': qs,
         'filtre_mois': mois,
@@ -85,7 +88,7 @@ def ventes_list(request):
         'total_ht': sum(f.montant_ht for f in qs),
         'total_tva': sum(f.montant_tva for f in qs),
         'total_ttc': sum(f.montant_ttc for f in qs),
-        'all_budget_lines': LigneBudgetaire.objects.filter(active=True),
+        'all_budget_lines': all_budget_lines,
         'current_sort': request.GET.get('sort'),
         'current_order': request.GET.get('order', 'asc'),
     })
@@ -152,7 +155,7 @@ def vente_edit(request, pk):
     return render(request, 'finance/vente_form.html', {
         'facture': fv,
         'types_facture_vente': TypeFactureVente.objects.filter(active=True),
-        'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True),
+        'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
         'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True),
         'etudes': Etude.objects.filter(active=True).order_by('reference'),
     })
@@ -163,7 +166,7 @@ def vente_edit(request, pk):
 def bv_list(request):
     mois, annee = _get_filtres(request)
     qs = _appliquer_filtres(
-        BulletinVersement.objects.select_related('etude'),
+        BulletinVersement.objects.select_related('etude', 'ligne_budgetaire'),
         mois, annee
     )
     # Sorting
@@ -174,7 +177,7 @@ def bv_list(request):
         'bulletins': qs,
         'filtre_mois': mois,
         'filtre_annee': annee,
-        'all_budget_lines': LigneBudgetaire.objects.filter(active=True),
+        'all_budget_lines': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
         'current_sort': request.GET.get('sort'),
         'current_order': request.GET.get('order', 'asc'),
     })
@@ -207,8 +210,10 @@ def bv_edit(request, pk):
                     bv.operation.save()
 
             etude_pk = request.POST.get('etude')
+            ligne_bud_pk = request.POST.get('ligne_budgetaire')
 
             bv.etude = Etude.objects.get(pk=etude_pk) if etude_pk else None
+            bv.ligne_budgetaire = LigneBudgetaire.objects.get(pk=ligne_bud_pk) if ligne_bud_pk else None
             bv.date_emission = date_emission
             bv.intervenant_nom = request.POST.get('intervenant_nom', bv.intervenant_nom)
             bv.intervenant_prenom = request.POST.get('intervenant_prenom', bv.intervenant_prenom)
@@ -237,6 +242,7 @@ def bv_edit(request, pk):
     return render(request, 'finance/bv_form.html', {
         'bv': bv,
         'etudes': Etude.objects.filter(active=True).order_by('reference'),
+        'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
         'cotisations_params': ParametreCotisation.objects.all(),
     })
 
@@ -260,7 +266,7 @@ def achats_list(request):
         'total_ht': sum(f.montant_ht for f in qs),
         'total_tva': sum(f.montant_tva for f in qs),
         'total_ttc': sum(f.montant_ttc for f in qs),
-        'all_budget_lines': LigneBudgetaire.objects.filter(active=True),
+        'all_budget_lines': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
         'current_sort': request.GET.get('sort'),
         'current_order': request.GET.get('order', 'asc'),
     })
@@ -322,7 +328,7 @@ def achat_edit(request, pk):
     return render(request, 'finance/achat_form.html', {
         'facture': fa,
         'types_achat': TypeAchat.objects.filter(active=True),
-        'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True),
+        'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
         'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True),
     })
 
@@ -353,8 +359,16 @@ def set_budget_line(request):
     obj_type = request.POST.get('type')
     obj_id = request.POST.get('id')
     lb_id = request.POST.get('lb_id')
+    lb_name = request.POST.get('lb_name')
     
-    lb = get_object_or_404(LigneBudgetaire, pk=lb_id) if lb_id else None
+    lb = None
+    # 1. Tentative par ID
+    if lb_id and lb_id.isdigit():
+        lb = LigneBudgetaire.objects.filter(pk=lb_id).first()
+    
+    # 2. Fallback par Nom (plus robuste pour les entrées manuelles)
+    if not lb and lb_name:
+        lb = LigneBudgetaire.objects.filter(nom__iexact=lb_name.strip()).first()
     
     if obj_type == 'vente':
         obj = get_object_or_404(FactureVente, pk=obj_id)
@@ -368,4 +382,7 @@ def set_budget_line(request):
     obj.ligne_budgetaire = lb
     obj.save()
     
-    return HttpResponse(lb.nom if lb else "—")
+    response = HttpResponse(lb.nom if lb else "—")
+    # On ajoute un trigger pour un feedback visuel JS si besoin
+    response['HX-Trigger'] = 'budgetLineSaved'
+    return response
