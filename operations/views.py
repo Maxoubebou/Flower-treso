@@ -5,19 +5,14 @@ from .models import Operation, ImportBatch
 from .services import parse_csv
 from flower_treso.utils import to_decimal
 
-
-
-def import_csv(request):
-    """Vue d'import du fichier CSV bancaire."""
+def process_list(request):
+    """Liste des opérations et gestion de l'importation CSV."""
     if request.method == 'POST':
         csv_file = request.FILES.get('csv_file')
-        if not csv_file:
-            messages.error(request, "Veuillez sélectionner un fichier CSV.")
-            return redirect('operations:import_csv')
-
-        if not csv_file.name.endswith('.csv'):
-            messages.error(request, "Le fichier doit être au format CSV.")
-            return redirect('operations:import_csv')
+        
+        if not csv_file or not csv_file.name.endswith('.csv'):
+            messages.error(request, "Veuillez sélectionner un fichier CSV valide.")
+            return redirect('operations:process_list')
 
         try:
             content = csv_file.read()
@@ -25,30 +20,15 @@ def import_csv(request):
             if errors:
                 for err in errors:
                     messages.warning(request, err)
-            messages.success(
-                request,
-                f"{len(ops)} opération(s) importée(s) depuis « {csv_file.name} »."
-            )
-            return redirect('operations:process_list')
+            messages.success(request, f"{len(ops)} opération(s) importée(s).")
         except Exception as e:
             messages.error(request, f"Erreur lors de l'import : {e}")
-            return redirect('operations:import_csv')
+            
+        return redirect('operations:process_list')
 
-    # GET — afficher les imports récents
-    recent_batches = ImportBatch.objects.order_by('-created_at')[:5]
-    pending_count = Operation.objects.filter(statut='pending').count()
-    return render(request, 'operations/import_csv.html', {
-        'recent_batches': recent_batches,
-        'pending_count': pending_count,
-    })
-
-
-def process_list(request):
-    """Liste des opérations en attente de traitement."""
-    # On garde le filtre de statut (ex: 'pending' ou 'A_TRAITER')
+    # 2. Affichage de la liste (GET)
     statut = request.GET.get('statut', 'pending')
 
-    # On récupère les opérations sans se soucier de la date
     qs = Operation.objects.select_related('import_batch')
     
     if statut:
@@ -57,6 +37,8 @@ def process_list(request):
     return render(request, 'operations/process_list.html', {
         'operations': qs.order_by('date_operation', 'id'),
         'filtre_statut': statut,
+        'recent_batches': ImportBatch.objects.order_by('-created_at')[:5],
+        'pending_count': Operation.objects.filter(statut='pending').count(),
     })
 
 
@@ -84,7 +66,8 @@ def process_operation(request, operation_id):
             operation.commentaire_ignoree = request.POST.get('commentaire', '')
             operation.save()
             messages.success(request, f"Opération « {operation.libelle} » ignorée.")
-            return _redirect_next(operation)
+            to_next = 'save_next' in request.POST
+            return _redirect_next(operation, to_next=to_next)
 
         elif action == 'vente':
             return _process_vente(request, operation)

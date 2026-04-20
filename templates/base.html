@@ -39,15 +39,12 @@
       <div class="sidebar-section-title"><span>Tableau de bord</span></div>
       <a href="{% url 'reporting:dashboard' %}" class="nav-item {% if request.resolver_match.view_name == 'reporting:dashboard' %}active{% endif %}">
         <i data-lucide="layout-dashboard" width="17" height="17"></i>
-        <span>Vue d'ensemble</span>
+        <span>Dashboard</span>
       </a>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-title"><span>Opérations</span></div>
-      <a href="{% url 'operations:import_csv' %}" class="nav-item {% if 'import' in request.path %}active{% endif %}">
-        <i data-lucide="upload" width="17" height="17"></i>
-        <span>Importer CSV</span>
+      <a href="{% url 'budget:dashboard' %}"
+         class="nav-item {% if 'budget' in request.path %}active{% endif %}">
+        <i data-lucide="pie-chart" width="17" height="17"></i>
+        <span>Gestion Budget</span>
       </a>
       <a href="{% url 'operations:process_list' %}" class="nav-item {% if request.resolver_match.view_name == 'operations:process_list' or request.resolver_match.view_name == 'operations:process_operation' %}active{% endif %}">
         <i data-lucide="list-checks" width="17" height="17"></i>
@@ -57,7 +54,6 @@
         {% endif %}
       </a>
     </div>
-
     <div class="sidebar-section">
       <div class="sidebar-section-title"><span>Comptabilité</span></div>
       <a href="{% url 'finance:ventes_list' %}"
@@ -87,11 +83,6 @@
          class="nav-item {% if 'tva' in request.path %}active{% endif %}">
         <i data-lucide="file-text" width="17" height="17"></i>
         <span>Synthèse TVA</span>
-      </a>
-      <a href="{% url 'budget:dashboard' %}"
-         class="nav-item {% if 'budget' in request.path %}active{% endif %}">
-        <i data-lucide="pie-chart" width="17" height="17"></i>
-        <span>Gestion Budget</span>
       </a>
     </div>
 

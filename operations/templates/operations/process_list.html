@@ -16,7 +16,7 @@
     <option value="ignored" {% if filtre_statut == 'ignored' %}selected{% endif %}>Ignorées</option>
     <option value="" {% if not filtre_statut %}selected{% endif %}>Toutes</option>
   </select>
-  <a href="{% url 'operations:import_csv' %}" class="btn btn-primary btn-sm">
+  <a href="{% url 'operations:process_list' %}" class="btn btn-primary btn-sm">
     <i data-lucide="upload" width="14" height="14"></i>
     Importer
   </a>
@@ -24,6 +24,28 @@
 {% endblock %}
 
 {% block content %}
+
+<!-- zone d'importation des opérations -->
+<div>
+  <div class="card mb-6">
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data" id="import-form">
+        {% csrf_token %}
+
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-input').click()">
+          <div class="upload-text" style="display:flex; align-items:center; justify-content:center; gap: 16px">
+            <i data-lucide="file-up" width="20" height="20"></i>
+            Cliquez ou déposez votre fichier CSV ici
+          </div>
+          <div id="file-name" style="margin-top:12px;font-weight:600;color:var(--color-primary);display:none"></div>
+        </div>
+
+        <input type="file" id="csv-input" name="csv_file" accept=".csv" style="display:none"
+                onchange="if(this.value) this.form.submit()">
+      </form>
+    </div>
+  </div>
+</div>
 
 {% if operations %}
 
@@ -44,7 +66,7 @@
     </div>
 
     <div class="op-amount {% if op.est_credit %}credit{% else %}debit{% endif %}" style="margin-left:auto; margin-right: 16px">
-      {% if op.est_credit %}{{ op.credit|floatformat:2 }}{% else %}{{ op.debit|floatformat:2 }}{% endif %} €
+      {% if op.est_credit %}+{{ op.credit|floatformat:2 }}{% else %}{{ op.debit|floatformat:2 }}{% endif %} €
     </div>
   </a>
   
@@ -64,15 +86,31 @@
     <h2 style="font-size:1.1rem;font-weight:700;color:var(--color-gray-700);margin-bottom:8px">
       Aucune opération en attente
     </h2>
-    <p class="text-muted text-sm" style="margin-bottom:20px">
-      {% if filtre_mois %}Essayez de changer le filtre de mois ou{% else %}Commencez par{% endif %} importer un fichier CSV.
-    </p>
-    <a href="{% url 'operations:import_csv' %}" class="btn btn-primary">
-      <i data-lucide="upload" width="16" height="16"></i>
-      Importer un relevé
+
+    <a href="{% url 'reporting:dashboard' %}" class="btn btn-primary">
+      <i data-lucide="layout-dashboard" width="16" height="16"></i>
+      revenir au dashboard
     </a>
   </div>
 </div>
 {% endif %}
 
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+
+// Drag and drop
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const input = document.getElementById('csv-input');
+  input.files = e.dataTransfer.files;
+  input.form.submit();
+});
+</script>
 {% endblock %}

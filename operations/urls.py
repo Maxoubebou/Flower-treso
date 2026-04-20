@@ -4,7 +4,6 @@ from . import views
 app_name = 'operations'
 
 urlpatterns = [
-    path('import/', views.import_csv, name='import_csv'),
     path('', views.process_list, name='process_list'),
     path('process/<int:operation_id>/', views.process_operation, name='process_operation'),
     path('ignore/<int:operation_id>/', views.operation_ignore, name='operation_ignore'),

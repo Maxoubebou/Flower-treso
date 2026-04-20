@@ -971,7 +971,7 @@ table.data-table {
   cursor: text;
   min-width: 80px;
   display: inline-block;
-  text-align: right;
+  text-align: left;
   font-family: 'Menlo', monospace;
   font-weight: 600;
 }
@@ -1142,7 +1142,6 @@ tr:hover .trash-btn { opacity: 1; }
 .budget-comment-cell {
   font-size: 0.8rem;
   color: var(--color-gray-500);
-  font-style: italic;
   min-width: 200px;
 }
 
