@@ -1,13 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Traiter : {{ operation.libelle }} — Flower-Tréso{% endblock %}
-{% block page_title %}Traitement de l'opération{% endblock %}
+{% block topbar %}{% endblock %}
 
 {% block content %}
 
 <!-- Info de l'opération -->
-<div class="card mb-6">
+<div class="card mb-4">
   <div class="card-body">
     <div class="flex items-center gap-4">
       <div style="width:52px;height:52px;border-radius:var(--radius-lg);
@@ -18,10 +17,6 @@
            style="color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %}"></i>
       </div>
       <div class="flex-1">
-        <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
-             color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
-          {% if operation.est_credit %}Crédit{% else %}Débit{% endif %} &bull; {{ operation.date_operation|date:"d/m/Y" }}
-        </div>
         <div style="font-size:1.05rem;font-weight:700;color:var(--color-gray-900)">{{ operation.libelle }}</div>
         {% if operation.info_complementaire %}
         <div class="text-sm text-muted">{{ operation.info_complementaire }}</div>
@@ -34,7 +29,10 @@
         <div class="op-amount {% if operation.est_credit %}credit{% else %}debit{% endif %}" style="font-size:1.6rem">
           {% if operation.est_credit %}+{{ operation.credit|floatformat:2 }}{% else %}−{{ operation.debit|floatformat:2 }}{% endif %} €
         </div>
-        <div class="text-xs text-muted">Valeur : {{ operation.date_valeur|date:"d/m/Y"|default:"—" }}</div>
+        <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
+             color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
+          {% if operation.est_credit %}Crédit{% else %}Débit{% endif %} &bull; {{ operation.date_operation|date:"d/m/Y" }}
+        </div>
       </div>
     </div>
   </div>
@@ -60,9 +58,9 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="vente">
 
-        <div class="grid-2 mb-6">
+        <div class="grid-2 ">
           <!-- Colonne gauche -->
-          <div class="flex flex-col gap-3">
+          <div class="flex flex-col">
             <div class="card">
               <div class="card-header"><div class="card-title">Identification</div></div>
               <div class="card-body">
@@ -85,7 +83,6 @@
                     <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
                     {% endfor %}
                   </select>
-                  <div class="form-hint">Obligatoire pour les factures d'acompte et de solde</div>
                 </div>
 
                 <div class="form-group">
@@ -97,12 +94,6 @@
                   <label class="form-label">Preuve comptable (lien Drive)</label>
                   <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
                 </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-header"><div class="card-title">Budget & Commentaire</div></div>
-              <div class="card-body">
                 <div class="form-group">
                   <label class="form-label">Ligne budgétaire</label>
                   <select name="ligne_budgetaire" class="form-control">
@@ -128,7 +119,6 @@
                 <div class="form-group">
                   <label class="form-label">Date d'opération</label>
                   <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
-                  <div class="form-hint">Issue du relevé bancaire — non modifiable</div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Date d'envoi de la facture</label>
@@ -147,26 +137,27 @@
                 </label>
               </div>
               <div class="card-body">
-                <div class="form-group">
-                  <label class="form-label">Taux de TVA</label>
-                  <select name="taux_tva" id="vente-taux-tva-select" class="form-control" onchange="computeTVA()">
-                    {% for t in taux_tva_disponibles %}
-                    <option value="{{ t.taux|stringformat:'.2f' }}" {% if t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
-                      {{ t.taux }}% — {{ t.libelle }}
-                    </option>
-                    {% endfor %}
-                  </select>
-                </div>
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Taux de TVA</label>
+                    <select name="taux_tva" id="vente-taux-tva-select" class="form-control" onchange="computeTVA()">
+                      {% for t in taux_tva_disponibles %}
+                      <option value="{{ t.taux|stringformat:'.2f' }}" {% if t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
+                        {{ t.taux }}% — {{ t.libelle }}
+                      </option>
+                      {% endfor %}
+                    </select>
+                  </div>
 
-                <div class="form-group">
-                  <label class="form-label">Pays de TVA</label>
-                  <select name="pays_tva" class="form-control">
-                    <option value="FR" selected>France (FR)</option>
-                    <option value="intracom">Acquisition intracommunautaire</option>
-                    <option value="extracom">Hors UE (Extra-com)</option>
-                  </select>
+                  <div class="form-group">
+                    <label class="form-label">Pays de TVA</label>
+                    <select name="pays_tva" class="form-control">
+                      <option value="FR" selected>France (FR)</option>
+                      <option value="intracom">Acquisition intracommunautaire</option>
+                      <option value="extracom">Hors UE (Extra-com)</option>
+                    </select>
+                  </div>
                 </div>
-
                 <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px;margin-top:8px">
                   <div class="flex justify-between items-center mb-4" style="margin-bottom:8px">
                     <span class="text-sm text-muted">Montant TTC (fixe)</span>
@@ -185,24 +176,22 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+            <div class="flex gap-3 items-center w-full">
+              <a href="{% url 'operations:process_list' %}" class="btn btn-outline flex-1 justify-center">
+                <i data-lucide="arrow-left" width="15" height="15"></i>
+                Retour à la liste
+              </a>
+              
+              <button type="submit" name="save_only" class="btn btn-secondary flex-1 justify-center">
+                <i data-lucide="save" width="16" height="16"></i>
+                Enregistrer
+              </button>
 
-        <div class="flex gap-3 justify-end items-center">
-          <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
-            <i data-lucide="arrow-left" width="15" height="15"></i>
-            Retour à la liste
-          </a>
-          
-          <div class="flex gap-2">
-            <button type="submit" name="save_only" class="btn btn-secondary">
-              <i data-lucide="save" width="16" height="16"></i>
-              Enregistrer
-            </button>
-            <button type="submit" name="save_next" class="btn btn-primary btn-lg">
-              <i data-lucide="step-forward" width="18" height="18"></i>
-              Enregistrer & Suivant
-            </button>
+              <button type="submit" name="save_next" class="btn btn-primary btn-lg flex-1 justify-center">
+                <i data-lucide="step-forward" width="18" height="18"></i>
+                Enregistrer & Suivant
+              </button>
+            </div>
           </div>
         </div>
       </form>
@@ -216,7 +205,7 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="achat">
 
-        <div class="grid-2 mb-6">
+        <div class="grid-2 mb-4">
           <div class="flex flex-col gap-3">
             <div class="card">
               <div class="card-header"><div class="card-title">Identification</div></div>
@@ -391,7 +380,7 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="bv">
 
-        <div class="grid-2 mb-6">
+        <div class="grid-2 mb-4">
           <div class="flex flex-col gap-3">
             <div class="card">
               <div class="card-header"><div class="card-title">Identification du BV</div></div>

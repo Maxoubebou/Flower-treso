@@ -98,6 +98,7 @@
   <div class="main-content">
 
     <!-- Top bar -->
+    {% block topbar %}
     <header class="topbar">
       <h1 class="topbar-title">{% block page_title %}Flower-Tréso{% endblock %}</h1>
 
@@ -152,6 +153,7 @@
         {% now "d/m/Y" %}
       </span>
     </header>
+    {% endblock %}
 
     <!-- Messages (toasts) -->
     {% if messages %}
