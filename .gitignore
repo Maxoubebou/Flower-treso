@@ -1,0 +1,23 @@
+# Bases de données
+*.sqlite3
+*.db
+
+# Fichiers de données et tableurs
+*.csv
+*.xlsx
+*.xls
+*.ods
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+
+# Médias et statiques locaux
+media/
+staticfiles/
+.DS_Store
