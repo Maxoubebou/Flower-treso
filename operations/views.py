@@ -45,55 +45,18 @@ def import_csv(request):
 
 def process_list(request):
     """Liste des opérations en attente de traitement."""
-    # Gestion du mois (Multi-sélection)
-    if 'mois' in request.GET:
-        mois_raw = request.GET.getlist('mois')
-        processed_mois = []
-        for m in mois_raw:
-            if m.startswith('[') and m.endswith(']'):
-                import ast
-                try:
-                    val = ast.literal_eval(m)
-                    if isinstance(val, list):
-                        processed_mois.extend([str(item) for item in val])
-                except (ValueError, SyntaxError):
-                    pass
-            elif m:
-                processed_mois.append(m)
-        
-        mois = list(set(processed_mois))
-        request.session['filtre_mois'] = mois
-    else:
-        mois = request.session.get('filtre_mois', [])
-
-    # Gestion de l'année
-    if 'annee' in request.GET:
-        annee = request.GET.get('annee')
-        request.session['filtre_annee'] = annee
-    else:
-        annee = request.session.get('filtre_annee', '2025')
-
+    # On garde le filtre de statut (ex: 'pending' ou 'A_TRAITER')
     statut = request.GET.get('statut', 'pending')
 
+    # On récupère les opérations sans se soucier de la date
     qs = Operation.objects.select_related('import_batch')
+    
     if statut:
         qs = qs.filter(statut=statut)
-    
-    if mois:
-        qs = qs.filter(date_operation__month__in=[int(m) for m in mois])
-    if annee:
-        qs = qs.filter(date_operation__year=int(annee))
-
-    # Années disponibles pour le filtre
-    from django.db.models import Max, Min
-    dates = Operation.objects.aggregate(min=Min('date_operation'), max=Max('date_operation'))
 
     return render(request, 'operations/process_list.html', {
         'operations': qs.order_by('date_operation', 'id'),
-        'filtre_mois': mois,
-        'filtre_annee': annee,
         'filtre_statut': statut,
-        'dates': dates,
     })
 
 

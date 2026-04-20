@@ -111,6 +111,7 @@
       <h1 class="topbar-title">{% block page_title %}Flower-Tréso{% endblock %}</h1>
 
       <!-- Filtre mois (Multi-sélection) -->
+      {% block date_filters %}
       <form method="get" id="month-filter-form" style="display:flex;align-items:center;gap:12px">
         <div class="month-multi-select">
           <div class="month-multi-toggle" id="month-toggle">
@@ -153,6 +154,7 @@
         </select>
         {% block topbar_actions %}{% endblock %}
       </form>
+      {% endblock %}
 
       <span class="topbar-meta">
         <i data-lucide="clock" width="13" height="13" style="display:inline;vertical-align:middle;margin-right:3px;"></i>
@@ -222,10 +224,27 @@
   // Init Lucide icons
   lucide.createIcons();
 
-  document.getElementById('toggle-sidebar').addEventListener('click', function() {
-    document.getElementById('sidebar').classList.toggle('collapsed');
-    document.querySelector('.main-content').classList.toggle('collapsed');
-  });
+  const sidebar = document.getElementById('sidebar');
+  const mainContent = document.querySelector('.main-content');
+  const toggleBtn = document.getElementById('toggle-sidebar');
+
+  // 1. Au chargement de la page, on vérifie si la sidebar était pliée
+  if (localStorage.getItem('sidebarCollapsed') === 'true') {
+    sidebar.classList.add('collapsed');
+    mainContent.classList.add('collapsed');
+  }
+
+  // 2. Quand on clique sur le bouton, on plie/déplie et on sauvegarde l'état
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function() {
+      sidebar.classList.toggle('collapsed');
+      mainContent.classList.toggle('collapsed');
+      
+      // On sauvegarde true ou false dans le navigateur
+      const isCollapsed = sidebar.classList.contains('collapsed');
+      localStorage.setItem('sidebarCollapsed', isCollapsed);
+    });
+  }
 </script>
 
 {% include 'init-scripts.html' %}

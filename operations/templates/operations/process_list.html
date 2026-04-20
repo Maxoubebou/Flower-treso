@@ -4,6 +4,9 @@
 {% block title %}Traitement des opérations — Flower-Tréso{% endblock %}
 {% block page_title %}Opérations bancaires{% endblock %}
 
+{% block date_filters %}
+{% endblock %}
+
 {% block topbar_actions %}
 <div class="flex gap-2 items-center" style="margin-left:auto">
   <select name="statut" form="month-filter-form" onchange="document.getElementById('month-filter-form').submit()"
@@ -23,21 +26,6 @@
 {% block content %}
 
 {% if operations %}
-<!-- Stats rapides -->
-<div class="flex gap-3 mb-6" style="flex-wrap:wrap">
-  <div style="background:#fff;border:1px solid var(--color-gray-200);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;gap:8px">
-    <i data-lucide="list" width="16" height="16" style="color:var(--color-primary)"></i>
-    <span class="font-semibold">{{ operations|length }}</span>
-    <span class="text-muted text-sm">opération{{ operations|length|pluralize }}</span>
-  </div>
-  {% with credits=operations|length %}
-  <div style="background:#fff;border:1px solid var(--color-gray-200);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;gap:8px">
-    <i data-lucide="arrow-down-circle" width="16" height="16" style="color:var(--color-success)"></i>
-    <span class="font-semibold text-success">Crédits</span>
-    <span class="text-muted text-sm">Sélectionner "Vente" ou "Ignorer"</span>
-  </div>
-  {% endwith %}
-</div>
 
 <!-- Liste des opérations -->
 {% for op in operations %}
@@ -56,15 +44,7 @@
     </div>
 
     <div class="op-amount {% if op.est_credit %}credit{% else %}debit{% endif %}" style="margin-left:auto; margin-right: 16px">
-      {% if op.est_credit %}+{% else %}−{% endif %}
       {% if op.est_credit %}{{ op.credit|floatformat:2 }}{% else %}{{ op.debit|floatformat:2 }}{% endif %} €
-    </div>
-
-    <div>
-      <span class="badge badge-gray">
-        <i data-lucide="chevron-right" width="12" height="12"></i>
-        Traiter
-      </span>
     </div>
   </a>
   
