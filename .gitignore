@@ -21,3 +21,4 @@ env/
 media/
 staticfiles/
 .DS_Store
+.venv/
