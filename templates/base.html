@@ -28,33 +28,30 @@
   <aside class="sidebar" id="sidebar">
 
     <div class="sidebar-logo">
-      <div class="sidebar-logo-icon">
-        <i data-lucide="flower-2" style="color:#fff;width:18px;height:18px;"></i>
-      </div>
-      <div>
-        <div class="sidebar-logo-text">Flower-Tréso</div>
-        <div class="sidebar-logo-sub">Gestion TVA &bull; JE</div>
-      </div>
+        <button id="toggle-sidebar" class="btn btn-ghost btn-icon" >
+          <img src="{% static 'img/icon.png' %}" alt="logo" style="width:100%;height:auto;">
+        </button>
+        <img src="{% static 'img/text_logo.png' %}" alt="logo" class="sidebar-text-logo" style="width:40%;height:auto;">
     </div>
 
     <!-- Navigation principale -->
     <div class="sidebar-section">
-      <div class="sidebar-section-title">Tableau de bord</div>
+      <div class="sidebar-section-title"><span>Tableau de bord</span></div>
       <a href="{% url 'reporting:dashboard' %}" class="nav-item {% if request.resolver_match.view_name == 'reporting:dashboard' %}active{% endif %}">
         <i data-lucide="layout-dashboard" width="17" height="17"></i>
-        Vue d'ensemble
+        <span>Vue d'ensemble</span>
       </a>
     </div>
 
     <div class="sidebar-section">
-      <div class="sidebar-section-title">Opérations</div>
+      <div class="sidebar-section-title"><span>Opérations</span></div>
       <a href="{% url 'operations:import_csv' %}" class="nav-item {% if 'import' in request.path %}active{% endif %}">
         <i data-lucide="upload" width="17" height="17"></i>
-        Importer CSV
+        <span>Importer CSV</span>
       </a>
       <a href="{% url 'operations:process_list' %}" class="nav-item {% if request.resolver_match.view_name == 'operations:process_list' or request.resolver_match.view_name == 'operations:process_operation' %}active{% endif %}">
         <i data-lucide="list-checks" width="17" height="17"></i>
-        Traitement
+        <span>Traitement</span>
         {% if pending_count %}
         <span class="nav-badge">{{ pending_count }}</span>
         {% endif %}
@@ -62,46 +59,46 @@
     </div>
 
     <div class="sidebar-section">
-      <div class="sidebar-section-title">Comptabilité</div>
+      <div class="sidebar-section-title"><span>Comptabilité</span></div>
       <a href="{% url 'finance:ventes_list' %}"
          class="nav-item {% if 'ventes' in request.path %}active{% endif %}">
         <i data-lucide="receipt" width="17" height="17"></i>
-        Ventes
+        <span>Ventes</span>
       </a>
       <a href="{% url 'finance:achats_list' %}"
          class="nav-item {% if 'achats' in request.path %}active{% endif %}">
         <i data-lucide="shopping-bag" width="17" height="17"></i>
-        Achats
+        <span>Achats</span>
       </a>
       <a href="{% url 'finance:bv_list' %}"
          class="nav-item {% if '/bv/' in request.path %}active{% endif %}">
         <i data-lucide="users" width="17" height="17"></i>
-        Bulletins de versement
+        <span>Bulletins de versement</span>
       </a>
       <a href="{% url 'finance:etudes_list' %}" class="nav-item {% if 'etudes' in request.path %}active{% endif %}">
         <i data-lucide="folder-open" width="17" height="17"></i>
-        Études
+        <span>Études</span>
       </a>
     </div>
 
     <div class="sidebar-section">
-      <div class="sidebar-section-title">Reporting</div>
+      <div class="sidebar-section-title"><span>Reporting</span></div>
       <a href="{% url 'reporting:tva_synthese' %}"
          class="nav-item {% if 'tva' in request.path %}active{% endif %}">
         <i data-lucide="file-text" width="17" height="17"></i>
-        Synthèse TVA
+        <span>Synthèse TVA</span>
       </a>
       <a href="{% url 'budget:dashboard' %}"
          class="nav-item {% if 'budget' in request.path %}active{% endif %}">
         <i data-lucide="pie-chart" width="17" height="17"></i>
-        Gestion Budget
+        <span>Gestion Budget</span>
       </a>
     </div>
 
     <div class="sidebar-footer">
       <a href="{% url 'config:settings_index' %}" class="nav-item {% if 'config' in request.path %}active{% endif %}">
         <i data-lucide="settings" width="17" height="17"></i>
-        Paramètres
+        <span>Paramètres</span>
       </a>
     </div>
   </aside>
@@ -224,6 +221,11 @@
 
   // Init Lucide icons
   lucide.createIcons();
+
+  document.getElementById('toggle-sidebar').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+    document.querySelector('.main-content').classList.toggle('collapsed');
+  });
 </script>
 
 {% include 'init-scripts.html' %}

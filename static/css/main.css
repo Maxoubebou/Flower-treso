@@ -64,7 +64,7 @@ body {
 /* Sidebar */
 .sidebar {
   width: var(--sidebar-width);
-  background: var(--color-gray-900);
+  background: #010028 ;
   color: #e2e8f0;
   display: flex;
   flex-direction: column;
@@ -85,7 +85,7 @@ body {
 
 .sidebar-logo-icon {
   width: 36px; height: 36px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-danger));
+  background-color: #ffffff;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -164,6 +164,29 @@ body {
   padding: 12px;
   border-top: 1px solid rgba(255,255,255,.07);
 }
+
+.sidebar.collapsed {
+  width: 70px;
+}
+.sidebar.collapsed .sidebar-logo-text,
+.sidebar.collapsed .sidebar-logo-sub,
+.sidebar.collapsed .sidebar-section-title,
+.sidebar.collapsed .nav-badge,
+.sidebar.collapsed .nav-item span,
+.sidebar.collapsed .sidebar-text-logo{
+  display: none;
+}
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+}
+.sidebar.collapsed .sidebar-logo {
+  justify-content: center;
+  padding: 20px 0 16px 0;
+}
+.main-content.collapsed {
+  margin-left: 70px;
+}
+
 
 /* Main content */
 .main-content {
@@ -437,7 +460,7 @@ body {
 
 .btn-sm { padding: 6px 11px; font-size: .78rem; }
 .btn-lg { padding: 12px 22px; font-size: .95rem; }
-.btn-icon { padding: 8px; width: 36px; height: 36px; justify-content: center; }
+.btn-icon { padding: 8px; width: 48px; height: 48px; justify-content: center; }
 
 /* ─── Forms ──────────────────────────────────────────────── */
 .form-group { margin-bottom: 16px; }
