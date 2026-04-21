@@ -119,3 +119,50 @@ class ParametreCotisation(models.Model):
         return (self.assurance_maladie + self.accident_travail + self.vieillesse_plafonnee
                 + self.vieillesse_deplafonnee + self.allocations_familiales
                 + self.csg_deductible + self.csg_non_deductible)
+
+
+class AutofillRule(models.Model):
+    """Règles de préremplissage automatique lors du traitement des opérations."""
+    CONDITION_CHOICES = [
+        ('OR', 'Au moins un mot clé (OU)'),
+        ('AND', 'Tous les mots clés (ET)'),
+    ]
+    TYPE_OP_CHOICES = [
+        ('all', 'Toutes les opérations'),
+        ('credit', 'Ventes / Crédits'),
+        ('debit', 'Achats / Débits'),
+    ]
+    PAYS_TVA_CHOICES = [
+        ('FR', 'France'),
+        ('intracom', 'Intracom UE'),
+        ('extracom', 'Extra UE'),
+    ]
+    CATEGORISATION_CHOICES = [
+        ('service', 'Service'),
+        ('bien', 'Bien'),
+        ('immobilisation', 'Immobilisation'),
+    ]
+
+    nom = models.CharField(max_length=100, help_text="Nom usuel de la règle (ex: Frais bancaires)")
+    mots_cles = models.CharField(max_length=500, help_text="Mots clés séparés par des virgules")
+    condition_type = models.CharField(max_length=3, choices=CONDITION_CHOICES, default='OR')
+    type_operation = models.CharField(max_length=10, choices=TYPE_OP_CHOICES, default='all')
+    
+    # Cibles de préremplissage (optionnelles)
+    fournisseur = models.CharField(max_length=255, blank=True, null=True)
+    libelle_defaut = models.CharField(max_length=255, blank=True, null=True)
+    ligne_budgetaire = models.ForeignKey(LigneBudgetaire, on_delete=models.SET_NULL, null=True, blank=True)
+    taux_tva = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    pays_tva = models.CharField(max_length=20, choices=PAYS_TVA_CHOICES, blank=True, null=True)
+    categorisation_achat = models.CharField(max_length=20, choices=CATEGORISATION_CHOICES, blank=True, null=True)
+    etude = models.ForeignKey('finance.Etude', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    ordre = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['ordre', 'nom']
+        verbose_name = "Règle d'autocomplétion"
+        verbose_name_plural = "Règles d'autocomplétion"
+
+    def __str__(self):
+        return f"{self.nom} ({self.get_type_operation_display()})"

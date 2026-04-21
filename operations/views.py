@@ -46,11 +46,35 @@ def process_operation(request, operation_id):
     """Traitement détaillé d'une opération."""
     operation = get_object_or_404(Operation, pk=operation_id)
 
-    from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA
+    from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, AutofillRule
     from finance.models import Etude, FactureVente, FactureAchat
+
+    # === Évaluation dynamique des règles d'autocomplétion ===
+    text_to_search = f"{operation.libelle} {operation.info_complementaire}".lower()
+    autofill_rule = None
+    
+    for rule in AutofillRule.objects.all().order_by('ordre'):
+        # On ne vérifie que les règles correspondant au bon type d'opération (ou 'all')
+        if rule.type_operation != 'all' and rule.type_operation != operation.type_operation:
+            continue
+            
+        mots = [m.strip().lower() for m in rule.mots_cles.split(',') if m.strip()]
+        if not mots:
+            continue
+            
+        if rule.condition_type == 'OR':
+            if any(mot in text_to_search for mot in mots):
+                autofill_rule = rule
+                break
+        elif rule.condition_type == 'AND':
+            if all(mot in text_to_search for mot in mots):
+                autofill_rule = rule
+                break
+    # ========================================================
 
     context = {
         'operation': operation,
+        'autofill_rule': autofill_rule,
         'types_facture_vente': TypeFactureVente.objects.filter(active=True).order_by('ordre'),
         'types_achat': TypeAchat.objects.filter(active=True).order_by('ordre'),
         'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct().order_by('ordre'),

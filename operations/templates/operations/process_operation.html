@@ -33,6 +33,10 @@
              color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
           {% if operation.est_credit %}Crédit{% else %}Débit{% endif %} &bull; {{ operation.date_operation|date:"d/m/Y" }}
         </div>
+        <button type="button" class="btn btn-outline btn-sm" style="margin-top: 8px;" onclick="document.getElementById('autofill-bottom-sheet').classList.add('open')">
+          <i data-lucide="wand-2" width="14" height="14"></i>
+          Nouvelle règle auto
+        </button>
       </div>
     </div>
   </div>
@@ -81,14 +85,14 @@
                   <select name="etude" class="form-control" id="etude-select">
                     <option value="">— Sans étude associée —</option>
                     {% for e in etudes %}
-                    <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
+                    <option value="{{ e.pk }}" {% if autofill_rule and autofill_rule.etude == e %}selected{% endif %}>{{ e.reference }} — {{ e.nom }}</option>
                     {% endfor %}
                   </select>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label">Libellé</label>
-                  <input type="text" name="libelle" class="form-control" list="libelles-vente" value="{{ operation.info_complementaire }}">
+                  <input type="text" name="libelle" class="form-control" list="libelles-vente" value="{% if autofill_rule and autofill_rule.libelle_defaut %}{{ autofill_rule.libelle_defaut }}{% else %}{{ operation.info_complementaire }}{% endif %}">
                   <datalist id="libelles-vente">
                     {% for lib in historique_libelles_vente %}
                       <option value="{{ lib }}"></option>
@@ -105,7 +109,7 @@
                   <select name="ligne_budgetaire" class="form-control">
                     <option value="">— Non définie —</option>
                     {% for lb in lignes_budgetaires %}
-                    <option value="{{ lb.pk }}">{{ lb.nom }}</option>
+                    <option value="{{ lb.pk }}" {% if autofill_rule and autofill_rule.ligne_budgetaire == lb %}selected{% endif %}>{{ lb.nom }}</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -160,7 +164,7 @@
                     <label class="form-label">Taux de TVA</label>
                     <select name="taux_tva" id="vente-taux-tva-select" class="form-control" onchange="computeTVA()">
                       {% for t in taux_tva_disponibles %}
-                      <option value="{{ t.taux|stringformat:'.2f' }}" {% if t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
+                      <option value="{{ t.taux|stringformat:'.2f' }}" {% if autofill_rule and autofill_rule.taux_tva == t.taux %}selected{% elif not autofill_rule and t.taux == 20 %}selected{% endif %} title="{{ t.commentaire }}">
                         {{ t.taux }}% — {{ t.libelle }}
                       </option>
                       {% endfor %}
@@ -170,9 +174,9 @@
                   <div class="form-group">
                     <label class="form-label">Pays de TVA</label>
                     <select name="pays_tva" class="form-control">
-                      <option value="FR" selected>France (FR)</option>
-                      <option value="intracom">Acquisition intracommunautaire</option>
-                      <option value="extracom">Hors UE (Extra-com)</option>
+                      <option value="FR" {% if not autofill_rule or autofill_rule.pays_tva == 'FR' or not autofill_rule.pays_tva %}selected{% endif %}>France (FR)</option>
+                      <option value="intracom" {% if autofill_rule and autofill_rule.pays_tva == 'intracom' %}selected{% endif %}>Acquisition intracommunautaire</option>
+                      <option value="extracom" {% if autofill_rule and autofill_rule.pays_tva == 'extracom' %}selected{% endif %}>Hors UE (Extra-com)</option>
                     </select>
                   </div>
                 </div>
@@ -240,13 +244,11 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Fournisseur <span class="required">*</span></label>
-                  {% with lib_lower=operation.libelle|lower %}
-                    <input type="text" 
-                           name="fournisseur" 
-                           class="form-control" 
-                           list="fournisseurs" 
-                           required value = "{% if 'cotis' in lib_lower %}BPGO{% elif 'sage' in lib_lower %}SAGE{% elif 'intermarche' in lib_lower %}Intermarché{% else %}{{ operation.libelle }}{% endif %}">
-                  {% endwith %}
+                  <input type="text" 
+                         name="fournisseur" 
+                         class="form-control" 
+                         list="fournisseurs" 
+                         required value="{% if autofill_rule and autofill_rule.fournisseur %}{{ autofill_rule.fournisseur }}{% else %}{{ operation.libelle }}{% endif %}">
                   <datalist id="fournisseurs">
                     {% for lib in historique_fournisseurs %}
                       <option value="{{ lib }}"></option>
@@ -255,14 +257,11 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Libellé</label>
-                  <!-- detection automatique de mot clé pour suggestion de libellé-->
-                  {% with lib_lower=operation.libelle|lower %}
-                    <input type="text" 
-                           name="libelle" 
-                           class="form-control" 
-                           list ="libelles-achat"
-                           value="{% if 'cotis' in lib_lower %}Frais bancaire{% elif 'sage' in lib_lower %}Mensuel logiciel comptable{% elif 'intermarche' in lib_lower %}Course Intermarché{% else %}{{ operation.libelle }}{% endif %}">
-                  {% endwith %}
+                  <input type="text" 
+                         name="libelle" 
+                         class="form-control" 
+                         list ="libelles-achat"
+                         value="{% if autofill_rule and autofill_rule.libelle_defaut %}{{ autofill_rule.libelle_defaut }}{% else %}{{ operation.libelle }}{% endif %}">
                   <datalist id="libelles-achat">
                     {% for lib in historique_libelles_achat %}
                       <option value="{{ lib }}"></option>
@@ -312,8 +311,8 @@
                 <div class="form-group">
                   <label class="form-label">Catégorisation</label>
                   <select name="categorisation" class="form-control" id="categorisation-select" onchange="checkImmobilisation()">
-                    <option value="service" selected>Service</option>
-                    <option value="bien">Bien</option>
+                    <option value="service" {% if not autofill_rule or autofill_rule.categorisation_achat == 'service' or not autofill_rule.categorisation_achat %}selected{% endif %}>Service</option>
+                    <option value="bien" {% if autofill_rule and autofill_rule.categorisation_achat == 'bien' %}selected{% endif %}>Bien</option>
                   </select>
                 </div>
                 <div id="immo-warning" style="display:none;padding:10px;background:var(--color-warning-light);border-radius:var(--radius);border-left:3px solid var(--color-warning)">
@@ -348,15 +347,7 @@
                       {% for t in taux_tva_disponibles %}
                       <!-- detection automatique de mot clé pour suggestion de TVA-->
                       <option value="{{ t.taux|stringformat:'.2f' }}" 
-                        {% with libelle_test=operation.libelle|lower %}
-                          {% if "cotis frequence asso" in libelle_test %}
-                            {% if t.taux == 0 %}selected{% endif %}
-                          {% elif "Intermarche" in libelle_test %}
-                            {% if t.taux == 5.5 %}selected{% endif %}
-                          {% else %}
-                            {% if t.taux == 20 %}selected{% endif %}
-                          {% endif %}
-                        {% endwith %}
+                        {% if autofill_rule and autofill_rule.taux_tva == t.taux %}selected{% elif not autofill_rule and t.taux == 20 %}selected{% endif %}
                         title="{{ t.commentaire }}">
                         {{ t.taux }}% — {{ t.libelle }}
                       </option>
@@ -366,9 +357,9 @@
                   <div class="form-group flex-1">
                     <label class="form-label">Pays de TVA</label>
                     <select name="pays_tva" class="form-control">
-                      <option value="FR" selected>France (FR)</option>
-                      <option value="intracom">Intracom UE</option>
-                      <option value="extracom">Extra UE</option>
+                      <option value="FR" {% if not autofill_rule or autofill_rule.pays_tva == 'FR' or not autofill_rule.pays_tva %}selected{% endif %}>France (FR)</option>
+                      <option value="intracom" {% if autofill_rule and autofill_rule.pays_tva == 'intracom' %}selected{% endif %}>Intracom UE</option>
+                      <option value="extracom" {% if autofill_rule and autofill_rule.pays_tva == 'extracom' %}selected{% endif %}>Extra UE</option>
                     </select>
                   </div>
                 </div>
@@ -505,7 +496,7 @@
                     <select name="etude" class="form-control">
                       <option value="">— Sans étude —</option>
                       {% for e in etudes %}
-                      <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
+                      <option value="{{ e.pk }}" {% if autofill_rule and autofill_rule.etude == e %}selected{% endif %}>{{ e.reference }} — {{ e.nom }}</option>
                       {% endfor %}
                     </select>
                   </div>
@@ -704,7 +695,195 @@
     </div>
   </div>
 </div>
+<!-- ─── Bottom Sheet : Nouvelle Règle Auto ─────────────────────────────────── -->
+<div id="autofill-bottom-sheet" class="bottom-sheet-overlay">
+  <div class="bottom-sheet">
+    <div class="bottom-sheet-header">
+      <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--color-gray-900); display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="wand-2" width="22" height="22" style="color: var(--color-primary);"></i>
+        Nouvelle règle d'autocomplétion
+      </h2>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('autofill-bottom-sheet').classList.remove('open')">
+        <i data-lucide="x" width="18" height="18"></i>
+      </button>
+    </div>
+    <div class="bottom-sheet-body">
+      <form method="post" action="{% url 'config:autofill_rule_create' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        
+        <div class="grid-2" style="gap: 40px; align-items: start;">
+          <!-- Colonne Gauche : Conditions -->
+          <div style="background: var(--color-gray-50); padding: 24px; border-radius: var(--radius-lg); border: 1px solid var(--color-gray-200);">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: var(--color-gray-800); border-bottom: 2px solid var(--color-gray-200); padding-bottom: 8px;">
+              1. Conditions de déclenchement
+            </h3>
+            
+            <div class="form-group mb-4">
+              <label class="form-label font-semibold">Nom de la règle <span class="text-danger">*</span></label>
+              <input type="text" name="nom" class="form-control" required placeholder="ex: Frais Opérationnels...">
+            </div>
 
+            <div class="form-grid-2 mb-4">
+              <div class="form-group">
+                <label class="form-label font-semibold">Cible <span class="text-danger">*</span></label>
+                <select name="type_operation" class="form-control" required>
+                  <option value="all">Toutes opérations</option>
+                  <option value="credit">Ventes / Crédits (Uniquement)</option>
+                  <option value="debit">Achats / Débits (Uniquement)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label font-semibold">Logique <span class="text-danger">*</span></label>
+                <select name="condition_type" class="form-control" required>
+                  <option value="OR">Au moins un mot (OU)</option>
+                  <option value="AND">Tous les mots (ET)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group mb-2">
+              <label class="form-label font-semibold">Mots clés (déclencheurs) <span class="text-danger">*</span></label>
+              <input type="text" name="mots_cles" class="form-control" required placeholder="SAGE, banque, urssaf...">
+              <div class="text-xs text-muted" style="margin-top:6px">Séparés par des virgules. Insensible à la casse.</div>
+            </div>
+            
+            <div class="form-group mt-4">
+              <label class="form-label font-semibold">Ordre de priorité</label>
+              <input type="number" name="ordre" class="form-control font-mono" value="0" style="width: 100px;">
+              <div class="text-xs text-muted" style="margin-top:6px">0 = Evaluée en premier</div>
+            </div>
+          </div>
+
+          <!-- Colonne Droite : Règles appliquées -->
+          <div style="padding: 10px 10px;">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: var(--color-primary); border-bottom: 2px solid var(--color-primary-light); padding-bottom: 8px;">
+              2. Valeurs suggérées
+            </h3>
+            <div class="text-sm text-muted mb-4">Laissez les champs vides si vous ne souhaitez pas les écraser.</div>
+
+            <div class="form-grid-2 mb-4">
+              <div class="form-group">
+                <label class="form-label font-semibold">Fournisseur</label>
+                <input type="text" name="fournisseur" class="form-control" placeholder="ex: URSSAF">
+              </div>
+              <div class="form-group">
+                <label class="form-label font-semibold">Libellé</label>
+                <input type="text" name="libelle_defaut" class="form-control" placeholder="Cotisation mensuelle...">
+              </div>
+            </div>
+
+            <div class="form-grid-2 mb-4">
+              <div class="form-group">
+                <label class="form-label font-semibold">Ligne budgétaire</label>
+                <select name="ligne_budgetaire" class="form-control">
+                  <option value="">— Non définie —</option>
+                  {% for lb in lignes_budgetaires %}
+                  <option value="{{ lb.pk }}">{{ lb.nom }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label font-semibold">Taux TVA (%)</label>
+                <input type="number" step="0.01" name="taux_tva" class="form-control font-mono" placeholder="ex: 20">
+              </div>
+            </div>
+
+            <div class="form-grid-2 mb-4">
+              <div class="form-group">
+                <label class="form-label font-semibold">Pays TVA</label>
+                <select name="pays_tva" class="form-control">
+                  <option value="">— Non défini —</option>
+                  <option value="FR">France</option>
+                  <option value="intracom">Intracom UE</option>
+                  <option value="extracom">Extra UE</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label font-semibold">Catégorisation (Achat)</label>
+                <select name="categorisation_achat" class="form-control">
+                  <option value="">— Non défini —</option>
+                  <option value="service">Service</option>
+                  <option value="bien">Bien</option>
+                  <option value="immobilisation">Immobilisation</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group mb-6">
+              <label class="form-label font-semibold">Étude associée (Si applicable)</label>
+              <select name="etude" class="form-control">
+                <option value="">— Sans étude —</option>
+                {% for e in etudes %}
+                <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div style="text-align: right;">
+              <button type="submit" class="btn btn-primary" style="padding: 12px 24px; font-size: 1.05rem;">
+                <i data-lucide="check-circle" width="18" height="18"></i>
+                Valider et Créer la règle
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+/* CSS Bottom Sheet */
+.bottom-sheet-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px); /* Safari support */
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.bottom-sheet-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.bottom-sheet {
+  background: #fff;
+  width: 100%;
+  max-width: 1000px;
+  max-height: 85vh; /* Max height requirement 3/4 */
+  overflow-y: auto;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+.bottom-sheet-overlay.open .bottom-sheet {
+  transform: translateY(0);
+}
+.bottom-sheet-header {
+  padding: 24px 30px;
+  border-bottom: 1px solid var(--color-gray-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+}
+.bottom-sheet-body {
+  padding: 30px;
+}
+</style>
 {% endblock %} 
 
 {% block extra_js %}

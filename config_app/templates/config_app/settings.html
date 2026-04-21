@@ -12,6 +12,7 @@
   <button class="settings-tab" onclick="showTab('cotisations', this)">Cotisations URSSAF</button>
   <button class="settings-tab" onclick="showTab('types-vente', this)">Types de vente</button>
   <button class="settings-tab" onclick="showTab('types-achat', this)">Types d'achat</button>
+  <button class="settings-tab" onclick="showTab('autofill', this)">Règles auto.</button>
 </div>
 
 <!-- ─── Taux TVA ───────────────────────────────────────────────────────────── -->
@@ -251,6 +252,59 @@
         </div>
         <button type="submit" class="btn btn-primary"><i data-lucide="plus" width="14" height="14"></i> Ajouter</button>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Règles d'autocomplétion ───────────────────────────────────────────── -->
+<div id="tab-autofill" class="settings-panel" style="display:none">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <i data-lucide="wand-2" width="18" height="18" style="color:var(--color-primary)"></i>
+        Règles d'autocomplétion existantes
+      </div>
+    </div>
+    <div class="table-wrapper" style="border:none;border-radius:0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Ordre</th>
+            <th>Nom</th>
+            <th>Type</th>
+            <th>Cible</th>
+            <th>Mots clés</th>
+            <th>Préremplissage</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rule in autofill_rules %}
+          <tr>
+            <td class="font-mono">{{ rule.ordre }}</td>
+            <td class="font-semibold">{{ rule.nom }}</td>
+            <td><span class="badge badge-primary">{{ rule.get_condition_type_display }}</span></td>
+            <td><span class="badge badge-gray">{{ rule.get_type_operation_display }}</span></td>
+            <td style="font-weight: 500;">{{ rule.mots_cles }}</td>
+            <td class="text-xs text-muted" style="max-width: 250px; white-space: normal;">
+              {% if rule.fournisseur %}Fournisseur: <strong>{{ rule.fournisseur }}</strong><br>{% endif %}
+              {% if rule.libelle_defaut %}Libellé: <strong>{{ rule.libelle_defaut }}</strong><br>{% endif %}
+              {% if rule.ligne_budgetaire %}Lb: <strong>{{ rule.ligne_budgetaire.nom }}</strong><br>{% endif %}
+              {% if rule.taux_tva %}TVA: <strong>{{ rule.taux_tva }}%</strong><br>{% endif %}
+              {% if rule.pays_tva %}Pays: <strong>{{ rule.get_pays_tva_display }}</strong><br>{% endif %}
+              {% if rule.categorisation_achat %}Cat.: <strong>{{ rule.get_categorisation_achat_display }}</strong><br>{% endif %}
+              {% if rule.etude %}Étude: <strong>{{ rule.etude.reference }}</strong><br>{% endif %}
+            </td>
+            <td>
+              <form method="post" action="{% url 'config:autofill_rule_delete' rule.pk %}?next={{ request.path }}" style="display:inline;" onsubmit="return confirm('Supprimer cette règle ?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost btn-sm text-danger"><i data-lucide="trash-2" width="14" height="14"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
