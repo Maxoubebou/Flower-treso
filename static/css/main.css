@@ -507,7 +507,21 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 
+/* Cotisation */
+#cotisations-card.collapsed thead,
+#cotisations-card.collapsed tbody {
+    display: none !important;
+}
+
+#cotisations-card.collapsed #toggle-symbol {
+    transform: rotate(-90deg);
+}
+
 /* Toggle / Switch */
+.toggle-cursor { 
+    cursor: pointer !important; 
+}
+
 .form-switch {
   display: flex;
   align-items: center;

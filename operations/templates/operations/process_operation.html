@@ -456,10 +456,13 @@
             </div>
 
             <!-- Cotisations calculées -->
-            <div class="card" id="cotisations-card">
-              <div class="card-header flex justify-between items-center w-full">
-                <div class="card-title">Cotisations URSSAF </div>
-                <div class="card-title">
+            <div class="card collapsed" id="cotisations-card">
+              <div class="card-header flex justify-between items-center w-full toggle-cursor" id="cotis-header">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="chevron-down" id="toggle-symbol" width="18" height="18" style="transition: transform 0.2s;"></i>    
+                  <div class="card-title">Cotisations URSSAF</div>
+                </div>
+                <div class="card-title text-sm">
                   Assiette : <span id="c-assiette">—</span>
                 </div>
               </div>
@@ -487,6 +490,12 @@
                 </table>
               </div>
             </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Commentaire</div></div>
+              <div class="card-body">
+                <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..." style="flex: 1"></textarea>
+              </div>
+            </div>
           </div>
 
           <div class="flex flex-col gap-3">
@@ -503,40 +512,61 @@
                     <input type="text" name="intervenant_nom" class="form-control" required>
                   </div>
                 </div>
+
+                <div class="form-group">
+                  <label class="form-label">Adresse <span class="required">*</span></label>
+                  <input type="text" name="adresse" class="form-control" required>
+                </div>
+
                 <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Code Postal <span class="required">*</span></label>
+                    <input type="text" name="code_postal" class="form-control" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Ville <span class="required">*</span></label>
+                    <input type="text" name="ville" class="form-control" required>
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">N° Sécurité Sociale</label>
+                    <input type="text" name="num_secu" class="form-control font-mono" placeholder="1 00 00 00 000 000 00">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Nom de la mission</label>
+                    <input type="text" name="nom_mission" class="form-control">
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Réf. du RM</label>
+                    <input type="text" name="ref_rm" class="form-control">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Réf. dernier AVRM</label>
+                    <input type="text" name="ref_avrm" class="form-control">
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Rétribution brute / JEH (moyenne)</label>
+                    <input type="number" 
+                           step="0.01" 
+                           name="retribution_brute_par_jeh" 
+                           id="id_retribution_brute_par_jeh"
+                           class="form-control" 
+                           min="0" 
+                           oninput="isManualRetrib = true; computeCotisations()">
+                  </div>
                   <div class="form-group">
                     <label class="form-label">Nombre de JEH <span class="required">*</span></label>
                     <input type="number" step="0.5" name="nb_jeh" class="form-control" required oninput="computeCotisations()" min="0">
                   </div>
-                  <div class="form-group">
-                    <label class="form-label">Rétribution brute / JEH (€)</label>
-                    <input type="number" step="0.01" name="retribution_brute_par_jeh" class="form-control" min="0">
-                  </div>
                 </div>
-                <div class="form-grid-2">
-                  <div class="form-group">
-                    <label class="form-label">Taux</label>
-                    <select name="taux" class="form-control">
-                      <option value="A">Taux A</option>
-                      <option value="B">Taux B</option>
-                      <option value="C">Taux C</option>
-                      <option value="D">Taux D</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Type de cotisant</label>
-                    <select name="type_cotisant" class="form-control" onchange="computeCotisations()">
-                      <option value="etudiant" selected>Étudiant</option>
-                      <option value="junior">Junior-Entreprise</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div> 
-            <div class="card">
-              <div class="card-header"><div class="card-title">Commentaire</div></div>
-              <div class="card-body">
-                <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..." style="flex: 1"></textarea>
               </div>
             </div>
           </div>
@@ -682,6 +712,11 @@
 {% block extra_js %}
 {% load l10n %}
 
+<script>
+  const MONTANT_DEBIT = Math.abs(parseFloat("{{ operation.debit|stringformat:'.2f' }}"));  
+  let isManualRetrib = false;
+</script>
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
@@ -744,6 +779,17 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   });
+
+  const header = document.getElementById('cotis-header');
+    const card = document.getElementById('cotisations-card');
+
+    if (header && card) {
+        header.addEventListener('click', () => {
+            card.classList.toggle('collapsed');
+            console.log("Clic détecté ! État replié :", card.classList.contains('collapsed'));
+        });
+    }
+
 });
 </script>
 
@@ -845,47 +891,57 @@ function checkImmobilisation() {
 
 // ─── Cotisations URSSAF (côté client, calcul approximatif pour preview) ───────
 const TAUX = {
-  junior: { base: 48.08, maladie: 13, at: 0.91, vp: 8.55, vd: 0.40, af: 5.25, csgd: 0, csgnd: 0 },
-  etudiant: { base: 48.08, maladie: 0, at: 0, vp: 6.90, vd: 2.11, af: 0, csgd: 6.80, csgnd: 2.90 },
+  junior: { base: 48.08, maladie: 13, at: 0.91, vp: 8.55, vd: 2.11, af: 5.25, csgd: 0, csgnd: 0 },
+  etudiant: { base: 48.08, maladie: 0, at: 0, vp: 6.90, vd: 0.40, af: 0, csgd: 6.80, csgnd: 2.90 },
 };
 
 function computeCotisations() {
+  const inputRetrib = document.querySelector('[name="retribution_brute_par_jeh"]');
   const nbJeh = parseFloat(document.querySelector('[name="nb_jeh"]')?.value || 0);
-  const type = document.querySelector('[name="type_cotisant"]')?.value || 'etudiant';
-  const t = TAUX[type];
-  if (!t || !nbJeh) return;
+  
+  const assiette = nbJeh * TAUX.junior.base;
 
-  const assiette = nbJeh * t.base;
-  const c = name => (assiette * t[name] / 100).toFixed(2);
+  const elAssiette = document.getElementById('c-assiette');
+  const elAssietteHeader = document.getElementById('c-assiette-header');
+  if (elAssiette) elAssiette.textContent = assiette.toFixed(2) + ' €';
+  if (elAssietteHeader) elAssietteHeader.textContent = assiette.toFixed(2);
 
-  const setCell = (id, val, isJunior) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = (isJunior && type === 'junior') || (!isJunior && type === 'etudiant') ? val + ' €' : '0.00 €';
-  };
-
-  document.getElementById('c-assiette').textContent = assiette.toFixed(2) + ' €';
-  // Part Junior
-  const jCols = ['maladie', 'at', 'vp', 'vd', 'af', 'csgd', 'csgnd'];
-  const eCols = jCols;
+  const keys = ['maladie', 'at', 'vp', 'vd', 'af', 'csgd', 'csgnd'];
   const ids_j = ['c-maladie-j','c-at-j','c-vp-j','c-vd-j','c-af-j','c-csgd-j','c-csgnd-j'];
   const ids_e = ['c-maladie-e','c-at-e','c-vp-e','c-vd-e','c-af-e','c-csgd-e','c-csgnd-e'];
 
-  let totalJ = 0, totalE = 0;
-  jCols.forEach((k, i) => {
-    const val = parseFloat(c(k));
-    if (type === 'junior') {
-      document.getElementById(ids_j[i]).textContent = val.toFixed(2) + ' €';
-      document.getElementById(ids_e[i]).textContent = '0.00 €';
-      totalJ += val;
-    } else {
-      document.getElementById(ids_e[i]).textContent = val.toFixed(2) + ' €';
-      document.getElementById(ids_j[i]).textContent = '0.00 €';
-      totalE += val;
-    }
+  let totalJ = 0;
+  let totalE = 0;
+
+  keys.forEach((key, i) => {
+    // Calcul Part Junior
+    const valJ = (assiette * TAUX.junior[key] / 100);
+    const elJ = document.getElementById(ids_j[i]);
+    if (elJ) elJ.textContent = valJ.toFixed(2) + ' €';
+    totalJ += valJ;
+
+    // Calcul Part Étudiant
+    const valE = (assiette * TAUX.etudiant[key] / 100);
+    const elE = document.getElementById(ids_e[i]);
+    if (elE) elE.textContent = valE.toFixed(2) + ' €';
+    totalE += valE;
   });
 
-  document.getElementById('c-total-j').innerHTML = '<strong>' + totalJ.toFixed(2) + ' €</strong>';
-  document.getElementById('c-total-e').innerHTML = '<strong>' + totalE.toFixed(2) + ' €</strong>';
+  // Mise à jour des totaux en bas de tableau
+  const elTotalJ = document.getElementById('c-total-j');
+  const elTotalE = document.getElementById('c-total-e');
+  
+  if (elTotalJ) elTotalJ.innerHTML = '<strong>' + totalJ.toFixed(2) + ' €</strong>';
+  if (elTotalE) elTotalE.innerHTML = '<strong>' + totalE.toFixed(2) + ' €</strong>';
+
+  console.log("Somme Junior (brute) :", totalJ);
+  console.log("Somme Étudiant (brute) :", totalE);
+  console.log("Montant Débit Banque :", MONTANT_DEBIT);
+
+  if (!isManualRetrib && inputRetrib && nbJeh > 0) {
+    const suggestedRetrib = (MONTANT_DEBIT + totalJ + totalE) / nbJeh;
+    inputRetrib.value = suggestedRetrib.toFixed(2);
+  }
 }
 
 // Init au chargement

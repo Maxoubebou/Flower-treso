@@ -188,16 +188,10 @@ def _process_bv(request, operation):
     from datetime import datetime
 
     try:
-        type_cotisant = request.POST.get('type_cotisant', 'etudiant')
         nb_jeh = abs(to_decimal(request.POST.get('nb_jeh', '0')))
         retrib = abs(to_decimal(request.POST.get('retribution_brute_par_jeh', '0')))
 
-        try:
-            params = ParametreCotisation.objects.get(type_cotisant=type_cotisant)
-        except ParametreCotisation.DoesNotExist:
-            params = None
-
-        cotis = calculate_cotisations_urssaf(nb_jeh, type_cotisant, params)
+        cotis = calculate_cotisations_urssaf(nb_jeh)
 
         numero_propose = request.POST.get('numero') or generate_numero_bv(operation.date_operation.year)
 
