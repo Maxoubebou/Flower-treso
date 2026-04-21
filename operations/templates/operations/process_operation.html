@@ -25,18 +25,20 @@
         <div class="text-sm text-muted">Réf. : <span class="font-mono">{{ operation.reference }}</span></div>
         {% endif %}
       </div>
-      <div style="text-align:right">
-        <div class="op-amount {% if operation.est_credit %}credit{% else %}debit{% endif %}" style="font-size:1.6rem">
-          {% if operation.est_credit %}+{{ operation.credit|floatformat:2 }}{% else %}{{ operation.debit|floatformat:2 }}{% endif %} €
+      <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end;">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('autofill-bottom-sheet').classList.add('open')">
+            <i data-lucide="wand-2" width="14" height="14"></i>
+            Règle Auto
+          </button>
+          <div class="op-amount {% if operation.est_credit %}credit{% else %}debit{% endif %}" style="font-size:1.6rem">
+            {% if operation.est_credit %}+{{ operation.credit|floatformat:2 }}{% else %}{{ operation.debit|floatformat:2 }}{% endif %} €
+          </div>
         </div>
         <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
              color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
           {% if operation.est_credit %}Crédit{% else %}Débit{% endif %} &bull; {{ operation.date_operation|date:"d/m/Y" }}
         </div>
-        <button type="button" class="btn btn-outline btn-sm" style="margin-top: 8px;" onclick="document.getElementById('autofill-bottom-sheet').classList.add('open')">
-          <i data-lucide="wand-2" width="14" height="14"></i>
-          Nouvelle règle auto
-        </button>
       </div>
     </div>
   </div>
@@ -841,6 +843,8 @@
   background: rgba(0,0,0,0.3);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px); /* Safari support */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 130px, black 160px);
+  mask-image: linear-gradient(to bottom, transparent 130px, black 160px);
   z-index: 9999;
   opacity: 0;
   pointer-events: none;
@@ -857,7 +861,7 @@
   background: #fff;
   width: 100%;
   max-width: 1000px;
-  max-height: 85vh; /* Max height requirement 3/4 */
+  max-height: 75vh; /* Max height requirement 3/4 */
   overflow-y: auto;
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
