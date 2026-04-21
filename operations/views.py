@@ -216,7 +216,7 @@ def _process_bv(request, operation):
             etude=Etude.objects.get(pk=etude_pk) if etude_pk else None,
             date_operation=operation.date_operation,
             date_emission=date_emission,
-            reference_virement=request.POST.get('reference_virement', operation.reference),
+            reference_virement=operation.reference,
             intervenant_nom=request.POST.get('intervenant_nom', ''),
             intervenant_prenom=request.POST.get('intervenant_prenom', ''),
             nb_jeh=nb_jeh,

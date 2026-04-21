@@ -45,8 +45,8 @@
       <c-tab name="VENTE" group_name="basic" icon="receipt" checked="true">Vente / Crédit</c-tab>
       <c-tab name="VI" group_name="basic" icon="eye-off">Virement interne / Ignorer</c-tab>
     {% else %}
-      <c-tab name="FA" group_name="basic" icon="shopping-bag" checked="true">Facture d'achat</c-tab>
-      <c-tab name="BV" group_name="basic" icon="users" >Bulletin de versement</c-tab>
+      <c-tab name="FA" group_name="basic" icon="shopping-bag" >Facture d'achat</c-tab>
+      <c-tab name="BV" group_name="basic" icon="users" checked="true" >Bulletin de versement</c-tab>
       <c-tab name="VI" group_name="basic" icon="eye-off">Ignorer</c-tab>
     {% endif %}
   </c-tabs>
@@ -420,47 +420,71 @@
         <div class="grid-2 mb-4">
           <div class="flex flex-col gap-3">
             <div class="card">
-              <div class="card-header"><div class="card-title">Identification du BV</div></div>
+              <div class="card-header"><div class="card-title">Identification</div></div>
               <div class="card-body">
-                <div class="form-group">
-                  <label class="form-label">Numéro BV</label>
-                  <input type="text" name="numero" class="form-control font-mono" placeholder="BV_{{ operation.date_operation.year }}-001" value="">
-                  <div class="form-hint">Généré automatiquement — modifiable. Unicité obligatoire.</div>
+                <div class="form-grid-2">
+                  <div class="form-group flex-1">
+                    <label class="form-label">Numéro BV</label>
+                    <input type="text" name="numero" class="form-control font-mono" placeholder="BV_{{ operation.date_operation.year }}-001" value="">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label class="form-label">Étude associée</label>
+                    <select name="etude" class="form-control">
+                      <option value="">— Sans étude —</option>
+                      {% for e in etudes %}
+                      <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label class="form-label">Étude associée</label>
-                  <select name="etude" class="form-control">
-                    <option value="">— Sans étude —</option>
-                    {% for e in etudes %}
-                    <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Référence virement</label>
-                  <input type="text" name="reference_virement" class="form-control font-mono" value="{{ operation.reference }}">
+                <div class="form-grid-2">
+                  <div class="form-group flex-1">
+                    <label class="form-label">Date d'opération</label>
+                    <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label class="form-label">Date d'émission du BV</label>
+                    <input type="text" 
+                         data-backend-id="date_envoi_backend" 
+                         class="form-control" 
+                         placeholder="JJ/MM/AAAA" 
+                         maxlength="10">
+                  <input type="hidden" name="date_envoi" id="date_envoi_backend">
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="card">
-              <div class="card-header"><div class="card-title">Dates</div></div>
-              <div class="card-body">
-                <div class="form-group">
-                  <label class="form-label">Date d'opération</label>
-                  <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Date d'émission du BV</label>
-                  <input type="date" name="date_emission" class="form-control">
+            <!-- Cotisations calculées -->
+            <div class="card" id="cotisations-card">
+              <div class="card-header flex justify-between items-center w-full">
+                <div class="card-title">Cotisations URSSAF </div>
+                <div class="card-title">
+                  Assiette : <span id="c-assiette">—</span>
                 </div>
               </div>
-            </div>
-
-            <div class="card">
-              <div class="card-header"><div class="card-title">Commentaire</div></div>
-              <div class="card-body">
-                <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..."></textarea>
+              <div class="card-body" style="padding:0">
+                <table class="data-table" id="cotis-table" style="font-size:.82rem">
+                  <thead>
+                    <tr>
+                      <th>Poste</th>
+                      <th class="text-right">Part Junior (€)</th>
+                      <th class="text-right">Part Étudiant (€)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Assurance maladie</td><td class="text-right font-mono" id="c-maladie-j">—</td><td class="text-right font-mono" id="c-maladie-e">—</td></tr>
+                    <tr><td>Accident du travail</td><td class="text-right font-mono" id="c-at-j">—</td><td class="text-right font-mono" id="c-at-e">—</td></tr>
+                    <tr><td>Vieillesse plafonnée</td><td class="text-right font-mono" id="c-vp-j">—</td><td class="text-right font-mono" id="c-vp-e">—</td></tr>
+                    <tr><td>Vieillesse déplafonnée</td><td class="text-right font-mono" id="c-vd-j">—</td><td class="text-right font-mono" id="c-vd-e">—</td></tr>
+                    <tr><td>Allocations familiales</td><td class="text-right font-mono" id="c-af-j">—</td><td class="text-right font-mono" id="c-af-e">—</td></tr>
+                    <tr><td>CSG déductible</td><td class="text-right font-mono" id="c-csgd-j">—</td><td class="text-right font-mono" id="c-csgd-e">—</td></tr>
+                    <tr><td>CSG non déductible</td><td class="text-right font-mono" id="c-csgnd-j">—</td><td class="text-right font-mono" id="c-csgnd-e">—</td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr><td><strong>Total cotisations</strong></td><td class="text-right font-mono" id="c-total-j"><strong>—</strong></td><td class="text-right font-mono" id="c-total-e"><strong>—</strong></td></tr>
+                  </tfoot>
+                </table>
               </div>
             </div>
           </div>
@@ -508,34 +532,11 @@
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Cotisations calculées -->
-            <div class="card" id="cotisations-card">
-              <div class="card-header"><div class="card-title">Cotisations URSSAF (calculées)</div></div>
-              <div class="card-body" style="padding:0">
-                <table class="data-table" id="cotis-table" style="font-size:.82rem">
-                  <thead>
-                    <tr>
-                      <th>Poste</th>
-                      <th class="text-right">Part Junior (€)</th>
-                      <th class="text-right">Part Étudiant (€)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr><td>Assiette</td><td class="text-right font-mono" id="c-assiette" colspan="2">—</td></tr>
-                    <tr><td>Assurance maladie</td><td class="text-right font-mono" id="c-maladie-j">—</td><td class="text-right font-mono" id="c-maladie-e">—</td></tr>
-                    <tr><td>Accident du travail</td><td class="text-right font-mono" id="c-at-j">—</td><td class="text-right font-mono" id="c-at-e">—</td></tr>
-                    <tr><td>Vieillesse plafonnée</td><td class="text-right font-mono" id="c-vp-j">—</td><td class="text-right font-mono" id="c-vp-e">—</td></tr>
-                    <tr><td>Vieillesse déplafonnée</td><td class="text-right font-mono" id="c-vd-j">—</td><td class="text-right font-mono" id="c-vd-e">—</td></tr>
-                    <tr><td>Allocations familiales</td><td class="text-right font-mono" id="c-af-j">—</td><td class="text-right font-mono" id="c-af-e">—</td></tr>
-                    <tr><td>CSG déductible</td><td class="text-right font-mono" id="c-csgd-j">—</td><td class="text-right font-mono" id="c-csgd-e">—</td></tr>
-                    <tr><td>CSG non déductible</td><td class="text-right font-mono" id="c-csgnd-j">—</td><td class="text-right font-mono" id="c-csgnd-e">—</td></tr>
-                  </tbody>
-                  <tfoot>
-                    <tr><td><strong>Total cotisations</strong></td><td class="text-right font-mono" id="c-total-j"><strong>—</strong></td><td class="text-right font-mono" id="c-total-e"><strong>—</strong></td></tr>
-                  </tfoot>
-                </table>
+            </div> 
+            <div class="card">
+              <div class="card-header"><div class="card-title">Commentaire</div></div>
+              <div class="card-body">
+                <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..." style="flex: 1"></textarea>
               </div>
             </div>
           </div>
