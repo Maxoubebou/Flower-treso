@@ -155,13 +155,13 @@ class BulletinVersement(models.Model):
         if self.nb_jeh: self.nb_jeh = abs(self.nb_jeh)
         if self.retribution_brute_par_jeh: self.retribution_brute_par_jeh = abs(self.retribution_brute_par_jeh)
         if self.assiette: self.assiette = abs(self.assiette)
-        if self.total_cotisations_junior: self.total_cotisations_junior = abs(self.total_cotisations_junior)
-        if self.total_cotisations_etudiant: self.total_cotisations_etudiant = abs(self.total_cotisations_etudiant)
+        if self.total_junior: self.total_junior = abs(self.total_junior)
+        if self.total_etudiant: self.total_etudiant = abs(self.total_etudiant)
         super().save(*args, **kwargs)
 
     @property
     def total_cotisations(self):
-        return self.total_cotisations_junior + self.total_cotisations_etudiant
+        return self.total_junior + self.total_etudiant
 
 
 class FactureAchat(models.Model):
