@@ -51,15 +51,14 @@
     {% endif %}
   </c-tabs>
 
-  <!-- ─── Panel VENTE ───────────────────────────────────────────────────────── -->
   {% if operation.est_credit %}
+  <!-- ─── Panel VENTE ───────────────────────────────────────────────────────── -->
   <c-tab.panel name="VENTE" group_name="basic" style="padding-top: 20px;">
     <form method="post" id="form-vente">
         {% csrf_token %}
         <input type="hidden" name="action" value="vente">
 
         <div class="grid-2" >
-          <!-- Colonne gauche -->
           <div class="flex flex-col" style="display: flex; flex-direction: column; flex: 1;">
             <div class="card" style="display: flex; flex-direction: column; flex: 1;">
               <div class="card-header"><div class="card-title">Identification</div></div>
@@ -215,16 +214,18 @@
 
   {% if operation.est_debit %}
   <!-- ─── Panel FA ──────────────────────────────────────────────────────────── -->
-  <c-tab.panel name="FA" group_name="basic">
-    <form method="post">
+  <c-tab.panel name="FA" group_name="basic" style="padding-top: 20px;">
+    <form method="post" id="form-achat">
         {% csrf_token %}
         <input type="hidden" name="action" value="achat">
 
-        <div class="grid-2 mb-4">
-          <div class="flex flex-col gap-3">
-            <div class="card">
-              <div class="card-header"><div class="card-title">Identification</div></div>
-              <div class="card-body">
+        <div class="grid-2" >
+          <div class="flex flex-col gap-3" style="display: flex; flex-direction: column; flex: 1;">
+            <div class="card" style="display: flex; flex-direction: column; flex: 1;">
+              <div class="card-header">
+                <div class="card-title">Identification</div>
+              </div>
+              <div class="card-body" style="display: flex; flex-direction: column; flex: 1;">
                 <div class="form-group">
                   <label class="form-label">Type d'achat <span class="required">*</span></label>
                   <select name="type_achat" class="form-control" required>
@@ -236,34 +237,38 @@
                 <div class="form-group">
                   <label class="form-label">Fournisseur <span class="required">*</span></label>
                   {% with lib_lower=operation.libelle|lower %}
-                    <input type="text" name="fournisseur" class="form-control" required value ="{% if 'cotis' in lib_lower %}BPGO
-                                                                                                {% elif 'sage' in lib_lower %}SAGE
-                                                                                                {% elif 'intermarche' in lib_lower %}Intermarché
-                                                                                                {% else %}{{ operation.libelle }}
-                                                                                                {% endif %}">
+                    <input type="text" 
+                           name="fournisseur" 
+                           class="form-control" 
+                           list="fournisseurs" 
+                           required value = "{% if 'cotis' in lib_lower %}BPGO{% elif 'sage' in lib_lower %}SAGE{% elif 'intermarche' in lib_lower %}Intermarché{% else %}{{ operation.libelle }}{% endif %}">
                   {% endwith %}
+                  <datalist id="fournisseurs">
+                    {% for lib in historique_fournisseurs %}
+                      <option value="{{ lib }}"></option>
+                    {% endfor %}
+                  </datalist>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Libellé</label>
                   <!-- detection automatique de mot clé pour suggestion de libellé-->
                   {% with lib_lower=operation.libelle|lower %}
-                    <input type="text" name="libelle" class="form-control" value="{% if 'cotis' in lib_lower %}Frais bancaire
-                                                                                  {% elif 'sage' in lib_lower %}Mensuel logiciel comptable
-                                                                                  {% elif 'intermarche' in lib_lower %}Course Intermarché
-                                                                                  {% else %}{{ operation.libelle }}
-                                                                                  {% endif %}">
+                    <input type="text" 
+                           name="libelle" 
+                           class="form-control" 
+                           list ="libelles-achat"
+                           value="{% if 'cotis' in lib_lower %}Frais bancaire{% elif 'sage' in lib_lower %}Mensuel logiciel comptable{% elif 'intermarche' in lib_lower %}Course Intermarché{% else %}{{ operation.libelle }}{% endif %}">
                   {% endwith %}
+                  <datalist id="libelles-achat">
+                    {% for lib in historique_libelles_achat %}
+                      <option value="{{ lib }}"></option>
+                    {% endfor %}
+                  </datalist>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Preuve comptable (lien Drive)</label>
                   <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
                 </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-header"><div class="card-title">Budget & Commentaire</div></div>
-              <div class="card-body">
                 <div class="form-group">
                   <label class="form-label">Ligne budgétaire</label>
                   <select name="ligne_budgetaire" class="form-control">
@@ -273,9 +278,9 @@
                     {% endfor %}
                   </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="display: flex; flex-direction: column; flex: 1;">
                   <label class="form-label">Commentaire</label>
-                  <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..." style="flex: 1; min-height: 150px;"></textarea>
+                  <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..." style="flex: 1"></textarea>
                 </div>
               </div>
             </div>

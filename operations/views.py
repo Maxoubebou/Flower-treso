@@ -56,8 +56,20 @@ def process_operation(request, operation_id):
         'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True).order_by('ordre'),
         'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True).order_by('ordre'),
         'etudes': Etude.objects.filter(active=True).order_by('reference'),
-        'historique_libelles_vente': FactureVente.objects.exclude(libelle="").values_list('libelle', flat=True).distinct()[:50],
-        'historique_libelles_achat': FactureAchat.objects.exclude(libelle="").values_list('libelle', flat=True).distinct()[:50],
+        'historique_libelles_vente': FactureVente.objects.exclude(libelle="")
+                                                .values_list('libelle', flat=True)
+                                                .order_by() # Vide le tri par défaut
+                                                .distinct()[:50],
+
+        'historique_libelles_achat': FactureAchat.objects.exclude(libelle="")
+                                                .values_list('libelle', flat=True)
+                                                .order_by()
+                                                .distinct()[:50],
+
+        'historique_fournisseurs': FactureAchat.objects.exclude(fournisseur="")
+                                                .values_list('fournisseur', flat=True)
+                                                .order_by()
+                                                .distinct()[:50],
     }
 
     if request.method == 'POST':
