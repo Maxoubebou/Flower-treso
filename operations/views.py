@@ -216,24 +216,45 @@ def _process_bv(request, operation):
             etude=Etude.objects.get(pk=etude_pk) if etude_pk else None,
             date_operation=operation.date_operation,
             date_emission=date_emission,
-            reference_virement=operation.reference,
+            reference_virement=request.POST.get('reference_virement', operation.reference),
+            
+            # Informations Personnelles et Mission
             intervenant_nom=request.POST.get('intervenant_nom', ''),
             intervenant_prenom=request.POST.get('intervenant_prenom', ''),
+            adresse=request.POST.get('adresse', ''),
+            code_postal=request.POST.get('code_postal', ''),
+            ville=request.POST.get('ville', ''),
+            num_secu=request.POST.get('num_secu', ''), # Donnée fournie par le formulaire
+            nom_mission=request.POST.get('nom_mission', ''),
+            ref_rm=request.POST.get('ref_rm', ''),
+            ref_avrm=request.POST.get('ref_avrm', ''),
+            
+            # Chiffres de base
             nb_jeh=nb_jeh,
             retribution_brute_par_jeh=retrib,
-            taux=request.POST.get('taux', 'A'),
-            type_cotisant=type_cotisant,
             assiette=cotis['assiette'],
-            cotis_assurance_maladie=cotis['assurance_maladie'],
-            cotis_accident_travail=cotis['accident_travail'],
-            cotis_vieillesse_plafonnee=cotis['vieillesse_plafonnee'],
-            cotis_vieillesse_deplafonnee=cotis['vieillesse_deplafonnee'],
-            cotis_allocations_familiales=cotis['allocations_familiales'],
-            cotis_csg_deductible=cotis['csg_deductible'],
-            cotis_csg_non_deductible=cotis['csg_non_deductible'],
-            total_cotisations_junior=cotis['total_junior'],
-            total_cotisations_etudiant=cotis['total_etudiant'],
-            commentaire=request.POST.get('commentaire', ''),
+
+            # Remplissage Part Junior (JE)
+            j_assurance_maladie=cotis['j_maladie'],
+            j_accident_travail=cotis['j_at'],
+            j_vieillesse_plafonnee=cotis['j_vp'],
+            j_vieillesse_deplafonnee=cotis['j_vd'],
+            j_allocations_familiales=cotis['j_af'],
+            j_csg_deductible=cotis['j_csgd'],
+            j_csg_non_deductible=cotis['j_csgnd'],
+            total_junior=cotis['total_j'],
+
+            # Remplissage Part Étudiant (Intervenant)
+            e_assurance_maladie=cotis['e_maladie'],
+            e_accident_travail=cotis['e_at'],
+            e_vieillesse_plafonnee=cotis['e_vp'],
+            e_vieillesse_deplafonnee=cotis['e_vd'],
+            e_allocations_familiales=cotis['e_af'],
+            e_csg_deductible=cotis['e_csgd'],
+            e_csg_non_deductible=cotis['e_csgnd'],
+            total_etudiant=cotis['total_e'],
+
+            total_global=cotis['total_global']
         )
 
         operation.statut = 'processed'

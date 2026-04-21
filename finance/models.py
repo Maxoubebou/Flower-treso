@@ -81,18 +81,6 @@ class FactureVente(models.Model):
 
 
 class BulletinVersement(models.Model):
-    """Bulletin de Versement (débit bancaire — paiement intervenant)."""
-    TAUX_CHOICES = [
-        ('A', 'Taux A'),
-        ('B', 'Taux B'),
-        ('C', 'Taux C'),
-        ('D', 'Taux D'),
-    ]
-    TYPE_COTISANT_CHOICES = [
-        ('junior', 'Junior-Entreprise'),
-        ('etudiant', 'Étudiant'),
-    ]
-
     operation = models.OneToOneField(
         Operation, on_delete=models.CASCADE,
         related_name='bulletin_versement', null=True, blank=True
@@ -108,25 +96,43 @@ class BulletinVersement(models.Model):
     date_emission = models.DateField(null=True, blank=True)
     reference_virement = models.CharField(max_length=100, blank=True)
 
-    # Intervenant
+    # Informations Personnelles et Mission
     intervenant_nom = models.CharField(max_length=100)
     intervenant_prenom = models.CharField(max_length=100)
+    adresse = models.CharField(max_length=255, blank=True)
+    code_postal = models.CharField(max_length=10, blank=True)
+    ville = models.CharField(max_length=100, blank=True)
+    num_secu = models.CharField(max_length=15, blank=True)
+    nom_mission = models.CharField(max_length=255, blank=True)
+    ref_rm = models.CharField(max_length=50, blank=True)
+    ref_avrm = models.CharField(max_length=50, blank=True)
+
+    # Chiffres de base
     nb_jeh = models.DecimalField(max_digits=6, decimal_places=2)
     retribution_brute_par_jeh = models.DecimalField(max_digits=8, decimal_places=2)
-    taux = models.CharField(max_length=2, choices=TAUX_CHOICES, default='A')
-    type_cotisant = models.CharField(max_length=20, choices=TYPE_COTISANT_CHOICES, default='etudiant')
-
-    # Cotisations calculées (stockées pour reporting)
     assiette = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cotis_assurance_maladie = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cotis_accident_travail = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cotis_vieillesse_plafonnee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cotis_vieillesse_deplafonnee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cotis_allocations_familiales = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cotis_csg_deductible = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cotis_csg_non_deductible = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_cotisations_junior = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_cotisations_etudiant = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    # Cotisations Part Junior (JE)
+    j_assurance_maladie = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    j_accident_travail = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    j_vieillesse_plafonnee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    j_vieillesse_deplafonnee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    j_allocations_familiales = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    j_csg_deductible = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    j_csg_non_deductible = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_junior = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    # Cotisations Part Étudiant (Intervenant)
+    e_assurance_maladie = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    e_accident_travail = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    e_vieillesse_plafonnee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    e_vieillesse_deplafonnee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    e_allocations_familiales = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    e_csg_deductible = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    e_csg_non_deductible = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_etudiant = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    total_global = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     commentaire = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -91,63 +91,65 @@ def get_taux_tva_defaut(type_facture) -> Decimal:
 
 # ─── Calculs cotisations URSSAF ──────────────────────────────────────────────
 
-def calculate_cotisations_urssaf(
-    nb_jeh: Decimal,
-    type_cotisant: str,
-    params: ParametreCotisation | None = None,
-) -> dict:
+def calculate_cotisations_urssaf(nb_jeh: Decimal) -> dict:
     """
-    Calcule les cotisations URSSAF pour un BV.
-
-    Args:
-        nb_jeh: Nombre de jours-équivalents-hommes
-        type_cotisant: 'junior' ou 'etudiant'
-        params: Instance ParametreCotisation (chargée depuis la DB si non fournie)
-
-    Returns:
-        dict avec toutes les cotisations détaillées + totaux
+    Calcule systématiquement les cotisations URSSAF pour la Part Junior (JE) 
+    et la Part Étudiant (Intervenant).
     """
-    if params is None:
-        params = ParametreCotisation.objects.get(type_cotisant=type_cotisant)
+    from config_app.models import ParametreCotisation
 
-    assiette = (nb_jeh * params.base_urssaf).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    # Récupération des deux types de paramètres requis
+    p_j = ParametreCotisation.objects.get(type_cotisant='junior')
+    p_e = ParametreCotisation.objects.get(type_cotisant='etudiant')
 
-    def cotis(taux_pct: Decimal) -> Decimal:
-        return (assiette * taux_pct / Decimal('100')).quantize(
-            Decimal('0.01'), rounding=ROUND_HALF_UP
-        )
+    # L'assiette est basée sur la base URSSAF du profil junior
+    assiette = (nb_jeh * p_j.base_urssaf).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-    assurance_maladie = cotis(params.assurance_maladie)
-    accident_travail = cotis(params.accident_travail)
-    vieillesse_plafonnee = cotis(params.vieillesse_plafonnee)
-    vieillesse_deplafonnee = cotis(params.vieillesse_deplafonnee)
-    allocations_familiales = cotis(params.allocations_familiales)
-    csg_deductible = cotis(params.csg_deductible)
-    csg_non_deductible = cotis(params.csg_non_deductible)
+    def calc(taux: Decimal) -> Decimal:
+        return (assiette * taux / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-    # Répartition junior vs étudiant
-    if type_cotisant == 'junior':
-        total_junior = (assurance_maladie + accident_travail + vieillesse_plafonnee
-                        + vieillesse_deplafonnee + allocations_familiales)
-        total_etudiant = Decimal('0')
-    else:
-        total_junior = Decimal('0')
-        total_etudiant = (vieillesse_plafonnee + vieillesse_deplafonnee
-                          + csg_deductible + csg_non_deductible)
+    # --- Calcul Part Junior (JE) ---
+    j_maladie = calc(p_j.assurance_maladie)
+    j_at = calc(p_j.accident_travail)
+    j_vp = calc(p_j.vieillesse_plafonnee)
+    j_vd = calc(p_j.vieillesse_deplafonnee)
+    j_af = calc(p_j.allocations_familiales)
+    j_csgd = calc(p_j.csg_deductible)
+    j_csgnd = calc(p_j.csg_non_deductible)
+    total_j = j_maladie + j_at + j_vp + j_vd + j_af + j_csgd + j_csgnd
 
-    total_cotisations = total_junior + total_etudiant
+    # --- Calcul Part Étudiant (Intervenant) ---
+    e_maladie = calc(p_e.assurance_maladie)
+    e_at = calc(p_e.accident_travail)
+    e_vp = calc(p_e.vieillesse_plafonnee)
+    e_vd = calc(p_e.vieillesse_deplafonnee)
+    e_af = calc(p_e.allocations_familiales)
+    e_csgd = calc(p_e.csg_deductible)
+    e_csgnd = calc(p_e.csg_non_deductible)
+    total_e = e_maladie + e_at + e_vp + e_vd + e_af + e_csgd + e_csgnd
 
     return {
         'assiette': assiette,
-        'assurance_maladie': assurance_maladie,
-        'accident_travail': accident_travail,
-        'vieillesse_plafonnee': vieillesse_plafonnee,
-        'vieillesse_deplafonnee': vieillesse_deplafonnee,
-        'allocations_familiales': allocations_familiales,
-        'csg_deductible': csg_deductible,
-        'csg_non_deductible': csg_non_deductible,
-        'total_junior': total_junior,
-        'total_etudiant': total_etudiant,
-        'total_cotisations': total_cotisations,
-        'params': params,
+        
+        # Part Junior
+        'j_maladie': j_maladie, 
+        'j_at': j_at, 
+        'j_vp': j_vp, 
+        'j_vd': j_vd,
+        'j_af': j_af, 
+        'j_csgd': j_csgd, 
+        'j_csgnd': j_csgnd, 
+        'total_j': total_j,
+        
+        # Part Étudiant
+        'e_maladie': e_maladie, 
+        'e_at': e_at, 
+        'e_vp': e_vp, 
+        'e_vd': e_vd,
+        'e_af': e_af, 
+        'e_csgd': e_csgd, 
+        'e_csgnd': e_csgnd, 
+        'total_e': total_e,
+        
+        'total_global': total_j + total_e
     }
