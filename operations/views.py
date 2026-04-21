@@ -75,6 +75,7 @@ def process_operation(request, operation_id):
     context = {
         'operation': operation,
         'autofill_rule': autofill_rule,
+        'all_autofill_rules': AutofillRule.objects.all().order_by('ordre', 'nom'),
         'types_facture_vente': TypeFactureVente.objects.filter(active=True).order_by('ordre'),
         'types_achat': TypeAchat.objects.filter(active=True).order_by('ordre'),
         'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct().order_by('ordre'),

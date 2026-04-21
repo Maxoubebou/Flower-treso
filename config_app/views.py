@@ -148,29 +148,39 @@ def autofill_rule_create(request):
             lb_raw = request.POST.get('ligne_budgetaire')
             etude_raw = request.POST.get('etude')
             
-            rule = AutofillRule(
-                nom=request.POST.get('nom', '').strip(),
-                mots_cles=request.POST.get('mots_cles', '').strip(),
-                condition_type=request.POST.get('condition_type', 'OR'),
-                type_operation=request.POST.get('type_operation', 'all'),
-                fournisseur=request.POST.get('fournisseur', '').strip(),
-                libelle_defaut=request.POST.get('libelle_defaut', '').strip(),
-                pays_tva=request.POST.get('pays_tva', '') or '',
-                categorisation_achat=request.POST.get('categorisation_achat', '') or '',
-                ordre=int(request.POST.get('ordre', 0)),
-            )
+            nom_rule = request.POST.get('nom', '').strip()
+            defaults_data = {
+                'mots_cles': request.POST.get('mots_cles', '').strip(),
+                'condition_type': request.POST.get('condition_type', 'OR'),
+                'type_operation': request.POST.get('type_operation', 'all'),
+                'fournisseur': request.POST.get('fournisseur', '').strip(),
+                'libelle_defaut': request.POST.get('libelle_defaut', '').strip(),
+                'pays_tva': request.POST.get('pays_tva', '') or '',
+                'categorisation_achat': request.POST.get('categorisation_achat', '') or '',
+                'ordre': int(request.POST.get('ordre', 0)),
+                'taux_tva': None,
+                'ligne_budgetaire': None,
+                'etude': None,
+            }
 
             if taux_tva_raw:
-                rule.taux_tva = Decimal(taux_tva_raw)
+                defaults_data['taux_tva'] = Decimal(taux_tva_raw)
             if lb_raw:
-                rule.ligne_budgetaire = LigneBudgetaire.objects.get(pk=lb_raw)
+                defaults_data['ligne_budgetaire'] = LigneBudgetaire.objects.get(pk=lb_raw)
             if etude_raw:
-                rule.etude = Etude.objects.get(pk=etude_raw)
+                defaults_data['etude'] = Etude.objects.get(pk=etude_raw)
 
-            rule.save()
-            messages.success(request, f"Règle « {rule.nom} » créée avec succès.")
+            rule, created = AutofillRule.objects.update_or_create(
+                nom=nom_rule,
+                defaults=defaults_data
+            )
+
+            if created:
+                messages.success(request, f"Nouvelle règle « {rule.nom} » créée.")
+            else:
+                messages.success(request, f"Règle « {rule.nom} » mise à jour avec succès.")
         except Exception as e:
-            messages.error(request, f"Erreur lors de la création de la règle : {e}")
+            messages.error(request, f"Erreur lors de la sauvegarde de la règle : {e}")
             
     next_url = request.POST.get('next') or request.GET.get('next') or request.META.get('HTTP_REFERER')
     return redirect(next_url if next_url else 'config:settings_index')

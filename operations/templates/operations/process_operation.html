@@ -25,19 +25,18 @@
         <div class="text-sm text-muted">Réf. : <span class="font-mono">{{ operation.reference }}</span></div>
         {% endif %}
       </div>
-      <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end;">
-        <div style="display:flex; align-items:center; gap:16px;">
-          <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('autofill-bottom-sheet').classList.add('open')">
-            <i data-lucide="wand-2" width="14" height="14"></i>
-            Règle Auto
-          </button>
-          <div class="op-amount {% if operation.est_credit %}credit{% else %}debit{% endif %}" style="font-size:1.6rem">
+      <div style="display:flex; align-items:stretch; gap:24px; padding-left:24px;">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('autofill-bottom-sheet').classList.add('open')" style="display:flex; align-items:center; gap:16px;">
+          <i data-lucide="wand-2" width="14" height="14"></i>
+          Ajout de règle
+        </button>
+        <div style="text-align:right; display:flex; flex-direction:column; justify-content:center; align-items:flex-end;">
+          <div class="op-amount {% if operation.est_credit %}credit{% else %}debit{% endif %}" style="font-size:1.6rem; line-height:1;">
             {% if operation.est_credit %}+{{ operation.credit|floatformat:2 }}{% else %}{{ operation.debit|floatformat:2 }}{% endif %} €
           </div>
-        </div>
-        <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
-             color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
-          {% if operation.est_credit %}Crédit{% else %}Débit{% endif %} &bull; {{ operation.date_operation|date:"d/m/Y" }}
+          <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px; color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-top:6px;">
+            {% if operation.est_credit %}Crédit{% else %}Débit{% endif %} &bull; {{ operation.date_operation|date:"d/m/Y" }}
+          </div>
         </div>
       </div>
     </div>
@@ -699,20 +698,63 @@
 </div>
 <!-- ─── Bottom Sheet : Nouvelle Règle Auto ─────────────────────────────────── -->
 <div id="autofill-bottom-sheet" class="bottom-sheet-overlay">
-  <div class="bottom-sheet">
-    <div class="bottom-sheet-header">
-      <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--color-gray-900); display: flex; align-items: center; gap: 8px;">
-        <i data-lucide="wand-2" width="22" height="22" style="color: var(--color-primary);"></i>
-        Nouvelle règle d'autocomplétion
-      </h2>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('autofill-bottom-sheet').classList.remove('open')">
-        <i data-lucide="x" width="18" height="18"></i>
-      </button>
+  <div class="bottom-sheet" style="display: flex; flex-direction: row; overflow: hidden;">
+    <!-- Sidebar : Règles existantes brutes -->
+    <div style="width: 280px; background: #fdfdfd; border-right: 1px solid var(--color-gray-200); overflow-y: auto; display: flex; flex-direction: column; flex-shrink: 0;">
+      {% for r in all_autofill_rules %}
+      <div class="autofill-rule-item" style="padding: 12px 16px; border-bottom: 1px solid var(--color-gray-200); display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; transition: background 0.2s;"
+           onmouseover="this.style.background='var(--color-gray-50)'" onmouseout="this.style.background='transparent'"
+           data-nom="{{ r.nom }}"
+           data-mots="{{ r.mots_cles }}"
+           data-condition="{{ r.condition_type }}"
+           data-typeop="{{ r.type_operation }}"
+           data-fourn="{{ r.fournisseur }}"
+           data-lib="{{ r.libelle_defaut }}"
+           data-lbid="{{ r.ligne_budgetaire_id|default:'' }}"
+           data-tva="{{ r.taux_tva|default:'' }}"
+           data-pays="{{ r.pays_tva }}"
+           data-cat="{{ r.categorisation_achat }}"
+           data-etudeid="{{ r.etude_id|default:'' }}"
+           data-ordre="{{ r.ordre }}"
+           onclick="fillRuleForm(this.dataset.nom, this.dataset.mots, this.dataset.condition, this.dataset.typeop, this.dataset.fourn, this.dataset.lib, this.dataset.lbid, this.dataset.tva, this.dataset.pays, this.dataset.cat, this.dataset.etudeid, this.dataset.ordre)">
+        <div style="flex: 1;">
+          <div style="font-weight: 600; font-size: 0.95rem; color: var(--color-gray-900);">{{ r.nom }}</div>
+          <div style="font-size: 0.75rem; color: var(--color-gray-500); margin-top: 2px;">
+            {{ r.mots_cles|truncatechars:20 }}
+          </div>
+        </div>
+        <form method="post" action="{% url 'config:autofill_rule_delete' r.pk %}?next={{ request.path }}" style="margin: 0; display: inline;" onsubmit="return confirm('Supprimer cette règle ?')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost btn-sm text-danger" style="padding: 4px;" onclick="event.stopPropagation();">
+            <i data-lucide="trash-2" width="14" height="14"></i>
+          </button>
+        </form>
+      </div>
+      {% empty %}
+      <div style="padding: 20px; text-align: center; color: var(--color-gray-400); font-size: 0.9rem;">
+        Aucune règle pour le moment.
+      </div>
+      {% endfor %}
     </div>
-    <div class="bottom-sheet-body">
-      <form method="post" action="{% url 'config:autofill_rule_create' %}">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.path }}">
+    
+    <!-- Area Principale (Droite) -->
+    <div style="flex: 1; display: flex; flex-direction: column; background: #fff;">
+      <!-- Header Droite -->
+      <div style="padding: 24px 30px; border-bottom: 1px solid var(--color-gray-200); display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--color-gray-900); display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="wand-2" width="22" height="22" style="color: var(--color-primary);"></i>
+          Nouvelle règle d'autocomplétion
+        </h2>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('autofill-bottom-sheet').classList.remove('open')">
+          <i data-lucide="x" width="18" height="18"></i>
+        </button>
+      </div>
+
+      <!-- Formulaire interne -->
+      <div style="flex: 1; padding: 30px; overflow-y: auto;">
+        <form id="autofill-form" method="post" action="{% url 'config:autofill_rule_create' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
         
         <div class="grid-2" style="gap: 40px; align-items: start;">
           <!-- Colonne Gauche : Conditions -->
@@ -830,7 +872,9 @@
             </div>
           </div>
         </div>
+        </div>
       </form>
+      </div>
     </div>
   </div>
 </div>
@@ -860,34 +904,40 @@
 .bottom-sheet {
   background: #fff;
   width: 100%;
-  max-width: 1000px;
-  max-height: 75vh; /* Max height requirement 3/4 */
-  overflow-y: auto;
+  max-width: 1200px;
+  height: 75vh; /* Fixed height for inner scrolling */
+  max-height: 75vh;
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
   transform: translateY(100%);
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
-  flex-direction: column;
 }
 .bottom-sheet-overlay.open .bottom-sheet {
   transform: translateY(0);
 }
-.bottom-sheet-header {
-  padding: 24px 30px;
-  border-bottom: 1px solid var(--color-gray-200);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  background: #fff;
-  z-index: 10;
-}
-.bottom-sheet-body {
-  padding: 30px;
-}
 </style>
+
+<script>
+function fillRuleForm(nom, mots, cond, typeOp, fourn, lib, lbId, tva, pays, cat, etudeId, ordre) {
+  const f = document.getElementById('autofill-form');
+  f.elements['nom'].value = nom;
+  f.elements['mots_cles'].value = mots;
+  f.elements['condition_type'].value = cond;
+  f.elements['type_operation'].value = typeOp;
+  f.elements['fournisseur'].value = fourn;
+  f.elements['libelle_defaut'].value = lib;
+  f.elements['ligne_budgetaire'].value = lbId;
+  f.elements['taux_tva'].value = tva;
+  f.elements['pays_tva'].value = pays;
+  f.elements['categorisation_achat'].value = cat;
+  f.elements['etude'].value = etudeId;
+  f.elements['ordre'].value = ordre;
+  
+  const submitBtn = f.querySelector('button[type="submit"]');
+  submitBtn.innerHTML = '<i data-lucide="refresh-cw" width="18" height="18"></i> Mettre à jour (ou Créer si nouveau nom)';
+  lucide.createIcons({'root': submitBtn});
+}
+</script>
 {% endblock %} 
 
 {% block extra_js %}
