@@ -47,7 +47,7 @@ def process_operation(request, operation_id):
     operation = get_object_or_404(Operation, pk=operation_id)
 
     from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA
-    from finance.models import Etude
+    from finance.models import Etude, FactureVente, FactureAchat
 
     context = {
         'operation': operation,
@@ -56,6 +56,8 @@ def process_operation(request, operation_id):
         'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True).order_by('ordre'),
         'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True).order_by('ordre'),
         'etudes': Etude.objects.filter(active=True).order_by('reference'),
+        'historique_libelles_vente': FactureVente.objects.exclude(libelle="").values_list('libelle', flat=True).distinct()[:50],
+        'historique_libelles_achat': FactureAchat.objects.exclude(libelle="").values_list('libelle', flat=True).distinct()[:50],
     }
 
     if request.method == 'POST':

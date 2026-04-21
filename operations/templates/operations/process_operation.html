@@ -27,7 +27,7 @@
       </div>
       <div style="text-align:right">
         <div class="op-amount {% if operation.est_credit %}credit{% else %}debit{% endif %}" style="font-size:1.6rem">
-          {% if operation.est_credit %}+{{ operation.credit|floatformat:2 }}{% else %}−{{ operation.debit|floatformat:2 }}{% endif %} €
+          {% if operation.est_credit %}+{{ operation.credit|floatformat:2 }}{% else %}{{ operation.debit|floatformat:2 }}{% endif %} €
         </div>
         <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
              color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
@@ -40,7 +40,7 @@
 
 
 <c-tab.group group_name="basic">
-  <c-tabs variant="segmented">
+  <c-tabs variant="segmented" style="margin-bottom: 0;">
     {% if operation.est_credit %}
       <c-tab name="VENTE" group_name="basic" icon="receipt" checked="true">Vente / Crédit</c-tab>
       <c-tab name="VI" group_name="basic" icon="eye-off">Virement interne / Ignorer</c-tab>
@@ -53,17 +53,17 @@
 
   <!-- ─── Panel VENTE ───────────────────────────────────────────────────────── -->
   {% if operation.est_credit %}
-  <c-tab.panel name="VENTE" group_name="basic">
+  <c-tab.panel name="VENTE" group_name="basic" style="padding-top: 20px;">
     <form method="post" id="form-vente">
         {% csrf_token %}
         <input type="hidden" name="action" value="vente">
 
-        <div class="grid-2 ">
+        <div class="grid-2" >
           <!-- Colonne gauche -->
-          <div class="flex flex-col">
-            <div class="card">
+          <div class="flex flex-col" style="display: flex; flex-direction: column; flex: 1;">
+            <div class="card" style="display: flex; flex-direction: column; flex: 1;">
               <div class="card-header"><div class="card-title">Identification</div></div>
-              <div class="card-body">
+              <div class="card-body" style="display: flex; flex-direction: column; flex: 1;">
                 <div class="form-group">
                   <label class="form-label">Type de facture <span class="required">*</span></label>
                   <select name="type_facture" class="form-control" required id="type-facture-select" onchange="updateTVAFromType(this)">
@@ -76,7 +76,9 @@
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">Référence d'étude</label>
+                  <label class="form-label">
+                    Référence d'étude <span id="etude-asterisk" class="required" style="display:none">*</span>
+                  </label>
                   <select name="etude" class="form-control" id="etude-select">
                     <option value="">— Sans étude associée —</option>
                     {% for e in etudes %}
@@ -87,7 +89,12 @@
 
                 <div class="form-group">
                   <label class="form-label">Libellé</label>
-                  <input type="text" name="libelle" class="form-control" value="{{ operation.info_complementaire }}">
+                  <input type="text" name="libelle" class="form-control" list="libelles-vente" value="{{ operation.info_complementaire }}">
+                  <datalist id="libelles-vente">
+                    {% for lib in historique_libelles_vente %}
+                      <option value="{{ lib }}"></option>
+                    {% endfor %}
+                  </datalist>
                 </div>
 
                 <div class="form-group">
@@ -103,9 +110,9 @@
                     {% endfor %}
                   </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="display: flex; flex-direction: column; flex: 1;">
                   <label class="form-label">Commentaire</label>
-                  <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..."></textarea>
+                  <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..." style="flex: 1"></textarea>
                 </div>
               </div>
             </div>
@@ -122,14 +129,22 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Date d'envoi de la facture</label>
-                  <input type="date" name="date_envoi" class="form-control">
+                  <input type="text" id="date_envoi_display" class="form-control" placeholder="JJ/MM/AAAA" maxlength="10">
+                  <input type="hidden" name="date_envoi" id="date_envoi_backend">
                 </div>
               </div>
             </div>
 
             <div class="card" id="tva-card">
               <div class="card-header">
-                <div class="card-title">TVA & Montants</div>
+                <div class="flex items-center gap-2">
+                  <div class="card-title">TVA & Montants</div>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-tva-recap').style.display='flex'" title="Aide TVA">
+                    <i data-lucide="help-circle" width="14" height="14"></i>
+                    Aide
+                  </button>
+                </div>
+                
                 <label class="form-switch">
                   <input type="checkbox" name="taux_mixte" id="taux-mixte-toggle" onchange="toggleTauxMixte(this)">
                   <span class="switch-track"></span>
@@ -176,21 +191,21 @@
                 </div>
               </div>
             </div>
-            <div class="flex gap-3 items-center w-full">
-              <a href="{% url 'operations:process_list' %}" class="btn btn-outline flex-1 justify-center">
-                <i data-lucide="arrow-left" width="15" height="15"></i>
-                Retour à la liste
-              </a>
-              
-              <button type="submit" name="save_only" class="btn btn-secondary flex-1 justify-center">
-                <i data-lucide="save" width="16" height="16"></i>
-                Enregistrer
-              </button>
-
-              <button type="submit" name="save_next" class="btn btn-primary btn-lg flex-1 justify-center">
-                <i data-lucide="step-forward" width="18" height="18"></i>
-                Enregistrer & Suivant
-              </button>
+            <div class="flex flex-col gap-3" style="flex: 1; display: flex; flex-direction: column;">
+              <div class="flex gap-3 items-center w-full" style="margin-top: auto;">
+                <a href="{% url 'operations:process_list' %}" class="btn btn-outline flex-1 justify-center">
+                  <i data-lucide="arrow-left" width="15" height="15"></i>
+                  Retour à la liste
+                </a>
+                <button type="submit" name="save_only" class="btn btn-outline flex-1 justify-center">
+                  <i data-lucide="save" width="16" height="16"></i>
+                  Enregistrer
+                </button>
+                <button type="submit" name="save_next" class="btn btn-primary btn-lg flex-1 justify-center">
+                  <i data-lucide="step-forward" width="18" height="18"></i>
+                  Enregistrer & Suivant
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -260,7 +275,7 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Commentaire</label>
-                  <textarea name="commentaire" class="form-control" rows="3"></textarea>
+                  <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..." style="flex: 1; min-height: 150px;"></textarea>
                 </div>
               </div>
             </div>
@@ -294,7 +309,7 @@
               </div>
             </div>
 
-            <div class="card">
+            <div class="card gap-">
               <div class="card-header">
                 <div class="card-title">TVA & Montants</div>
                 <label class="form-switch">
@@ -552,7 +567,7 @@
               </a>
               
               <div class="flex gap-2">
-                <button type="submit" name="save_only" class="btn btn-secondary">
+                <button type="submit" name="save_only" class="btn btn-outline">
                   <i data-lucide="save" width="16" height="16"></i>
                   Enregistrer
                 </button>
@@ -567,12 +582,188 @@
   </c-tab.panel>
 </c-tab.group>
 
+<!-- ─── Modal Fiche récapitulative TVA ─────────────────────────────────────────────────── -->
+<div id="modal-tva-recap" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; backdrop-filter: blur(2px);">
+  <div class="card" style="width: 95%; max-width: 1100px; max-height: 85vh; overflow-y: auto; background: #fff; padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-xl);">
+    
+    <div class="flex justify-between items-center" style="margin-bottom: 30px; border-bottom: 2px solid var(--color-gray-100); padding-bottom: 20px;">
+      <h2 style="margin:0; font-size: 1.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Référentiel des Taux de TVA</h2>
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-tva-recap').style.display='none'">Fermer l'aide</button>
+    </div>
+
+    <div class="grid-2" style="gap: 20px;">
+      <div class="flex flex-col gap-4">
+        <h3 style="font-weight: 800; color: var(--color-success); font-size: 1.3rem;">VENTES (Recettes)</h3>
+        
+        <div style="background: var(--color-gray-50); padding: 20px; border-radius: var(--radius); border-left: 5px solid var(--color-success);">
+          <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 8px;">TAUX 20.00% (Standard)</div>
+          <p style="margin-bottom: 10px;">Tous ce qu'on vend (excepté les cotisation et refacturation)</p>
+          <ul style="list-style-type: disc; padding-left: 20px; color: var(--color-gray-700);">
+            <li>Honoraires d'études (JEH)</li>
+            <li>Frais de dossier ou de gestion</li>
+            <li>Frais de déplacement refacturés au client</li>
+          </ul>
+        </div>
+
+        <div style="background: var(--color-gray-50); padding: 20px; border-radius: var(--radius); border-left: 5px solid var(--color-gray-400);">
+          <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 8px;">TAUX 0.00% (Exonéré / Hors-champ)</div>
+          <p style="margin-bottom: 10px;">Opérations sans collecte de TVA.</p>
+          <ul style="list-style-type: disc; padding-left: 20px; color: var(--color-gray-700);">
+            <li>Subventions de fonctionnement (École, Partenaires)</li>
+            <li>Adhésions et cotisations des membres</li>
+            <li>Prestations pour des clients hors Union Européenne</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h3 style="font-weight: 800; color: var(--color-danger); font-size: 1.3rem;">ACHATS (Dépenses)</h3>
+        
+        <div style="background: var(--color-gray-50); padding: 20px; border-radius: var(--radius); border-left: 5px solid var(--color-danger);">
+          <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 8px;">TAUX 20.00% (Standard)</div>
+          <p style="margin-bottom: 10px;">Prestations de services et biens de consommation courants.</p>
+          <ul style="list-style-type: disc; padding-left: 20px; color: var(--color-gray-700);">
+            <li>Logiciels (SAGE, Adobe, Microsoft)</li>
+            <li>Abonnements (Serveurs, Gandi, Google Suite)</li>
+            <li>Matériel informatique et mobilier de bureau</li>
+            <li>Supports de communication (Flyers, cartes de visite)</li>
+            <li>Honoraires d'avocat ou expert-comptable</li>
+          </ul>
+        </div>
+
+        <div style="background: var(--color-gray-50); padding: 20px; border-radius: var(--radius); border-left: 5px solid var(--color-warning);">
+          <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 8px;">TAUX 10.00% ou 5.50% (Réduits)</div>
+          <p style="margin-bottom: 10px;">Services spécifiques et alimentation.</p>
+          <ul style="list-style-type: disc; padding-left: 20px; color: var(--color-gray-700);">
+            <li><strong>10% :</strong> Restauration, Hôtels, Transports (SNCF)</li>
+            <li><strong>5.5% :</strong> Alimentation de base (Courses local JE)</li>
+          </ul>
+        </div>
+
+        <div style="background: var(--color-gray-50); padding: 20px; border-radius: var(--radius); border-left: 5px solid var(--color-gray-400);">
+          <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 8px;">TAUX 0.00% (Sans TVA récupérable)</div>
+          <ul style="list-style-type: disc; padding-left: 20px; color: var(--color-gray-700);">
+            <li>Frais bancaires (Commissions, frais de compte)</li>
+            <li>Cotisations CNJE</li>
+            <li>Assurances professionnelles</li>
+            <li>Affranchissement (Timbres)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %} 
 
 {% block extra_js %}
 {% load l10n %}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const displayInput = document.getElementById('date_envoi_display');
+  const backendInput = document.getElementById('date_envoi_backend');
+
+  if (displayInput) {
+    flatpickr(displayInput, {
+      locale: "fr",
+      dateFormat: "d/m/Y",
+      allowInput: true,
+      onChange: function(selectedDates) {
+        if (selectedDates.length > 0) {
+            const d = selectedDates[0];
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            backendInput.value = `${d.getFullYear()}-${month}-${day}`;
+        } else {
+            backendInput.value = "";
+        }
+      }
+    });
+
+    displayInput.addEventListener('input', function(e) {
+      if (e.inputType === "deleteContentBackward") return;
+
+      let val = this.value.replace(/[^0-9/]/g, '');
+
+      // 1. Jours : ajout du zéro automatique si > 3
+      if (val.length === 1 && parseInt(val) > 3) {
+          val = '0' + val + '/';
+      }
+
+      // 2. Jours : blocage si > 31 ou == 00, sinon ajout du slash
+      if (val.length === 2 && !val.includes('/')) {
+          if (parseInt(val) > 31 || val === '00') {
+              val = val[0]; 
+          } else {
+              val += '/';
+          }
+      }
+
+      // 3. Mois : ajout du zéro automatique si > 1
+      if (val.length === 4) {
+          let m1 = val[3];
+          if (parseInt(m1) > 1) {
+              val = val.substring(0, 3) + '0' + m1 + '/';
+          }
+      }
+
+      // 4. Mois : blocage si > 12 ou == 00, sinon ajout du slash
+      if (val.length === 5 && val.split('/').length === 2) {
+          let month = val.substring(3, 5);
+          if (parseInt(month) > 12 || month === '00') {
+              val = val.substring(0, 4); 
+          } else {
+              val += '/';
+          }
+      }
+
+      this.value = val;
+      
+      // Envoi au backend
+      if (val.length === 10) {
+         const parts = val.split('/');
+         if (parts.length === 3) {
+             backendInput.value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+         }
+      } else {
+         backendInput.value = "";
+      }
+    });
+  }
+});
+</script>
+
 <script>
 const TTC = {{ operation.montant|default:0|unlocalize }};
+
+function updateEtudeStatus() {
+  const typeSelect = document.getElementById('type-facture-select');
+  const etudeSelect = document.getElementById('etude-select');
+  const asterisk = document.getElementById('etude-asterisk');
+  
+  if (!typeSelect || !etudeSelect) return;
+
+  const selectedText = typeSelect.options[typeSelect.selectedIndex].text.toLowerCase();
+  const isMandatory = selectedText.includes('acompte') || selectedText.includes('solde');
+
+  if (isMandatory) {
+    etudeSelect.disabled = false;
+    etudeSelect.required = true;
+    etudeSelect.style.background = "#fff";
+    asterisk.style.display = 'inline';
+  } else {
+    etudeSelect.disabled = true;
+    etudeSelect.required = false;
+    etudeSelect.value = ""; // Réinitialise si désactivé
+    etudeSelect.style.background = "var(--color-gray-100)"; // Aspect grisé comme date opération
+    asterisk.style.display = 'none';
+  }
+}
 
 // ─── TVA Vente ───────────────────────────────────────────────────────────────
 function computeTVA() {
@@ -597,6 +788,7 @@ function updateTVAFromType(sel) {
     }
   }
   computeTVA();
+  updateEtudeStatus();
 }
 
 function toggleTauxMixte(cb) {
@@ -689,6 +881,7 @@ function computeCotisations() {
 
 // Init au chargement
 document.addEventListener('DOMContentLoaded', () => {
+  updateEtudeStatus();
   computeTVA();
   computeTVAAchat();
   computeCotisations();
