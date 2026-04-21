@@ -53,12 +53,12 @@ def process_operation(request, operation_id):
         'operation': operation,
         'types_facture_vente': TypeFactureVente.objects.filter(active=True).order_by('ordre'),
         'types_achat': TypeAchat.objects.filter(active=True).order_by('ordre'),
-        'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True).order_by('ordre'),
+        'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct().order_by('ordre'),
         'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True).order_by('ordre'),
         'etudes': Etude.objects.filter(active=True).order_by('reference'),
         'historique_libelles_vente': FactureVente.objects.exclude(libelle="")
                                                 .values_list('libelle', flat=True)
-                                                .order_by() # Vide le tri par défaut
+                                                .order_by()
                                                 .distinct()[:50],
 
         'historique_libelles_achat': FactureAchat.objects.exclude(libelle="")

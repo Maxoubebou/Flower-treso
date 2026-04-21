@@ -128,7 +128,11 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Date d'envoi de la facture</label>
-                  <input type="text" id="date_envoi_display" class="form-control" placeholder="JJ/MM/AAAA" maxlength="10">
+                  <input type="text" 
+                         data-backend-id="date_envoi_backend" 
+                         class="form-control" 
+                         placeholder="JJ/MM/AAAA" 
+                         maxlength="10">
                   <input type="hidden" name="date_envoi" id="date_envoi_backend">
                 </div>
               </div>
@@ -147,7 +151,7 @@
                 <label class="form-switch">
                   <input type="checkbox" name="taux_mixte" id="taux-mixte-toggle" onchange="toggleTauxMixte(this)">
                   <span class="switch-track"></span>
-                  <span class="switch-label">Taux mixte</span>
+                  <span class="switch-label">Taux composé</span>
                 </label>
               </div>
               <div class="card-body">
@@ -290,13 +294,20 @@
             <div class="card">
               <div class="card-header"><div class="card-title">Dates & Catégorie</div></div>
               <div class="card-body">
-                <div class="form-group">
-                  <label class="form-label">Date d'opération</label>
-                  <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Date de réception de la facture</label>
-                  <input type="date" name="date_reception" class="form-control">
+                <div class="flex gap-3 items-center w-full">
+                  <div class="form-group flex-1">
+                    <label class="form-label">Date d'opération</label>
+                    <input type="date" class="form-control" value="{{ operation.date_operation|date:'Y-m-d' }}" disabled>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label class="form-label">Date de réception de la facture</label>
+                    <input type="text" 
+                          data-backend-id="date_reception_backend" 
+                          class="form-control" 
+                          placeholder="JJ/MM/AAAA" 
+                          maxlength="10">
+                    <input type="hidden" name="date_reception" id="date_reception_backend">
+                  </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Catégorisation</label>
@@ -316,42 +327,50 @@
 
             <div class="card gap-">
               <div class="card-header">
-                <div class="card-title">TVA & Montants</div>
+                <div class="flex items-center gap-2">
+                  <div class="card-title">TVA & Montants</div>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-tva-recap').style.display='flex'" title="Aide TVA">
+                    <i data-lucide="help-circle" width="14" height="14"></i>
+                    Aide
+                  </button>
+                </div>
                 <label class="form-switch">
-                  <input type="checkbox" name="taux_compose" id="taux-compose-toggle-achat" onchange="toggleTauxComposeAchat(this)">
-                  <span class="switch-track"></span>
-                  <span class="switch-label">Taux composé</span>
-                </label>
+                    <input type="checkbox" name="taux_compose" id="taux-compose-toggle-achat" onchange="toggleTauxComposeAchat(this)">
+                    <span class="switch-track"></span>
+                    <span class="switch-label">Taux composé</span>
+                  </label>
               </div>
               <div class="card-body">
-                <div class="form-group">
-                  <label class="form-label">Taux de TVA</label>
-                  <select name="taux_tva" id="achat-taux-tva-select" class="form-control" onchange="computeTVAAchat(this)">
-                    {% for t in taux_tva_disponibles %}
-                    <!-- detection automatique de mot clé pour suggestion de TVA-->
-                    <option value="{{ t.taux|stringformat:'.2f' }}" 
-                      {% with libelle_test=operation.libelle|lower %}
-                        {% if "cotis frequence asso" in libelle_test %}
-                          {% if t.taux == 0 %}selected{% endif %}
-                        {% elif "Intermarche" in libelle_test %}
-                          {% if t.taux == 5.5 %}selected{% endif %}
-                        {% else %}
-                          {% if t.taux == 20 %}selected{% endif %}
-                        {% endif %}
-                      {% endwith %}
-                      title="{{ t.commentaire }}">
-                      {{ t.taux }}% — {{ t.libelle }}
-                    </option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Pays de TVA</label>
-                  <select name="pays_tva" class="form-control">
-                    <option value="FR" selected>France (FR)</option>
-                    <option value="intracom">Intracom UE</option>
-                    <option value="extracom">Extra UE</option>
-                  </select>
+                <div class="form-grid-2">
+                  <div class="form-group flex-1">
+                    <label class="form-label">Taux de TVA</label>
+                    <select name="taux_tva" id="achat-taux-tva-select" class="form-control" onchange="computeTVAAchat(this)">
+                      {% for t in taux_tva_disponibles %}
+                      <!-- detection automatique de mot clé pour suggestion de TVA-->
+                      <option value="{{ t.taux|stringformat:'.2f' }}" 
+                        {% with libelle_test=operation.libelle|lower %}
+                          {% if "cotis frequence asso" in libelle_test %}
+                            {% if t.taux == 0 %}selected{% endif %}
+                          {% elif "Intermarche" in libelle_test %}
+                            {% if t.taux == 5.5 %}selected{% endif %}
+                          {% else %}
+                            {% if t.taux == 20 %}selected{% endif %}
+                          {% endif %}
+                        {% endwith %}
+                        title="{{ t.commentaire }}">
+                        {{ t.taux }}% — {{ t.libelle }}
+                      </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label class="form-label">Pays de TVA</label>
+                    <select name="pays_tva" class="form-control">
+                      <option value="FR" selected>France (FR)</option>
+                      <option value="intracom">Intracom UE</option>
+                      <option value="extracom">Extra UE</option>
+                    </select>
+                  </div>
                 </div>
                 <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px">
                   <div class="flex justify-between items-center" style="margin-bottom:10px">
@@ -371,24 +390,22 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div class="flex gap-3 justify-end items-center">
-          <a href="{% url 'operations:process_list' %}" class="btn btn-outline">
-            <i data-lucide="arrow-left" width="15" height="15"></i>
-            Retour à la liste
-          </a>
-          
-          <div class="flex gap-2">
-            <button type="submit" name="save_only" class="btn btn-secondary">
-              <i data-lucide="save" width="16" height="16"></i>
-              Enregistrer
-            </button>
-            <button type="submit" name="save_next" class="btn btn-danger btn-lg">
-              <i data-lucide="step-forward" width="18" height="18"></i>
-              Enregistrer & Suivant
-            </button>
+            <div class="flex flex-col gap-3" style="flex: 1; display: flex; flex-direction: column;">
+              <div class="flex gap-3 items-center w-full" style="margin-top: auto;">
+                <a href="{% url 'operations:process_list' %}" class="btn btn-outline flex-1 justify-center">
+                  <i data-lucide="arrow-left" width="15" height="15"></i>
+                  Retour à la liste
+                </a>
+                <button type="submit" name="save_only" class="btn btn-outline flex-1 justify-center">
+                  <i data-lucide="save" width="16" height="16"></i>
+                  Enregistrer
+                </button>
+                <button type="submit" name="save_next" class="btn btn-primary btn-lg flex-1 justify-center">
+                  <i data-lucide="step-forward" width="18" height="18"></i>
+                  Enregistrer & Suivant
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </form>
@@ -670,76 +687,62 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const displayInput = document.getElementById('date_envoi_display');
-  const backendInput = document.getElementById('date_envoi_backend');
+  const datePickers = document.querySelectorAll('[data-backend-id]');
 
-  if (displayInput) {
-    flatpickr(displayInput, {
-      locale: "fr",
-      dateFormat: "d/m/Y",
-      allowInput: true,
-      onChange: function(selectedDates) {
-        if (selectedDates.length > 0) {
-            const d = selectedDates[0];
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            backendInput.value = `${d.getFullYear()}-${month}-${day}`;
-        } else {
-            backendInput.value = "";
+  datePickers.forEach(displayInput => {
+    const backendId = displayInput.getAttribute('data-backend-id');
+    const backendInput = document.getElementById(backendId);
+
+    if (displayInput && backendInput) {
+      flatpickr(displayInput, {
+        locale: "fr",
+        dateFormat: "d/m/Y",
+        allowInput: true,
+        onChange: function(selectedDates) {
+          if (selectedDates.length > 0) {
+              const d = selectedDates[0];
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              backendInput.value = `${d.getFullYear()}-${month}-${day}`;
+          } else {
+              backendInput.value = "";
+          }
         }
-      }
-    });
+      });
 
-    displayInput.addEventListener('input', function(e) {
-      if (e.inputType === "deleteContentBackward") return;
+      displayInput.addEventListener('input', function(e) {
+        if (e.inputType === "deleteContentBackward") return;
 
-      let val = this.value.replace(/[^0-9/]/g, '');
+        let val = this.value.replace(/[^0-9/]/g, '');
 
-      // 1. Jours : ajout du zéro automatique si > 3
-      if (val.length === 1 && parseInt(val) > 3) {
-          val = '0' + val + '/';
-      }
+        if (val.length === 1 && parseInt(val) > 3) val = '0' + val + '/';
+        if (val.length === 2 && !val.includes('/')) {
+            if (parseInt(val) > 31 || val === '00') val = val[0]; 
+            else val += '/';
+        }
+        if (val.length === 4) {
+            let m1 = val[3];
+            if (parseInt(m1) > 1) val = val.substring(0, 3) + '0' + m1 + '/';
+        }
+        if (val.length === 5 && val.split('/').length === 2) {
+            let month = val.substring(3, 5);
+            if (parseInt(month) > 12 || month === '00') val = val.substring(0, 4); 
+            else val += '/';
+        }
 
-      // 2. Jours : blocage si > 31 ou == 00, sinon ajout du slash
-      if (val.length === 2 && !val.includes('/')) {
-          if (parseInt(val) > 31 || val === '00') {
-              val = val[0]; 
-          } else {
-              val += '/';
-          }
-      }
-
-      // 3. Mois : ajout du zéro automatique si > 1
-      if (val.length === 4) {
-          let m1 = val[3];
-          if (parseInt(m1) > 1) {
-              val = val.substring(0, 3) + '0' + m1 + '/';
-          }
-      }
-
-      // 4. Mois : blocage si > 12 ou == 00, sinon ajout du slash
-      if (val.length === 5 && val.split('/').length === 2) {
-          let month = val.substring(3, 5);
-          if (parseInt(month) > 12 || month === '00') {
-              val = val.substring(0, 4); 
-          } else {
-              val += '/';
-          }
-      }
-
-      this.value = val;
-      
-      // Envoi au backend
-      if (val.length === 10) {
-         const parts = val.split('/');
-         if (parts.length === 3) {
-             backendInput.value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-         }
-      } else {
-         backendInput.value = "";
-      }
-    });
-  }
+        this.value = val;
+        
+        if (val.length === 10) {
+           const parts = val.split('/');
+           if (parts.length === 3) {
+               backendInput.value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+           }
+        } else {
+           backendInput.value = "";
+        }
+      });
+    }
+  });
 });
 </script>
 
