@@ -1,140 +1,298 @@
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}Modifier BV {{ bv.numero }} — Flower-Tréso{% endblock %}
 {% block page_title %}Modifier le bulletin {{ bv.numero }}{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:900px;margin:0 auto">
-  <div class="card-header">
-    <div class="card-title">
-      <i data-lucide="edit-2" width="18" height="18" style="color:var(--color-primary)"></i>
-      {{ bv.numero }} — {{ bv.intervenant_prenom }} {{ bv.intervenant_nom }}
+<form method="post">
+  {% csrf_token %}
+  
+  <div class="grid-2 mb-4">
+    <!-- Colonne de Gauche : Intervenant -->
+    <div class="flex flex-col gap-3">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i data-lucide="user" width="18" height="18" style="color:var(--color-primary)"></i>
+            Intervenant
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Prénom <span class="required">*</span></label>
+              <input type="text" name="intervenant_prenom" class="form-control" value="{{ bv.intervenant_prenom }}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nom <span class="required">*</span></label>
+              <input type="text" name="intervenant_nom" class="form-control" value="{{ bv.intervenant_nom }}" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Adresse <span class="required">*</span></label>
+            <input type="text" name="adresse" class="form-control" value="{{ bv.adresse }}" required>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Code Postal <span class="required">*</span></label>
+              <input type="text" name="code_postal" class="form-control" value="{{ bv.code_postal }}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ville <span class="required">*</span></label>
+              <input type="text" name="ville" class="form-control" value="{{ bv.ville }}" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">N° Sécurité Sociale <span class="required">*</span></label>
+              <input type="text" name="num_secu" class="form-control font-mono" value="{{ bv.num_secu }}" placeholder="1 00 00 00 000 000 00" maxlength="21" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nom de la mission <span class="required">*</span></label>
+              <input type="text" name="nom_mission" class="form-control" value="{{ bv.nom_mission }}" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Réf. du RM <span class="required">*</span></label>
+              <input type="text" name="ref_rm" class="form-control" value="{{ bv.ref_rm }}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Réf. dernier AVRM</label>
+              <input type="text" name="ref_avrm" class="form-control" value="{{ bv.ref_avrm }}">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Rétribution brute / JEH (moyenne) <span class="required">*</span></label>
+              <input type="number" 
+                     step="0.01" 
+                     name="retribution_brute_par_jeh" 
+                     id="id_retribution_brute_par_jeh"
+                     class="form-control font-mono" 
+                     value="{{ bv.retribution_brute_par_jeh|stringformat:".2f" }}"
+                     min="0" required
+                     oninput="isManualRetrib = true; computeCotisations()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nombre de JEH <span class="required">*</span></label>
+              <input type="number" step="0.5" name="nb_jeh" class="form-control font-mono" value="{{ bv.nb_jeh }}" required min="0" oninput="computeCotisations()">
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <span class="badge badge-gray font-mono">{{ bv.nb_jeh }} JEH</span>
-  </div>
-  <div class="card-body">
-    <form method="post">
-      {% csrf_token %}
-      <div class="form-grid-2 mb-6">
-        <div>
-          <div class="form-group">
-            <label class="form-label">Prénom</label>
-            <input type="text" name="intervenant_prenom" class="form-control" value="{{ bv.intervenant_prenom }}" required>
+
+    <!-- Colonne de Droite : Identification & Cotisations -->
+    <div class="flex flex-col gap-3">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i data-lucide="tag" width="18" height="18" style="color:var(--color-primary)"></i>
+            Identification
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid-2">
+            <div class="form-group flex-1">
+              <label class="form-label">Numéro BV</label>
+              <input type="text" name="numero" class="form-control font-mono" value="{{ bv.numero }}" readonly style="background:var(--color-gray-100)">
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label">Étude associée</label>
+              <select name="etude" class="form-control">
+                <option value="">— Sans étude —</option>
+                {% for e in etudes %}
+                <option value="{{ e.pk }}" {% if e.pk == bv.etude_id %}selected{% endif %}>{{ e.reference }} — {{ e.nom }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group flex-1">
+              <label class="form-label">Date d'opération</label>
+              <input type="date" name="date_operation" class="form-control" value="{{ bv.date_operation|date:'Y-m-d' }}">
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label">Date d'émission du BV</label>
+              <input type="date" name="date_emission" class="form-control" value="{{ bv.date_emission|date:'Y-m-d' }}">
+            </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Nom</label>
-            <input type="text" name="intervenant_nom" class="form-control" value="{{ bv.intervenant_nom }}" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Étude associée</label>
-            <select name="etude" class="form-control">
-              <option value="">— Aucune —</option>
-              {% for e in etudes %}
-              <option value="{{ e.pk }}" {% if e.pk == bv.etude_id %}selected{% endif %}>{{ e.reference }} — {{ e.nom }}</option>
-              {% endfor %}
-            </select>
+            <label class="form-label">Preuve comptable (lien Drive)</label>
+            <input type="url" name="lien_drive" class="form-control" value="{{ bv.lien_drive }}" placeholder="https://drive.google.com/...">
           </div>
           <div class="form-group">
             <label class="form-label">Ligne budgétaire</label>
             <input list="budget-lines-list" 
-                   name="ligne_budgetaire_name"
                    class="form-control" 
                    placeholder="Rechercher une ligne..."
                    value="{{ bv.ligne_budgetaire.nom|default:'' }}"
                    onchange="syncBudgetLineId(this)">
             <input type="hidden" name="ligne_budgetaire" id="id_ligne_budgetaire" value="{{ bv.ligne_budgetaire_id|default:'' }}">
           </div>
-          <div class="form-group">
-            <label class="form-label">Commentaire</label>
-            <textarea name="commentaire" class="form-control" rows="3">{{ bv.commentaire }}</textarea>
-          </div>
-        </div>
-
-        <div>
-          <div class="form-group">
-            <label class="form-label">Date d'opération</label>
-            <input type="date" name="date_operation" class="form-control" value="{{ bv.date_operation|date:'Y-m-d' }}">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Date d'émission du BV</label>
-            <input type="date" name="date_emission" class="form-control" value="{{ bv.date_emission|date:'Y-m-d'|default:'' }}">
-          </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Nombre de JEH</label>
-              <input type="number" step="0.5" name="nb_jeh" class="form-control font-mono" value="{{ bv.nb_jeh }}" required min="0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Rétribution / JEH (€)</label>
-              <input type="number" step="0.01" name="retribution_brute_par_jeh" class="form-control font-mono" value="{{ bv.retribution_brute_par_jeh }}">
-            </div>
-          </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Taux</label>
-              <select name="taux" class="form-control">
-                {% for val, label in bv.TAUX_CHOICES %}
-                <option value="{{ val }}" {% if bv.taux == val %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Type de cotisant</label>
-              <select name="type_cotisant" class="form-control">
-                <option value="etudiant" {% if bv.type_cotisant == 'etudiant' %}selected{% endif %}>Étudiant</option>
-                <option value="junior" {% if bv.type_cotisant == 'junior' %}selected{% endif %}>Junior-Entreprise</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Cotisations enregistrées -->
-          <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:14px">
-            <div class="text-xs font-semibold text-muted mb-4" style="margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Cotisations calculées</div>
-            <div class="flex justify-between text-sm">
-              <span class="text-muted">Assiette</span>
-              <span class="font-mono">{{ bv.assiette|floatformat:2 }} €</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-muted">Total Junior</span>
-              <span class="font-mono text-danger">{{ bv.total_cotisations_junior|floatformat:2 }} €</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-muted">Total Étudiant</span>
-              <span class="font-mono text-warning">{{ bv.total_cotisations_etudiant|floatformat:2 }} €</span>
-            </div>
-            <div class="text-xs text-muted mt-4" style="margin-top:8px">
-              <i data-lucide="info" width="11" height="11" style="display:inline;vertical-align:middle"></i>
-              Les cotisations seront recalculées à la sauvegarde.
-            </div>
-          </div>
         </div>
       </div>
 
-      <div class="flex gap-3 justify-end">
-        <a href="{% url 'finance:bv_list' %}" class="btn btn-outline">
-          <i data-lucide="arrow-left" width="15" height="15"></i> Annuler
+      <!-- Cotisations dynamiques (Calculées en JS) -->
+      <div class="card" id="cotisations-card">
+        <div class="card-header flex justify-between items-center w-full">
+          <div class="card-title">
+            <i data-lucide="calculator" width="18" height="18" style="color:var(--color-primary)"></i>
+            Cotisations URSSAF
+          </div>
+          <div class="card-title text-sm">
+            Assiette : <span id="c-assiette">{{ bv.assiette|floatformat:2 }}</span> €
+          </div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table class="data-table" id="cotis-table" style="font-size: .8rem;">
+            <thead>
+              <tr>
+                <th style="padding:8px 10px">Poste</th>
+                <th class="text-right" style="padding:8px 10px">Part Junior (€)</th>
+                <th class="text-right" style="padding:8px 10px">Part Étudiant (€)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Assurance maladie</td><td class="text-right font-mono" id="c-maladie-j">{{ bv.j_assurance_maladie|floatformat:2 }}</td><td class="text-right font-mono" id="c-maladie-e">{{ bv.e_assurance_maladie|floatformat:2 }}</td></tr>
+              <tr><td>Accident du travail</td><td class="text-right font-mono" id="c-at-j">{{ bv.j_accident_travail|floatformat:2 }}</td><td class="text-right font-mono" id="c-at-e">{{ bv.e_accident_travail|floatformat:2 }}</td></tr>
+              <tr><td>Vieillesse plafonnée</td><td class="text-right font-mono" id="c-vp-j">{{ bv.j_vieillesse_plafonnee|floatformat:2 }}</td><td class="text-right font-mono" id="c-vp-e">{{ bv.e_vieillesse_plafonnee|floatformat:2 }}</td></tr>
+              <tr><td>Vieillesse déplafonnée</td><td class="text-right font-mono" id="c-vd-j">{{ bv.j_vieillesse_deplafonnee|floatformat:2 }}</td><td class="text-right font-mono" id="c-vd-e">{{ bv.e_vieillesse_deplafonnee|floatformat:2 }}</td></tr>
+              <tr><td>Allocations familiales</td><td class="text-right font-mono" id="c-af-j">{{ bv.j_allocations_familiales|floatformat:2 }}</td><td class="text-right font-mono" id="c-af-e">{{ bv.e_allocations_familiales|floatformat:2 }}</td></tr>
+              <tr><td>CSG déductible</td><td class="text-right font-mono" id="c-csgd-j">{{ bv.j_csg_deductible|floatformat:2 }}</td><td class="text-right font-mono" id="c-csgd-e">{{ bv.e_csg_deductible|floatformat:2 }}</td></tr>
+              <tr><td>CSG non déductible</td><td class="text-right font-mono" id="c-csgnd-j">{{ bv.j_csg_non_deductible|floatformat:2 }}</td><td class="text-right font-mono" id="c-csgnd-e">{{ bv.e_csg_non_deductible|floatformat:2 }}</td></tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td><strong>Total cotisations</strong></td>
+                <td class="text-right font-mono" id="c-total-j"><strong>{{ bv.total_junior|floatformat:2 }}</strong></td>
+                <td class="text-right font-mono" id="c-total-e"><strong>{{ bv.total_etudiant|floatformat:2 }}</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Commentaire</div></div>
+        <div class="card-body">
+          <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes...">{{ bv.commentaire }}</textarea>
+        </div>
+      </div>
+
+      <div class="flex gap-3 items-center w-full mt-auto">
+        <a href="{% url 'finance:bv_list' %}" class="btn btn-outline flex-1 justify-center">
+          <i data-lucide="arrow-left" width="15" height="15"></i>
+          Retour
         </a>
-        <button type="submit" class="btn btn-primary btn-lg">
-          <i data-lucide="save" width="16" height="16"></i> Enregistrer et recalculer
+        <button type="submit" class="btn btn-primary btn-lg flex-1 justify-center">
+          <i data-lucide="save" width="18" height="18"></i>
+          Enregistrer les modifications
         </button>
       </div>
-    </form>
+    </div>
   </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-function syncBudgetLineId(input) {
-  const list = document.getElementById('budget-lines-list');
-  const hidden = document.getElementById('id_ligne_budgetaire');
-  const option = Array.from(list.options).find(o => o.value === input.value);
-  hidden.value = option ? option.dataset.id : '';
-}
-</script>
+</form>
 
 <datalist id="budget-lines-list">
   {% for lb in lignes_budgetaires %}
   <option value="{{ lb.nom }}" data-id="{{ lb.id }}"></option>
   {% endfor %}
 </datalist>
+
+<!-- Injecter les paramètres de cotisation pour le calcul JS -->
+<script id="cotis-params" type="application/json">
+{
+  "junior": {
+    "base_urssaf": {{ param_j.base_urssaf|stringformat:".2f"|default:"0.00" }},
+    "maladie": {{ param_j.assurance_maladie|stringformat:".2f"|default:"0.00" }},
+    "at": {{ param_j.accident_travail|stringformat:".2f"|default:"0.00" }},
+    "vp": {{ param_j.vieillesse_plafonnee|stringformat:".2f"|default:"0.00" }},
+    "vd": {{ param_j.vieillesse_deplafonnee|stringformat:".2f"|default:"0.00" }},
+    "af": {{ param_j.allocations_familiales|stringformat:".2f"|default:"0.00" }},
+    "csgd": {{ param_j.csg_deductible|stringformat:".2f"|default:"0.00" }},
+    "csgnd": {{ param_j.csg_non_deductible|stringformat:".2f"|default:"0.00" }}
+  },
+  "etudiant": {
+    "maladie": {{ param_e.assurance_maladie|stringformat:".2f"|default:"0.00" }},
+    "at": {{ param_e.accident_travail|stringformat:".2f"|default:"0.00" }},
+    "vp": {{ param_e.vieillesse_plafonnee|stringformat:".2f"|default:"0.00" }},
+    "vd": {{ param_e.vieillesse_deplafonnee|stringformat:".2f"|default:"0.00" }},
+    "af": {{ param_e.allocations_familiales|stringformat:".2f"|default:"0.00" }},
+    "csgd": {{ param_e.csg_deductible|stringformat:".2f"|default:"0.00" }},
+    "csgnd": {{ param_e.csg_non_deductible|stringformat:".2f"|default:"0.00" }}
+  }
+}
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let isManualRetrib = false;
+const params = JSON.parse(document.getElementById('cotis-params').textContent);
+
+function computeCotisations() {
+  const nbJeh = parseFloat(document.getElementsByName('nb_jeh')[0].value) || 0;
+  
+  // Calcul de l'assiette
+  const baseJ = parseFloat(params.junior.base_urssaf);
+  const assiette = nb_round(nbJeh * baseJ);
+  
+  document.getElementById('c-assiette').textContent = assiette.toFixed(2);
+  
+  const calcField = (part, key, target) => {
+    const rate = parseFloat(params[part][key]);
+    const val = nb_round(assiette * rate / 100);
+    document.getElementById(target).textContent = val.toFixed(2);
+    return val;
+  };
+  
+  // Part Junior
+  let totalJ = 0;
+  totalJ += calcField('junior', 'maladie', 'c-maladie-j');
+  totalJ += calcField('junior', 'at', 'c-at-j');
+  totalJ += calcField('junior', 'vp', 'c-vp-j');
+  totalJ += calcField('junior', 'vd', 'c-vd-j');
+  totalJ += calcField('junior', 'af', 'c-af-j');
+  totalJ += calcField('junior', 'csgd', 'c-csgd-j');
+  totalJ += calcField('junior', 'csgnd', 'c-csgnd-j');
+  document.getElementById('c-total-j').textContent = totalJ.toFixed(2);
+  
+  // Part Étudiant
+  let totalE = 0;
+  totalE += calcField('etudiant', 'maladie', 'c-maladie-e');
+  totalE += calcField('etudiant', 'at', 'c-at-e');
+  totalE += calcField('etudiant', 'vp', 'c-vp-e');
+  totalE += calcField('etudiant', 'vd', 'c-vd-e');
+  totalE += calcField('etudiant', 'af', 'c-af-e');
+  totalE += calcField('etudiant', 'csgd', 'c-csgd-e');
+  totalE += calcField('etudiant', 'csgnd', 'c-csgnd-e');
+  document.getElementById('c-total-e').textContent = totalE.toFixed(2);
+}
+
+function nb_round(num) {
+  return Math.round((num + Number.EPSILON) * 100) / 100;
+}
+
+function syncBudgetLineId(input) {
+  const list = document.getElementById('budget-lines-list');
+  const hidden = document.getElementById('id_ligne_budgetaire');
+  const option = Array.from(list.options).find(o => o.value === input.value);
+  hidden.value = option ? option.dataset.id : '';
+}
+
+// Initial compute
+document.addEventListener('DOMContentLoaded', () => {
+  computeCotisations();
+  lucide.createIcons();
+});
+</script>
 {% endblock %}

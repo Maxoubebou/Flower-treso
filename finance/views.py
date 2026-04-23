@@ -213,15 +213,15 @@ def bv_edit(request, pk):
             from datetime import datetime
             from finance.services import calculate_cotisations_urssaf
 
-            type_cotisant = request.POST.get('type_cotisant', bv.type_cotisant)
-            nb_jeh = abs(to_decimal(request.POST.get('nb_jeh', bv.nb_jeh)))
-            retrib = abs(to_decimal(request.POST.get('retribution_brute_par_jeh', bv.retribution_brute_par_jeh)))
+            nb_jeh = abs(to_decimal(request.POST.get('nb_jeh', str(bv.nb_jeh))))
+            retrib = abs(to_decimal(request.POST.get('retribution_brute_par_jeh', str(bv.retribution_brute_par_jeh))))
+            
+            # Recalcul des cotisations basé sur nb_jeh
+            cotis = calculate_cotisations_urssaf(nb_jeh)
 
-            params = ParametreCotisation.objects.filter(type_cotisant=type_cotisant).first()
-            cotis = calculate_cotisations_urssaf(nb_jeh, type_cotisant, params)
-
+            # Dates
             date_emission_raw = request.POST.get('date_emission', '')
-            date_emission = datetime.strptime(date_emission_raw, '%Y-%m-%d').date() if date_emission_raw else None
+            bv.date_emission = datetime.strptime(date_emission_raw, '%Y-%m-%d').date() if date_emission_raw else None
 
             date_op_raw = request.POST.get('date_operation', '')
             if date_op_raw:
@@ -236,24 +236,46 @@ def bv_edit(request, pk):
 
             bv.etude = Etude.objects.get(pk=etude_pk) if etude_pk else None
             bv.ligne_budgetaire = LigneBudgetaire.objects.get(pk=ligne_bud_pk) if ligne_bud_pk else None
-            bv.date_emission = date_emission
+            
+            # Informations Intervenant
             bv.intervenant_nom = request.POST.get('intervenant_nom', bv.intervenant_nom)
             bv.intervenant_prenom = request.POST.get('intervenant_prenom', bv.intervenant_prenom)
+            bv.adresse = request.POST.get('adresse', bv.adresse)
+            bv.code_postal = request.POST.get('code_postal', bv.code_postal)
+            bv.ville = request.POST.get('ville', bv.ville)
+            bv.num_secu = request.POST.get('num_secu', bv.num_secu)
+            bv.nom_mission = request.POST.get('nom_mission', bv.nom_mission)
+            bv.ref_rm = request.POST.get('ref_rm', bv.ref_rm)
+            bv.ref_avrm = request.POST.get('ref_avrm', bv.ref_avrm)
+
             bv.nb_jeh = nb_jeh
             bv.retribution_brute_par_jeh = retrib
-            bv.taux = request.POST.get('taux', bv.taux)
-            bv.type_cotisant = type_cotisant
             bv.assiette = cotis['assiette']
-            bv.cotis_assurance_maladie = cotis['assurance_maladie']
-            bv.cotis_accident_travail = cotis['accident_travail']
-            bv.cotis_vieillesse_plafonnee = cotis['vieillesse_plafonnee']
-            bv.cotis_vieillesse_deplafonnee = cotis['vieillesse_deplafonnee']
-            bv.cotis_allocations_familiales = cotis['allocations_familiales']
-            bv.cotis_csg_deductible = cotis['csg_deductible']
-            bv.cotis_csg_non_deductible = cotis['csg_non_deductible']
-            bv.total_cotisations_junior = cotis['total_junior']
-            bv.total_cotisations_etudiant = cotis['total_etudiant']
+
+            # Part Junior
+            bv.j_assurance_maladie = cotis['j_maladie']
+            bv.j_accident_travail = cotis['j_at']
+            bv.j_vieillesse_plafonnee = cotis['j_vp']
+            bv.j_vieillesse_deplafonnee = cotis['j_vd']
+            bv.j_allocations_familiales = cotis['j_af']
+            bv.j_csg_deductible = cotis['j_csgd']
+            bv.j_csg_non_deductible = cotis['j_csgnd']
+            bv.total_junior = cotis['total_j']
+
+            # Part Étudiant
+            bv.e_assurance_maladie = cotis['e_maladie']
+            bv.e_accident_travail = cotis['e_at']
+            bv.e_vieillesse_plafonnee = cotis['e_vp']
+            bv.e_vieillesse_deplafonnee = cotis['e_vd']
+            bv.e_allocations_familiales = cotis['e_af']
+            bv.e_csg_deductible = cotis['e_csgd']
+            bv.e_csg_non_deductible = cotis['e_csgnd']
+            bv.total_etudiant = cotis['total_e']
+
+            bv.total_global = cotis['total_global']
             bv.commentaire = request.POST.get('commentaire', bv.commentaire)
+            bv.lien_drive = request.POST.get('lien_drive', bv.lien_drive)
+            
             bv.save()
 
             messages.success(request, f"BV {bv.numero} mis à jour.")
@@ -265,7 +287,8 @@ def bv_edit(request, pk):
         'bv': bv,
         'etudes': Etude.objects.filter(active=True).order_by('reference'),
         'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
-        'cotisations_params': ParametreCotisation.objects.all(),
+        'param_j': ParametreCotisation.objects.filter(type_cotisant='junior').first(),
+        'param_e': ParametreCotisation.objects.filter(type_cotisant='etudiant').first(),
     })
 
 
