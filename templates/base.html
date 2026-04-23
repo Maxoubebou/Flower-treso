@@ -154,12 +154,14 @@
             <i data-lucide="chevron-down" width="13" height="13"></i>
           </div>
           <div class="year-multi-menu" id="year-menu">
-            {% for yr in available_years %}
-            <label class="year-multi-item">
-              <input type="checkbox" name="annee" value="{{ yr }}" {% if yr|stringformat:"s" in filtre_annee %}checked{% endif %} onchange="this.form.submit()">
-              {{ yr }}
-            </label>
-            {% endfor %}
+            <div style="max-height:280px; overflow-y:auto; padding-right:5px;">
+              {% for yr in available_years %}
+              <label class="year-multi-item">
+                <input type="checkbox" name="annee" value="{{ yr }}" {% if yr|stringformat:"s" in filtre_annee %}checked{% endif %} onchange="this.form.submit()">
+                {{ yr }}
+              </label>
+              {% endfor %}
+            </div>
             <div class="year-multi-footer">
               <button type="button" class="btn btn-ghost btn-sm" id="btn-vider-annee" style="width:100%; color: var(--color-danger);">Vider</button>
             </div>

@@ -22,4 +22,5 @@ urlpatterns = [
     path('quick-update-drive/', views.set_drive_link, name='set_drive_link'),
     path('quick-update-cat/', views.set_categorisation, name='set_categorisation'),
     path('set-type-achat/', views.set_type_achat, name='set_type_achat'),
+    path('set-type-vente/', views.set_type_vente, name='set_type_vente'),
 ]

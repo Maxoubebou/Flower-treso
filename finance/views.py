@@ -108,6 +108,7 @@ def ventes_list(request):
         'total_tva': sum(f.montant_tva for f in qs),
         'total_ttc': sum(f.montant_ttc for f in qs),
         'all_budget_lines': all_budget_lines,
+        'all_types_vente': TypeFactureVente.objects.filter(active=True),
         'current_sort': request.GET.get('sort'),
         'current_order': request.GET.get('order', 'asc'),
     })
@@ -598,6 +599,46 @@ def set_type_achat(request):
             onchange="this.style.backgroundColor = (this.options[this.selectedIndex].text.toLowerCase().includes('frais') ? 'rgba(245, 158, 11, 0.15)' : 'rgba(6, 182, 212, 0.15)');
                       this.style.borderColor = (this.options[this.selectedIndex].text.toLowerCase().includes('frais') ? '#f59e0b' : '#06b6d4');
                       this.style.color = (this.options[this.selectedIndex].text.toLowerCase().includes('frais') ? '#b45309' : '#0e7490');">
+      {options}
+    </select>
+    """
+    return HttpResponse(html)
+
+
+@require_POST
+def set_type_vente(request):
+    """Endpoint HTMX pour changer le type de vente inline."""
+    obj_id = request.POST.get('id')
+    type_id = request.POST.get('type_vente')
+    fv = get_object_or_404(FactureVente, pk=obj_id)
+    
+    if type_id:
+        new_type = get_object_or_404(TypeFactureVente, pk=type_id)
+        fv.type_facture = new_type
+        fv.save()
+
+    # Logique de couleur : Bleu pour Facture, Violet pour Acompte/Autre
+    is_acompte = "acompte" in fv.type_facture.nom.lower()
+    bg, border, text = ('rgba(168, 85, 247, 0.15)', '#a855f7', '#7e22ce') if is_acompte else ('rgba(6, 182, 212, 0.15)', '#06b6d4', '#0e7490')
+
+    csrf_token = get_token(request)
+    all_types = TypeFactureVente.objects.filter(active=True)
+    
+    options = "".join([
+        f'<option value="{t.id}" style="background-color: white; color: #333;" {"selected" if fv.type_facture_id == t.id else ""}>{t.nom}</option>'
+        for t in all_types
+    ])
+
+    html = f"""
+    <select name="type_vente"
+            style="font-size: .7rem; padding: 2px 12px; border-radius: 12px; cursor: pointer; font-weight: 700; appearance: none; -webkit-appearance: none; text-align: center; transition: all 0.2s; border: 1px solid {border}; color: {text}; background-color: {bg};"
+            hx-post="/finance/set-type-vente/"
+            hx-vals='{{"id": "{fv.id}"}}'
+            hx-headers='{{"X-CSRFToken": "{csrf_token}"}}'
+            hx-swap="outerHTML"
+            onchange="this.style.backgroundColor = (this.options[this.selectedIndex].text.toLowerCase().includes('acompte') ? 'rgba(168, 85, 247, 0.15)' : 'rgba(6, 182, 212, 0.15)');
+                      this.style.borderColor = (this.options[this.selectedIndex].text.toLowerCase().includes('acompte') ? '#a855f7' : '#06b6d4');
+                      this.style.color = (this.options[this.selectedIndex].text.toLowerCase().includes('acompte') ? '#7e22ce' : '#0e7490');">
       {options}
     </select>
     """

@@ -7,8 +7,41 @@
 {% block topbar_actions %}{% endblock %}
 
 {% block content %}
+<style>
+  #drive-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
 
-<!-- Totaux -->
+  .modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-content {
+    position: relative;
+    background: #fff;
+    padding: 24px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+  }
+</style>
+
 <div class="stats-grid mb-6" style="grid-template-columns:repeat(3,1fr)">
   <div class="stat-card success">
     <div class="stat-icon success"><i data-lucide="trending-up" width="20" height="20"></i></div>
@@ -40,7 +73,8 @@
     <table class="data-table" style="font-size:.8rem">
       <thead>
         <tr>
-          <th style="padding:8px 10px">N° / Type</th>
+          <th style="padding:8px 10px">Référence</th>
+          <th style="padding:8px 10px">Type de vente</th>
           <th style="padding:8px 10px">Libellé / Étude</th>
           <th style="padding:8px 10px">
             <a href="?sort=date_operation&order={% if current_sort == 'date_operation' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
@@ -49,22 +83,17 @@
           </th>
           <th style="padding:8px 10px">
             <a href="?sort=taux_tva&order={% if current_sort == 'taux_tva' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
-              Taux {% if current_sort == 'taux_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
+              TVA {% if current_sort == 'taux_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
           <th class="text-right" style="padding:8px 10px">
             <a href="?sort=montant_ht&order={% if current_sort == 'montant_ht' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              HT (€) {% if current_sort == 'montant_ht' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
-            </a>
-          </th>
-          <th class="text-right" style="padding:8px 10px">
-            <a href="?sort=montant_tva&order={% if current_sort == 'montant_tva' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              TVA (€) {% if current_sort == 'montant_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
+              HT {% if current_sort == 'montant_ht' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
           <th class="text-right" style="padding:8px 10px">
             <a href="?sort=montant_ttc&order={% if current_sort == 'montant_ttc' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              TTC (€) {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
+              TTC {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
           <th style="padding:8px 10px;min-width:120px">Ligne Budg.</th>
@@ -74,21 +103,51 @@
       <tbody>
         {% for f in factures %}
         <tr>
-          <!-- N° + Type -->
+          <!-- Référence -->
           <td style="padding:7px 10px">
             <span class="font-mono font-bold" style="color:var(--color-primary);font-size:.75rem">{{ f.numero }}</span>
-            <br><span class="badge badge-primary" style="font-size:.65rem;margin-top:2px">{{ f.type_facture.nom }}</span>
+          </td>
+
+          <!-- Type de vente -->
+          <td class="text-center">
+            <select name="type_vente"
+                    style="font-size: .7rem; padding: 2px 12px; border-radius: 12px; cursor: pointer; font-weight: 700; appearance: none; -webkit-appearance: none; text-align: center; transition: all 0.2s;
+                          {% if 'acompte' in f.type_facture.nom|lower %} border: 1px solid #a855f7; color: #7e22ce; background-color: rgba(168, 85, 247, 0.15);
+                          {% elif 'solde' in f.type_facture.nom|lower %} border: 1px solid #06b6d4; color: #0e7490; background-color: rgba(6, 182, 212, 0.15);
+                          {% elif 'avoir' in f.type_facture.nom|lower %} border: 1px solid #f43f5e; color: #be123c; background-color: rgba(244, 63, 94, 0.15);
+                          {% elif 'subvention' in f.type_facture.nom|lower %} border: 1px solid #22c55e; color: #15803d; background-color: rgba(34, 197, 94, 0.15);
+                          {% elif 'cotisation' in f.type_facture.nom|lower %} border: 1px solid #f97316; color: #c2410c; background-color: rgba(249, 115, 22, 0.15);
+                          {% elif 'refacturation' in f.type_facture.nom|lower %} border: 1px solid #f59e0b; color: #b45309; background-color: rgba(245, 158, 11, 0.15);
+                          {% else %} border: 1px solid #94a3b8; color: #475569; background-color: rgba(148, 163, 184, 0.15); {% endif %}"
+                    hx-post="{% url 'finance:set_type_vente' %}"
+                    hx-vals='{"id": "{{ f.id }}"}'
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-swap="outerHTML"
+                    onchange="
+                      const val = this.options[this.selectedIndex].text.toLowerCase();
+                      let c = '#475569', b = '#94a3b8', bg = 'rgba(148, 163, 184, 0.15)';
+                      if (val.includes('acompte')) { c = '#7e22ce'; b = '#a855f7'; bg = 'rgba(168, 85, 247, 0.15)'; }
+                      else if (val.includes('solde')) { c = '#0e7490'; b = '#06b6d4'; bg = 'rgba(6, 182, 212, 0.15)'; }
+                      else if (val.includes('avoir')) { c = '#be123c'; b = '#f43f5e'; bg = 'rgba(244, 63, 94, 0.15)'; }
+                      else if (val.includes('subvention')) { c = '#15803d'; b = '#22c55e'; bg = 'rgba(34, 197, 94, 0.15)'; }
+                      else if (val.includes('cotisation')) { c = '#c2410c'; b = '#f97316'; bg = 'rgba(249, 115, 22, 0.15)'; }
+                      else if (val.includes('refacturation')) { c = '#b45309'; b = '#f59e0b'; bg = 'rgba(245, 158, 11, 0.15)'; }
+                      this.style.color = c; 
+                      this.style.borderColor = b; 
+                      this.style.backgroundColor = bg;">
+              {% for tv in all_types_vente %}
+                <option value="{{ tv.id }}" style="background-color: white; color: #333;" {% if f.type_facture_id == tv.id %}selected{% endif %}>
+                  {{ tv.nom }}
+                </option>
+              {% endfor %}
+            </select>
           </td>
 
           <!-- Libellé + Étude -->
           <td style="padding:7px 10px;max-width:180px">
-            {% if f.libelle %}
-            <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.libelle }}</div>
-            {% endif %}
+            <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.libelle|default:'Sans libellé' }}</div>
             {% if f.etude %}
             <div class="text-xs text-muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.etude.reference }}</div>
-            {% else %}
-            <div class="text-xs text-muted">—</div>
             {% endif %}
           </td>
 
@@ -97,24 +156,23 @@
             {% if date_filter_type == 'facture' %}
               {% if f.date_envoi %}
                 {{ f.date_envoi|date:"d/m/Y" }}
-                <span class="text-muted text-xs" style="display:block">Op: {{ f.date_operation|date:"d/m/Y" }}</span>
+                <span class="text-muted text-xs shadow-sm" style="display:block; font-size: 0.65rem;">Op: {{ f.date_operation|date:"d/m/Y" }}</span>
               {% else %}
                 {{ f.date_operation|date:"d/m/Y" }}
-                <i data-lucide="alert-triangle" width="12" height="12" class="text-warning" style="display:inline-block;vertical-align:middle;margin-left:2px" title="Date d'envoi non renseignée"></i>
+                <i data-lucide="alert-triangle" width="12" height="12" class="text-warning" title="Date d'envoi non renseignée"></i>
               {% endif %}
             {% else %}
               {{ f.date_operation|date:"d/m/Y" }}
             {% endif %}
           </td>
 
-          <!-- Taux + Pays -->
+          <!-- TVA -->
           <td style="padding:7px 10px;font-size:.78rem">
-            <span class="font-mono">{{ f.taux_tva }}%</span>
-            <br><span class="text-xs {% if f.pays_tva == 'FR' %}text-muted{% elif f.pays_tva == 'intracom' %}text-warning{% else %}text-danger{% endif %}">{{ f.get_pays_tva_display }}</span>
+            <span class="font-mono">{{ f.taux_tva|floatformat:0 }}%</span>
+            <br><span class="text-xs {% if f.pays_tva == 'FR' %}text-muted{% else %}text-warning{% endif %}">{{ f.get_pays_tva_display }}</span>
           </td>
 
           <td class="text-right font-mono" style="padding:7px 10px">{{ f.montant_ht|floatformat:2 }}</td>
-          <td class="text-right font-mono text-muted" style="padding:7px 10px">{{ f.montant_tva|floatformat:2 }}</td>
           <td class="text-right font-mono font-bold" style="padding:7px 10px">{{ f.montant_ttc|floatformat:2 }}</td>
 
           <!-- Ligne budgétaire -->
@@ -136,19 +194,11 @@
           <td style="padding:7px 10px">
             <div class="flex gap-1 justify-end items-center">
               <!-- Drive button -->
-              {% if f.lien_drive %}
-              <a href="{{ f.lien_drive }}" target="_blank" rel="noopener"
-                 class="btn btn-ghost btn-sm" style="padding:4px 6px"
-                 title="Ouvrir la preuve comptable">
-                <i data-lucide="folder-open" width="14" height="14" style="color:var(--color-success)"></i>
-              </a>
-              {% else %}
-              <button type="button" class="btn btn-ghost btn-sm" style="padding:4px 6px"
-                      onclick="openDriveModal('vente', '{{ f.id }}')"
-                      title="Ajouter un lien Drive">
-                <i data-lucide="folder-plus" width="14" height="14" style="color:var(--color-gray-400)"></i>
+              <button onclick="openDriveModal('vente', '{{ f.id }}', '{{ f.lien_drive }}')" 
+                class="btn btn-ghost btn-icon {% if f.lien_drive %}text-success{% endif %}" 
+                title="Lien Drive">
+                <i data-lucide="link" width="14" height="14"></i>
               </button>
-              {% endif %}
 
               <!-- Checkbox persistante -->
               <input type="checkbox"
@@ -161,10 +211,11 @@
               <a href="{% url 'finance:vente_edit' f.pk %}" class="btn btn-ghost btn-sm" style="padding:4px 6px" title="Modifier">
                 <i data-lucide="edit-2" width="14" height="14"></i>
               </a>
+
               {% if f.operation %}
               <a href="{% url 'operations:operation_delete' f.operation.pk %}?next={{ request.get_full_path|urlencode }}"
                  class="btn btn-ghost btn-sm text-danger" style="padding:4px 6px"
-                 onclick="return confirm('Supprimer l\'opération bancaire ET cette facture ?')"
+                 onclick="return confirm('Attention : cela supprimera l\'opération bancaire et la facture.')"
                  title="Supprimer">
                 <i data-lucide="trash-2" width="14" height="14"></i>
               </a>
@@ -176,9 +227,8 @@
       </tbody>
       <tfoot>
         <tr>
-          <td colspan="4" style="padding:8px 10px"><strong>Totaux</strong></td>
+          <td colspan="5" style="padding:8px 10px"><strong>Totaux</strong></td>
           <td class="text-right font-mono" style="padding:8px 10px"><strong>{{ total_ht|floatformat:2 }}</strong></td>
-          <td class="text-right font-mono" style="padding:8px 10px"><strong>{{ total_tva|floatformat:2 }}</strong></td>
           <td class="text-right font-mono" style="padding:8px 10px"><strong>{{ total_ttc|floatformat:2 }}</strong></td>
           <td colspan="2"></td>
         </tr>
@@ -189,7 +239,7 @@
   <div class="card-body" style="text-align:center;padding:64px">
     <i data-lucide="receipt" width="48" height="48" style="display:block;margin:0 auto 16px;opacity:.3;color:var(--color-gray-400)"></i>
     <h3 style="color:var(--color-gray-600);margin-bottom:8px">Aucune facture de vente</h3>
-    <p class="text-muted text-sm">Importez un relevé CSV et traitez les opérations de crédit.</p>
+    <p class="text-muted text-sm">Traitez les crédits de votre relevé bancaire pour générer des factures.</p>
   </div>
   {% endif %}
 </div>
@@ -202,23 +252,31 @@
 </datalist>
 
 <!-- ─── Modale Drive ──────────────────────────────────────────────── -->
-<div id="drive-modal-overlay" class="drive-modal-overlay hidden" onclick="if(event.target===this) closeDriveModal()">
-  <div class="drive-modal-box" onclick="event.stopPropagation()">
-    <h3>
-      <i data-lucide="folder-open" width="20" height="20" style="color:var(--color-primary)"></i>
-      Lien de la preuve comptable
-    </h3>
-    <p class="text-sm text-muted" style="margin-bottom:16px">Collez ici l'URL du dossier Google Drive ou du fichier de la facture.</p>
-    <input type="hidden" id="drive-modal-type" value="">
-    <input type="hidden" id="drive-modal-id" value="">
-    <div class="form-group">
-      <label class="form-label">URL Drive</label>
-      <input type="url" id="drive-modal-url" class="form-control" placeholder="https://drive.google.com/...">
+<div id="drive-modal">
+  <div class="modal-backdrop" onclick="closeDriveModal()"></div>
+  
+  <div class="modal-content">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+      <h3 style="margin: 0; font-size: 1.25rem;">Lien Google Drive</h3>
+      <button onclick="closeDriveModal()" style="background: none; border: none; cursor: pointer; color: #9ca3af;">
+        <i data-lucide="x" width="20" height="20"></i>
+      </button>
     </div>
-    <div class="flex gap-3 justify-end" style="margin-top:20px">
-      <button type="button" class="btn btn-outline" onclick="closeDriveModal()">Annuler</button>
-      <button type="button" class="btn btn-primary" onclick="saveDriveLink()">
-        <i data-lucide="save" width="14" height="14"></i> Enregistrer
+    
+    <input type="hidden" id="modal-obj-type">
+    <input type="hidden" id="modal-obj-id">
+    
+    <div style="margin-bottom: 20px;">
+      <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 8px;">URL du document</label>
+      <input type="url" id="modal-drive-url" 
+             placeholder="Collez le lien ici..."
+             style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 0.5rem; outline: none;">
+    </div>
+    
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <button onclick="closeDriveModal()" class="btn btn-gray">Annuler</button>
+      <button onclick="saveDriveLink()" class="btn btn-primary" style="background: var(--color-primary); color: white; padding: 10px 20px; border-radius: 0.5rem; border: none; cursor: pointer;">
+        Enregistrer le lien
       </button>
     </div>
   </div>
@@ -229,25 +287,27 @@
 {% block extra_js %}
 <script>
 // ─── Drive Modal ─────────────────────────────────────────────────────────
-function openDriveModal(type, id) {
-  document.getElementById('drive-modal-type').value = type;
-  document.getElementById('drive-modal-id').value = id;
-  document.getElementById('drive-modal-url').value = '';
-  document.getElementById('drive-modal-overlay').classList.remove('hidden');
-  setTimeout(() => document.getElementById('drive-modal-url').focus(), 100);
+function openDriveModal(type, id, currentUrl) {
+  document.getElementById('modal-obj-type').value = type;
+  document.getElementById('modal-obj-id').value = id;
+  document.getElementById('modal-drive-url').value = (currentUrl === 'None' || !currentUrl) ? '' : currentUrl;
+  
+  const modal = document.getElementById('drive-modal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  
+  setTimeout(() => document.getElementById('modal-drive-url').focus(), 50);
 }
 
 function closeDriveModal() {
-  document.getElementById('drive-modal-overlay').classList.add('hidden');
+  document.getElementById('drive-modal').style.display = 'none';
+  document.body.style.overflow = '';
 }
 
 function saveDriveLink() {
-  const type = document.getElementById('drive-modal-type').value;
-  const id = document.getElementById('drive-modal-id').value;
-  const url = document.getElementById('drive-modal-url').value.trim();
-  const csrfToken = '{{ csrf_token }}';
-
-  if (!url) return;
+  const type = document.getElementById('modal-obj-type').value;
+  const id = document.getElementById('modal-obj-id').value;
+  const url = document.getElementById('modal-drive-url').value;
 
   const formData = new FormData();
   formData.append('type', type);
@@ -256,12 +316,14 @@ function saveDriveLink() {
 
   fetch('{% url "finance:set_drive_link" %}', {
     method: 'POST',
-    headers: {'X-CSRFToken': csrfToken},
+    headers: {'X-CSRFToken': '{{ csrf_token }}'},
     body: formData,
   })
-  .then(() => {
-    closeDriveModal();
-    location.reload();
+  .then(response => {
+    if (response.ok) {
+      closeDriveModal();
+      location.reload();
+    }
   });
 }
 
