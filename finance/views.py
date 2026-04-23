@@ -199,6 +199,7 @@ def bv_list(request):
         'filtre_mois': mois,
         'filtre_annee': annee,
         'all_budget_lines': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
+        'all_etudes': Etude.objects.filter(active=True).order_by('reference'),
         'current_sort': request.GET.get('sort'),
         'current_order': request.GET.get('order', 'asc'),
     })
@@ -505,6 +506,8 @@ def set_drive_link(request):
         obj = get_object_or_404(FactureVente, pk=obj_id)
     elif obj_type == 'achat':
         obj = get_object_or_404(FactureAchat, pk=obj_id)
+    elif obj_type == 'bv':
+        obj = get_object_or_404(BulletinVersement, pk=obj_id)
     else:
         return HttpResponse("Type inconnu", status=400)
 
@@ -643,3 +646,33 @@ def set_type_vente(request):
     </select>
     """
     return HttpResponse(html)
+
+
+@require_POST
+def set_etude(request):
+    """Endpoint HTMX pour changer l'étude d'un objet (Vente, Achat, BV)."""
+    obj_type = request.POST.get('type')
+    obj_id = request.POST.get('id')
+    etude_id = request.POST.get('etude_id')
+    etude_ref = request.POST.get('etude_ref')
+    
+    etude = None
+    if etude_id and etude_id.isdigit():
+        etude = Etude.objects.filter(pk=etude_id).first()
+    
+    if not etude and etude_ref:
+        etude = Etude.objects.filter(reference__iexact=etude_ref.strip()).first()
+    
+    if obj_type == 'vente':
+        obj = get_object_or_404(FactureVente, pk=obj_id)
+    elif obj_type == 'achat':
+        obj = get_object_or_404(FactureAchat, pk=obj_id)
+    elif obj_type == 'bv':
+        obj = get_object_or_404(BulletinVersement, pk=obj_id)
+    else:
+        return HttpResponse("Type inconnu", status=400)
+    
+    obj.etude = etude
+    obj.save()
+    
+    return HttpResponse(etude.reference if etude else "—")

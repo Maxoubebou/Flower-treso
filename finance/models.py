@@ -135,6 +135,7 @@ class BulletinVersement(models.Model):
     total_global = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     commentaire = models.TextField(blank=True)
+    lien_drive = models.URLField(max_length=500, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

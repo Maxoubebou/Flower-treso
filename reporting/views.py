@@ -79,7 +79,12 @@ def tva_synthese(request):
         mois_val = mois_param or aujourd_hui.month
 
     mois = int(mois_val)
-    annee = int(request.GET.get('annee') or request.session.get('filtre_annee') or aujourd_hui.year)
+    annee_param = request.GET.get('annee') or request.session.get('filtre_annee')
+    if isinstance(annee_param, list):
+        annee_val = annee_param[0] if annee_param else aujourd_hui.year
+    else:
+        annee_val = annee_param or aujourd_hui.year
+    annee = int(annee_val)    
     periode = f"{annee}{mois:02d}"
 
     if 'mois' in request.GET:
