@@ -28,12 +28,22 @@ def global_context(request):
     else:
         filtre_mois = request.session.get('filtre_mois', [])
 
-    # Gestion de l'année
+    # Type de filtre date (operation vs facture)
+    if 'date_filter_type' in request.GET:
+        date_filter_type = request.GET.get('date_filter_type')
+        request.session['date_filter_type'] = date_filter_type
+    else:
+        date_filter_type = request.session.get('date_filter_type', 'operation')
+
+    # Gestion de l'année (Multi-sélection)
     if 'annee' in request.GET:
-        filtre_annee = request.GET.get('annee')
+        annee_raw = request.GET.getlist('annee')
+        filtre_annee = [a for a in annee_raw if a]
         request.session['filtre_annee'] = filtre_annee
     else:
-        filtre_annee = request.session.get('filtre_annee', '2025')
+        filtre_annee = request.session.get('filtre_annee', ['2025'])
+        if isinstance(filtre_annee, str):
+            filtre_annee = [filtre_annee] if filtre_annee else ['2025']
 
     # Opérations en attente pour le badge sidebar
     try:
@@ -47,9 +57,13 @@ def global_context(request):
         ('9', 'Septembre'), ('10', 'Octobre'), ('11', 'Novembre'), ('12', 'Décembre')
     ]
 
+    available_years = [2023, 2024, 2025, 2026]
+
     return {
         'filtre_mois': filtre_mois,
         'filtre_annee': filtre_annee,
+        'date_filter_type': date_filter_type,
         'pending_count': pending_count,
         'months_list': months_list,
+        'available_years': available_years,
     }

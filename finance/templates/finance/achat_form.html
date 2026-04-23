@@ -1,144 +1,367 @@
 {% extends "base.html" %}
+{% load l10n static %}
 {% block title %}Modifier {{ facture.numero }} — Flower-Tréso{% endblock %}
-{% block page_title %}Modifier la facture d'achat {{ facture.numero }}{% endblock %}
+{% block page_title %}Modifier {{ facture.numero }}{% endblock %}
+{% block topbar %}{% endblock %}
+{% block date_filters %}{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:900px;margin:0 auto">
-  <div class="card-header">
-    <div class="card-title">
-      <i data-lucide="edit-2" width="18" height="18" style="color:var(--color-primary)"></i>
-      {{ facture.numero }} — {{ facture.fournisseur }}
-    </div>
-    <span class="badge badge-danger font-mono">{{ facture.montant_ttc|floatformat:2 }} € TTC</span>
-  </div>
+
+<!-- Info carte : résumé de la facture -->
+<div class="card mb-4">
   <div class="card-body">
-    <form method="post">
-      {% csrf_token %}
-      <div class="form-grid-2 mb-6">
-        <div>
-          <div class="form-group">
-            <label class="form-label">Type d'achat</label>
-            <select name="type_achat" class="form-control" required>
-              {% for ta in types_achat %}
-              <option value="{{ ta.pk }}" {% if ta.pk == facture.type_achat_id %}selected{% endif %}>{{ ta.nom }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Fournisseur</label>
-            <input type="text" name="fournisseur" class="form-control" value="{{ facture.fournisseur }}" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Libellé</label>
-            <input type="text" name="libelle" class="form-control" value="{{ facture.libelle }}">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Ligne budgétaire</label>
-            <input list="budget-lines-list" 
-                   name="ligne_budgetaire_name"
-                   class="form-control" 
-                   placeholder="Rechercher une ligne..."
-                   value="{{ facture.ligne_budgetaire.nom|default:'' }}"
-                   onchange="syncBudgetLineId(this)">
-            <input type="hidden" name="ligne_budgetaire" id="id_ligne_budgetaire" value="{{ facture.ligne_budgetaire_id|default:'' }}">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Preuve comptable (Drive)</label>
-            <input type="url" name="lien_drive" class="form-control" value="{{ facture.lien_drive }}">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Commentaire</label>
-            <textarea name="commentaire" class="form-control" rows="3">{{ facture.commentaire }}</textarea>
-          </div>
-        </div>
-
-        <div>
-          <div class="form-group">
-            <label class="form-label">Date d'opération</label>
-            <input type="date" name="date_operation" class="form-control" value="{{ facture.date_operation|date:'Y-m-d' }}">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Date de réception de la facture</label>
-            <input type="date" name="date_reception" class="form-control" value="{{ facture.date_reception|date:'Y-m-d'|default:'' }}">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Catégorisation</label>
-            <select name="categorisation" class="form-control">
-              <option value="service" {% if facture.categorisation == 'service' %}selected{% endif %}>Service</option>
-              <option value="bien" {% if facture.categorisation == 'bien' %}selected{% endif %}>Bien</option>
-              <option value="immobilisation" {% if facture.immobilisation %}selected{% endif %}>Immobilisation</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Pays de TVA</label>
-            <select name="pays_tva" class="form-control">
-              <option value="FR" {% if facture.pays_tva == 'FR' %}selected{% endif %}>France (FR)</option>
-              <option value="intracom" {% if facture.pays_tva == 'intracom' %}selected{% endif %}>Intracom UE</option>
-              <option value="extracom" {% if facture.pays_tva == 'extracom' %}selected{% endif %}>Extra UE</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Taux de TVA</label>
-            <select name="taux_tva" class="form-control" id="achat-edit-taux" onchange="recomputeAchatEdit()">
-              {% for t in taux_tva_disponibles %}
-              <option value="{{ t.taux }}" {% if t.taux == facture.taux_tva %}selected{% endif %}>{{ t.taux }}% — {{ t.libelle }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px">
-            <div class="flex justify-between text-sm" style="margin-bottom:8px">
-              <span class="text-muted">Montant TTC (fixe)</span>
-              <span class="font-bold font-mono">{{ facture.montant_ttc|floatformat:2 }} €</span>
-            </div>
-            <div class="form-grid-2">
-              <div>
-                <label class="form-label text-xs">HT (€)</label>
-                <input type="number" step="0.01" name="montant_ht" id="achat-edit-ht" class="form-control font-mono"
-                       value="{{ facture.montant_ht }}" {% if not facture.taux_compose %}readonly style="background:var(--color-gray-100)"{% endif %}>
-              </div>
-              <div>
-                <label class="form-label text-xs">TVA (€)</label>
-                <input type="number" step="0.01" name="montant_tva" id="achat-edit-tva" class="form-control font-mono"
-                       value="{{ facture.montant_tva }}" {% if not facture.taux_compose %}readonly style="background:var(--color-gray-100)"{% endif %}>
-              </div>
-            </div>
-            <div style="margin-top:10px">
-              <label class="form-switch">
-                <input type="checkbox" name="taux_compose" id="achat-compose-toggle"
-                       {% if facture.taux_compose %}checked{% endif %}
-                       onchange="toggleAchatCompose(this)">
-                <span class="switch-track"></span>
-                <span class="switch-label">Taux composé (saisie manuelle)</span>
-              </label>
-            </div>
-          </div>
-        </div>
+    <div class="flex items-center gap-4">
+      <div style="width:52px;height:52px;border-radius:var(--radius-lg);background:var(--color-danger-light);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i data-lucide="arrow-up-circle" width="26" height="26" style="color:var(--color-danger)"></i>
       </div>
-
-      <div class="flex gap-3 justify-end">
+      <div class="flex-1">
+        <div style="font-size:1.05rem;font-weight:700;color:var(--color-gray-900)">{{ facture.fournisseur }}</div>
+        {% if facture.libelle %}
+        <div class="text-sm text-muted">{{ facture.libelle }}</div>
+        {% endif %}
+        <div class="text-sm text-muted">N° <span class="font-mono">{{ facture.numero }}</span> · {{ facture.date_operation|date:"d/m/Y" }}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="op-amount debit" style="font-size:1.6rem;line-height:1">{{ facture.montant_ttc|floatformat:2 }} €</div>
+        <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--color-danger);margin-top:6px">Débit TTC</div>
+      </div>
+      <div>
         <a href="{% url 'finance:achats_list' %}" class="btn btn-outline">
-          <i data-lucide="arrow-left" width="15" height="15"></i> Annuler
+          <i data-lucide="arrow-left" width="15" height="15"></i> Retour
         </a>
-        <button type="submit" class="btn btn-danger btn-lg">
-          <i data-lucide="save" width="16" height="16"></i> Enregistrer
-        </button>
       </div>
-    </form>
+    </div>
   </div>
 </div>
+
+<c-tab.group group_name="achat-edit">
+  <c-tabs variant="segmented" style="margin-bottom:0">
+    <c-tab name="FA" group_name="achat-edit" icon="shopping-bag" checked="true">Facture d'achat</c-tab>
+    <c-tab name="BV" group_name="achat-edit" icon="users">Convertir en BV</c-tab>
+  </c-tabs>
+
+  <!-- ─── Panel FA ─────────────────────────────────────────────────────── -->
+  <c-tab.panel name="FA" group_name="achat-edit" style="padding-top:20px">
+    <form method="post" id="form-achat-edit">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="edit">
+      <div class="grid-2">
+        <!-- Colonne gauche : Identification -->
+        <div class="flex flex-col" style="display:flex;flex-direction:column;flex:1">
+          <div class="card" style="display:flex;flex-direction:column;flex:1">
+            <div class="card-header"><div class="card-title">Identification</div></div>
+            <div class="card-body" style="display:flex;flex-direction:column;flex:1">
+              <div class="form-group">
+                <label class="form-label">Type d'achat <span class="required">*</span></label>
+                <select name="type_achat" class="form-control" required>
+                  {% for ta in types_achat %}
+                  <option value="{{ ta.pk }}" {% if ta.pk == facture.type_achat_id %}selected{% endif %}>{{ ta.nom }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fournisseur <span class="required">*</span></label>
+                <input type="text" name="fournisseur" class="form-control" value="{{ facture.fournisseur }}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Libellé</label>
+                <input type="text" name="libelle" class="form-control" value="{{ facture.libelle }}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Preuve comptable (Drive)</label>
+                <input type="url" name="lien_drive" class="form-control" value="{{ facture.lien_drive }}" placeholder="https://drive.google.com/...">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ligne budgétaire</label>
+                <select name="ligne_budgetaire" class="form-control">
+                  <option value="">— Non définie —</option>
+                  {% for lb in lignes_budgetaires %}
+                  <option value="{{ lb.pk }}" {% if lb.pk == facture.ligne_budgetaire_id %}selected{% endif %}>{{ lb.nom }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group" style="display:flex;flex-direction:column;flex:1">
+                <label class="form-label">Commentaire</label>
+                <textarea name="commentaire" class="form-control" rows="3" style="flex:1">{{ facture.commentaire }}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Colonne droite -->
+        <div class="flex flex-col gap-3">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Dates &amp; Catégorie</div></div>
+            <div class="card-body">
+              <div class="flex gap-3 items-center w-full">
+                <div class="form-group flex-1">
+                  <label class="form-label">Date d'opération <span class="badge badge-warning" style="font-size:.65rem">modifiable</span></label>
+                  <input type="date" name="date_operation" class="form-control" value="{{ facture.date_operation|date:'Y-m-d' }}">
+                </div>
+                <div class="form-group flex-1">
+                  <label class="form-label">Date de réception de la facture</label>
+                  <input type="date" name="date_reception" class="form-control" value="{{ facture.date_reception|date:'Y-m-d'|default:'' }}">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Catégorisation</label>
+                <select name="categorisation" class="form-control" id="fa-categorisation" onchange="checkImmobilisationEdit()">
+                  <option value="service" {% if facture.categorisation == 'service' %}selected{% endif %}>Service</option>
+                  <option value="bien" {% if facture.categorisation == 'bien' and not facture.immobilisation %}selected{% endif %}>Bien</option>
+                  <option value="immobilisation" {% if facture.immobilisation %}selected{% endif %}>Immobilisation</option>
+                </select>
+              </div>
+              <div id="fa-immo-warning" style="display:none;padding:10px;background:var(--color-warning-light);border-radius:var(--radius);border-left:3px solid var(--color-warning)">
+                <div class="flex gap-2 items-center">
+                  <i data-lucide="alert-triangle" width="15" height="15" style="color:var(--color-warning)"></i>
+                  <span class="text-sm font-semibold" style="color:var(--color-warning)">Ce montant ({{ facture.montant_ttc|floatformat:2 }}€) dépasse 500€ — classé en Immobilisation</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="flex items-center gap-2">
+                <div class="card-title">TVA &amp; Montants</div>
+              </div>
+              <label class="form-switch">
+                <input type="checkbox" name="taux_compose" id="achat-compose-toggle" {% if facture.taux_compose %}checked{% endif %} onchange="toggleAchatComposeEdit(this)">
+                <span class="switch-track"></span>
+                <span class="switch-label">Taux composé</span>
+              </label>
+            </div>
+            <div class="card-body">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Taux de TVA</label>
+                  <select name="taux_tva" class="form-control" id="achat-edit-taux" onchange="recomputeAchatEdit()">
+                    {% for t in taux_tva_disponibles %}
+                    <option value="{{ t.taux }}" {% if t.taux == facture.taux_tva %}selected{% endif %}>{{ t.taux }}% — {{ t.libelle }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Pays de TVA</label>
+                  <select name="pays_tva" class="form-control">
+                    <option value="FR" {% if facture.pays_tva == 'FR' %}selected{% endif %}>France (FR)</option>
+                    <option value="intracom" {% if facture.pays_tva == 'intracom' %}selected{% endif %}>Intracom UE</option>
+                    <option value="extracom" {% if facture.pays_tva == 'extracom' %}selected{% endif %}>Extra UE</option>
+                  </select>
+                </div>
+              </div>
+              <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px;margin-top:4px">
+                <div class="flex justify-between text-sm" style="margin-bottom:8px">
+                  <span class="text-muted">Montant TTC (fixe)</span>
+                  <span class="font-bold font-mono">{{ facture.montant_ttc|floatformat:2 }} €</span>
+                </div>
+                <div class="form-grid-2">
+                  <div>
+                    <label class="form-label text-xs">HT (€)</label>
+                    <input type="number" step="0.01" name="montant_ht" id="achat-edit-ht" class="form-control font-mono"
+                           value="{{ facture.montant_ht }}" {% if not facture.taux_compose %}readonly style="background:var(--color-gray-100)"{% endif %}>
+                  </div>
+                  <div>
+                    <label class="form-label text-xs">TVA (€)</label>
+                    <input type="number" step="0.01" name="montant_tva" id="achat-edit-tva" class="form-control font-mono"
+                           value="{{ facture.montant_tva }}" {% if not facture.taux_compose %}readonly style="background:var(--color-gray-100)"{% endif %}>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 items-center w-full" style="margin-top:auto">
+            <a href="{% url 'finance:achats_list' %}" class="btn btn-outline flex-1 justify-center">
+              <i data-lucide="arrow-left" width="15" height="15"></i> Annuler
+            </a>
+            <button type="submit" class="btn btn-danger btn-lg flex-1 justify-center">
+              <i data-lucide="save" width="16" height="16"></i> Enregistrer
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </c-tab.panel>
+
+  <!-- ─── Panel BV (Conversion) ──────────────────────────────────────── -->
+  <c-tab.panel name="BV" group_name="achat-edit" style="padding-top:20px">
+    <div class="card mb-4" style="border-left:4px solid var(--color-warning);background:var(--color-warning-light)">
+      <div class="card-body" style="padding:14px 20px">
+        <div class="flex gap-3 items-center">
+          <i data-lucide="alert-triangle" width="20" height="20" style="color:var(--color-warning);flex-shrink:0"></i>
+          <div style="font-size:.88rem;color:#92400e">
+            <strong>Attention :</strong> Cette action va <strong>supprimer définitivement</strong> la facture d'achat <strong>{{ facture.numero }}</strong> et créer un nouveau Bulletin de Versement lié à la même opération bancaire.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form method="post" id="form-convert-bv">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="convert_to_bv">
+      <div class="grid-2">
+        <!-- Colonne gauche : Intervenant -->
+        <div class="flex flex-col gap-3">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Intervenant</div></div>
+            <div class="card-body">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Prénom <span class="required">*</span></label>
+                  <input type="text" name="intervenant_prenom" class="form-control" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nom <span class="required">*</span></label>
+                  <input type="text" name="intervenant_nom" class="form-control" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Adresse <span class="required">*</span></label>
+                <input type="text" name="adresse" class="form-control" required>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Code Postal <span class="required">*</span></label>
+                  <input type="text" name="code_postal" class="form-control" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Ville <span class="required">*</span></label>
+                  <input type="text" name="ville" class="form-control" required>
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">N° Sécurité Sociale</label>
+                  <input type="text" name="num_secu" class="form-control font-mono" placeholder="1 00 00 00 000 000 00">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nom de la mission</label>
+                  <input type="text" name="nom_mission" class="form-control">
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Réf. RM</label>
+                  <input type="text" name="ref_rm" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Réf. dernier AVRM</label>
+                  <input type="text" name="ref_avrm" class="form-control">
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Rétribution brute / JEH <span class="required">*</span></label>
+                  <input type="number" step="0.01" name="retribution_brute_par_jeh" id="bv-retrib" class="form-control" min="0" oninput="computeCotisationsBV()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nombre de JEH <span class="required">*</span></label>
+                  <input type="number" step="0.5" name="nb_jeh" id="bv-nb-jeh" class="form-control" min="0" oninput="computeCotisationsBV()">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Colonne droite : Identification + Cotisations -->
+        <div class="flex flex-col gap-3">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Identification</div></div>
+            <div class="card-body">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Numéro BV</label>
+                  <input type="text" name="numero" class="form-control font-mono" placeholder="BV_{{ facture.date_operation.year }}-001">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Étude associée</label>
+                  <select name="etude" class="form-control">
+                    <option value="">— Sans étude —</option>
+                    {% for e in etudes %}
+                    <option value="{{ e.pk }}">{{ e.reference }} — {{ e.nom }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Date d'opération <span class="badge badge-warning" style="font-size:.6rem">depuis la FA</span></label>
+                  <input type="date" class="form-control" value="{{ facture.date_operation|date:'Y-m-d' }}" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Date d'émission du BV</label>
+                  <input type="date" name="date_emission" class="form-control">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ligne budgétaire</label>
+                <select name="ligne_budgetaire" class="form-control">
+                  <option value="">— Non définie —</option>
+                  {% for lb in lignes_budgetaires %}
+                  <option value="{{ lb.pk }}">{{ lb.nom }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Commentaire</label>
+                <textarea name="commentaire" class="form-control" rows="2"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cotisations calculées -->
+          <div class="card collapsed" id="bv-cotisations-card">
+            <div class="card-header flex justify-between items-center w-full toggle-cursor" id="bv-cotis-header">
+              <div class="flex items-center gap-2">
+                <i data-lucide="chevron-down" id="bv-toggle-symbol" width="18" height="18" style="transition:transform .2s"></i>
+                <div class="card-title">Cotisations URSSAF</div>
+              </div>
+              <div class="card-title text-sm">Assiette : <span id="bv-c-assiette">—</span></div>
+            </div>
+            <div class="card-body" style="padding:0">
+              <table class="data-table" style="font-size:.82rem">
+                <thead>
+                  <tr>
+                    <th>Poste</th><th class="text-right">Part Junior (€)</th><th class="text-right">Part Étudiant (€)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Assurance maladie</td><td class="text-right font-mono" id="bv-c-maladie-j">—</td><td class="text-right font-mono" id="bv-c-maladie-e">—</td></tr>
+                  <tr><td>Accident du travail</td><td class="text-right font-mono" id="bv-c-at-j">—</td><td class="text-right font-mono" id="bv-c-at-e">—</td></tr>
+                  <tr><td>Vieillesse plafonnée</td><td class="text-right font-mono" id="bv-c-vp-j">—</td><td class="text-right font-mono" id="bv-c-vp-e">—</td></tr>
+                  <tr><td>Vieillesse déplafonnée</td><td class="text-right font-mono" id="bv-c-vd-j">—</td><td class="text-right font-mono" id="bv-c-vd-e">—</td></tr>
+                  <tr><td>Allocations familiales</td><td class="text-right font-mono" id="bv-c-af-j">—</td><td class="text-right font-mono" id="bv-c-af-e">—</td></tr>
+                  <tr><td>CSG déductible</td><td class="text-right font-mono" id="bv-c-csgd-j">—</td><td class="text-right font-mono" id="bv-c-csgd-e">—</td></tr>
+                  <tr><td>CSG non déductible</td><td class="text-right font-mono" id="bv-c-csgnd-j">—</td><td class="text-right font-mono" id="bv-c-csgnd-e">—</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><td><strong>Total cotisations</strong></td><td class="text-right font-mono" id="bv-c-total-j"><strong>—</strong></td><td class="text-right font-mono" id="bv-c-total-e"><strong>—</strong></td></tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <div class="flex gap-3 items-center w-full" style="margin-top:auto">
+            <a href="{% url 'finance:achats_list' %}" class="btn btn-outline flex-1 justify-center">
+              <i data-lucide="arrow-left" width="15" height="15"></i> Annuler
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg flex-1 justify-center" onclick="return confirm('Convertir cette FA en BV ? La facture d\\'achat sera supprimée.')">
+              <i data-lucide="users" width="16" height="16"></i> Convertir en BV
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </c-tab.panel>
+</c-tab.group>
+
 {% endblock %}
 
 {% block extra_js %}
-{% load l10n %}
+<script src="{% static 'js/urssaf.js' %}"></script>
 <script>
-function syncBudgetLineId(input) {
-  const list = document.getElementById('budget-lines-list');
-  const hidden = document.getElementById('id_ligne_budgetaire');
-  const option = Array.from(list.options).find(o => o.value === input.value);
-  hidden.value = option ? option.dataset.id : '';
-}
-
-const TTC_ACHAT = {{ facture.montant_ttc|default:0|unlocalize }};
+const TTC_ACHAT_EDIT = {{ facture.montant_ttc|default:0|unlocalize }};
 
 function recomputeAchatEdit() {
   const toggle = document.getElementById('achat-compose-toggle');
@@ -146,7 +369,7 @@ function recomputeAchatEdit() {
   const sel = document.getElementById('achat-edit-taux');
   if (!sel) return;
   const taux = parseFloat(sel.value);
-  const ttc = Math.abs(TTC_ACHAT);
+  const ttc = Math.abs(TTC_ACHAT_EDIT);
   const ht = ttc / (1 + taux / 100);
   const tva = ttc - ht;
   const htInput = document.getElementById('achat-edit-ht');
@@ -155,25 +378,57 @@ function recomputeAchatEdit() {
   if (tvaInput) tvaInput.value = tva.toFixed(2);
 }
 
-// Initialiser au chargement
-document.addEventListener('DOMContentLoaded', () => {
-  recomputeAchatEdit();
-});
-
-function toggleAchatCompose(cb) {
+function toggleAchatComposeEdit(cb) {
   const ht = document.getElementById('achat-edit-ht');
   const tva = document.getElementById('achat-edit-tva');
   ht.readOnly = !cb.checked;
   tva.readOnly = !cb.checked;
-  ht.style.background = cb.checked ? '#fff' : '';
-  tva.style.background = cb.checked ? '#fff' : '';
+  ht.style.background = cb.checked ? '#fff' : 'var(--color-gray-100)';
+  tva.style.background = cb.checked ? '#fff' : 'var(--color-gray-100)';
 }
+
+function checkImmobilisationEdit() {
+  const sel = document.getElementById('fa-categorisation');
+  const warn = document.getElementById('fa-immo-warning');
+  if (!sel || !warn) return;
+  const ttc = TTC_ACHAT_EDIT;
+  if (sel.value === 'bien' && ttc > 500) {
+    warn.style.display = 'block';
+  } else {
+    warn.style.display = 'none';
+  }
+}
+
+// Toggle cotisations card BV
+const bvCotisHeader = document.getElementById('bv-cotis-header');
+const bvCotisCard = document.getElementById('bv-cotisations-card');
+if (bvCotisHeader) {
+  bvCotisHeader.addEventListener('click', () => {
+    bvCotisCard.classList.toggle('collapsed');
+  });
+}
+
+
+function computeCotisationsBV() {
+  const nbJeh = parseFloat(document.getElementById('bv-nb-jeh')?.value || 0);
+  const retrib = parseFloat(document.getElementById('bv-retrib')?.value || 0);
+  // On appelle le module URSSAF JS si disponible
+  if (typeof computeCotisations === 'function') {
+    // Lier les IDs BV-prefixed
+    computeCotisationsWithIds(nbJeh, {
+      assiette: 'bv-c-assiette',
+      maladie_j: 'bv-c-maladie-j', at_j: 'bv-c-at-j', vp_j: 'bv-c-vp-j', vd_j: 'bv-c-vd-j',
+      af_j: 'bv-c-af-j', csgd_j: 'bv-c-csgd-j', csgnd_j: 'bv-c-csgnd-j', total_j: 'bv-c-total-j',
+      maladie_e: 'bv-c-maladie-e', at_e: 'bv-c-at-e', vp_e: 'bv-c-vp-e', vd_e: 'bv-c-vd-e',
+      af_e: 'bv-c-af-e', csgd_e: 'bv-c-csgd-e', csgnd_e: 'bv-c-csgnd-e', total_e: 'bv-c-total-e',
+    });
+    if (bvCotisCard) bvCotisCard.classList.remove('collapsed');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  recomputeAchatEdit();
+  checkImmobilisationEdit();
+});
 </script>
-
-<datalist id="budget-lines-list">
-  {% for lb in lignes_budgetaires %}
-  <option value="{{ lb.nom }}" data-id="{{ lb.id }}"></option>
-  {% endfor %}
-</datalist>
-
 {% endblock %}

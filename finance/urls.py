@@ -19,4 +19,6 @@ urlpatterns = [
     path('etudes/nouvelle/', views.etude_create, name='etude_create'),
     # Utils
     path('quick-assign-budget/', views.set_budget_line, name='set_budget_line'),
+    path('quick-update-drive/', views.set_drive_link, name='set_drive_link'),
+    path('quick-update-cat/', views.set_categorisation, name='set_categorisation'),
 ]

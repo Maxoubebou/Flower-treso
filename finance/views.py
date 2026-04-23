@@ -13,7 +13,6 @@ def _get_filtres(request):
     # Gestion du mois
     if 'mois' in request.GET:
         mois_raw = request.GET.getlist('mois')
-        # Protection contre la sérialisation sauvage de listes dans l'URL
         processed_mois = []
         for m in mois_raw:
             if m.startswith('[') and m.endswith(']'):
@@ -26,31 +25,45 @@ def _get_filtres(request):
                     pass
             elif m:
                 processed_mois.append(m)
-        
-        mois = list(set(processed_mois)) # Déduplication
+        mois = list(set(processed_mois))
         request.session['filtre_mois'] = mois
     else:
         mois = request.session.get('filtre_mois') or []
 
-    # Gestion de l'année
+    # Gestion de l'année (multi-sélection)
     if 'annee' in request.GET:
-        annee = request.GET.get('annee')
+        annee_raw = request.GET.getlist('annee')
+        annee = [a for a in annee_raw if a]
         request.session['filtre_annee'] = annee
     else:
-        annee = request.session.get('filtre_annee')
+        annee = request.session.get('filtre_annee', ['2025'])
+        if isinstance(annee, str):
+            annee = [annee] if annee else []
 
     return mois, annee
 
 
-def _appliquer_filtres(qs, mois, annee, champ_date='date_operation'):
+def _appliquer_filtres(qs, mois, annee, champ_date='date_operation', fallback_champ_date=None):
+    from django.db.models.functions import Coalesce
+
+    if fallback_champ_date and champ_date != fallback_champ_date:
+        qs = qs.annotate(effective_filter_date=Coalesce(champ_date, fallback_champ_date))
+        filter_date_field = 'effective_filter_date'
+    else:
+        filter_date_field = champ_date
+
     if mois:
         if isinstance(mois, list):
-            qs = qs.filter(**{f'{champ_date}__month__in': [int(m) for m in mois]})
+            qs = qs.filter(**{f'{filter_date_field}__month__in': [int(m) for m in mois]})
         else:
-            qs = qs.filter(**{f'{champ_date}__month': int(mois)})
+            qs = qs.filter(**{f'{filter_date_field}__month': int(mois)})
     if annee:
-        qs = qs.filter(**{f'{champ_date}__year': int(annee)})
+        if isinstance(annee, list) and len(annee) > 0:
+            qs = qs.filter(**{f'{filter_date_field}__year__in': [int(a) for a in annee]})
+        elif isinstance(annee, str) and annee:
+            qs = qs.filter(**{f'{filter_date_field}__year': int(annee)})
     return qs
+
 
 
 def _ordonner_qs(qs, request, allowed_fields):
@@ -70,9 +83,14 @@ def _ordonner_qs(qs, request, allowed_fields):
 
 def ventes_list(request):
     mois, annee = _get_filtres(request)
+    date_filter_type = request.session.get('date_filter_type', 'operation')
+    champ_date = 'date_envoi' if date_filter_type == 'facture' else 'date_operation'
+
     qs = _appliquer_filtres(
         FactureVente.objects.select_related('type_facture', 'etude', 'ligne_budgetaire'),
-        mois, annee
+        mois, annee,
+        champ_date=champ_date,
+        fallback_champ_date='date_operation' if date_filter_type == 'facture' else None
     )
     # Sorting
     allowed_fields = ['date_operation', 'taux_tva', 'montant_ht', 'montant_tva', 'montant_ttc']
@@ -152,12 +170,13 @@ def vente_edit(request, pk):
         except Exception as e:
             messages.error(request, f"Erreur : {e}")
 
+    from finance.models import Etude as EtudeModel
     return render(request, 'finance/vente_form.html', {
         'facture': fv,
         'types_facture_vente': TypeFactureVente.objects.filter(active=True),
         'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
         'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True),
-        'etudes': Etude.objects.filter(active=True).order_by('reference'),
+        'etudes': EtudeModel.objects.filter(active=True).order_by('reference'),
     })
 
 
@@ -251,9 +270,14 @@ def bv_edit(request, pk):
 
 def achats_list(request):
     mois, annee = _get_filtres(request)
+    date_filter_type = request.session.get('date_filter_type', 'operation')
+    champ_date = 'date_reception' if date_filter_type == 'facture' else 'date_operation'
+
     qs = _appliquer_filtres(
         FactureAchat.objects.select_related('type_achat', 'ligne_budgetaire'),
-        mois, annee
+        mois, annee,
+        champ_date=champ_date,
+        fallback_champ_date='date_operation' if date_filter_type == 'facture' else None
     )
     # Sorting
     allowed_fields = ['date_operation', 'taux_tva', 'montant_ht', 'montant_tva', 'montant_ttc']
@@ -276,6 +300,84 @@ def achat_edit(request, pk):
     fa = get_object_or_404(FactureAchat, pk=pk)
 
     if request.method == 'POST':
+        action = request.POST.get('action', 'edit')
+
+        if action == 'convert_to_bv':
+            # Conversion FA → BV : supprimer FA, créer BV lié à la même opération
+            try:
+                from datetime import datetime
+                from finance.services import generate_numero_bv, calculate_cotisations_urssaf
+                from config_app.models import ParametreCotisation
+
+                nb_jeh = abs(to_decimal(request.POST.get('nb_jeh', '0')))
+                retrib = abs(to_decimal(request.POST.get('retribution_brute_par_jeh', '0')))
+                cotis = calculate_cotisations_urssaf(nb_jeh)
+
+                numero_propose = request.POST.get('numero') or generate_numero_bv(fa.date_operation.year)
+                if BulletinVersement.objects.filter(numero=numero_propose).exists():
+                    messages.error(request, f"Le numéro BV {numero_propose} existe déjà.")
+                    return redirect('finance:achat_edit', pk=pk)
+
+                date_emission_raw = request.POST.get('date_emission', '')
+                date_emission = datetime.strptime(date_emission_raw, '%Y-%m-%d').date() if date_emission_raw else None
+                etude_pk = request.POST.get('etude')
+                ligne_bud_pk = request.POST.get('ligne_budgetaire')
+
+                operation = fa.operation  # Garder la référence avant suppression
+                date_op = fa.date_operation
+
+                bv = BulletinVersement.objects.create(
+                    operation=operation,
+                    numero=numero_propose,
+                    etude=Etude.objects.get(pk=etude_pk) if etude_pk else None,
+                    ligne_budgetaire=LigneBudgetaire.objects.get(pk=ligne_bud_pk) if ligne_bud_pk else None,
+                    date_operation=date_op,
+                    date_emission=date_emission,
+                    reference_virement=getattr(operation, 'reference', '') or '',
+                    intervenant_nom=request.POST.get('intervenant_nom', ''),
+                    intervenant_prenom=request.POST.get('intervenant_prenom', ''),
+                    adresse=request.POST.get('adresse', ''),
+                    code_postal=request.POST.get('code_postal', ''),
+                    ville=request.POST.get('ville', ''),
+                    num_secu=request.POST.get('num_secu', ''),
+                    nom_mission=request.POST.get('nom_mission', ''),
+                    ref_rm=request.POST.get('ref_rm', ''),
+                    ref_avrm=request.POST.get('ref_avrm', ''),
+                    nb_jeh=nb_jeh,
+                    retribution_brute_par_jeh=retrib,
+                    assiette=cotis['assiette'],
+                    j_assurance_maladie=cotis['j_maladie'],
+                    j_accident_travail=cotis['j_at'],
+                    j_vieillesse_plafonnee=cotis['j_vp'],
+                    j_vieillesse_deplafonnee=cotis['j_vd'],
+                    j_allocations_familiales=cotis['j_af'],
+                    j_csg_deductible=cotis['j_csgd'],
+                    j_csg_non_deductible=cotis['j_csgnd'],
+                    total_junior=cotis['total_j'],
+                    e_assurance_maladie=cotis['e_maladie'],
+                    e_accident_travail=cotis['e_at'],
+                    e_vieillesse_plafonnee=cotis['e_vp'],
+                    e_vieillesse_deplafonnee=cotis['e_vd'],
+                    e_allocations_familiales=cotis['e_af'],
+                    e_csg_deductible=cotis['e_csgd'],
+                    e_csg_non_deductible=cotis['e_csgnd'],
+                    total_etudiant=cotis['total_e'],
+                    total_global=cotis['total_global'],
+                    commentaire=request.POST.get('commentaire', ''),
+                )
+
+                # Détacher l'opération de la FA avant suppression pour éviter la cascade
+                fa.operation = None
+                fa.save()
+                fa.delete()
+
+                messages.success(request, f"FA convertie en BV {bv.numero} avec succès.")
+                return redirect('finance:bv_list')
+            except Exception as e:
+                messages.error(request, f"Erreur lors de la conversion en BV : {e}")
+                return redirect('finance:achat_edit', pk=pk)
+
+        # Action edit classique
         try:
             from datetime import datetime
             from finance.services import calculate_tva
@@ -325,11 +427,14 @@ def achat_edit(request, pk):
         except Exception as e:
             messages.error(request, f"Erreur : {e}")
 
+    from finance.models import Etude as EtudeModel
     return render(request, 'finance/achat_form.html', {
         'facture': fa,
         'types_achat': TypeAchat.objects.filter(active=True),
         'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
         'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True),
+        'etudes': EtudeModel.objects.filter(active=True).order_by('reference'),
+        'cotisations_params': ParametreCotisation.objects.all(),
     })
 
 
@@ -383,6 +488,56 @@ def set_budget_line(request):
     obj.save()
     
     response = HttpResponse(lb.nom if lb else "—")
-    # On ajoute un trigger pour un feedback visuel JS si besoin
     response['HX-Trigger'] = 'budgetLineSaved'
     return response
+
+
+@require_POST
+def set_drive_link(request):
+    """Endpoint HTMX pour mettre à jour le lien Drive."""
+    obj_type = request.POST.get('type')
+    obj_id = request.POST.get('id')
+    url = request.POST.get('url', '').strip()
+
+    if obj_type == 'vente':
+        obj = get_object_or_404(FactureVente, pk=obj_id)
+    elif obj_type == 'achat':
+        obj = get_object_or_404(FactureAchat, pk=obj_id)
+    else:
+        return HttpResponse("Type inconnu", status=400)
+
+    obj.lien_drive = url
+    obj.save()
+    response = HttpResponse(url)
+    response['HX-Trigger'] = 'driveLinkSaved'
+    return response
+
+
+@require_POST
+def set_categorisation(request):
+    """Endpoint HTMX pour changer la catégorisation d'une facture d'achat inline."""
+    obj_id = request.POST.get('id')
+    new_cat = request.POST.get('categorisation')
+    fa = get_object_or_404(FactureAchat, pk=obj_id)
+
+    if new_cat in ('service', 'bien', 'immobilisation'):
+        fa.categorisation = new_cat
+        # Réappliquer la logique d'immobilisation automatique
+        if new_cat == 'bien' and fa.montant_ttc and fa.montant_ttc > 500:
+            fa.immobilisation = True
+            fa.categorisation = 'immobilisation'
+        elif new_cat in ('service', 'immobilisation'):
+            fa.immobilisation = (new_cat == 'immobilisation')
+        else:
+            fa.immobilisation = False
+        fa.save()
+
+    # Retourner le badge HTML mis à jour
+    cat_map = {
+        'immobilisation': ('<span class="badge badge-warning">Immobilisation</span>', 'immobilisation'),
+        'bien': ('<span class="badge badge-primary">Bien</span>', 'bien'),
+        'service': ('<span class="badge badge-gray">Service</span>', 'service'),
+    }
+    effective_cat = fa.categorisation if not fa.immobilisation else 'immobilisation'
+    badge_html = cat_map.get(effective_cat, cat_map['service'])[0]
+    return HttpResponse(badge_html)

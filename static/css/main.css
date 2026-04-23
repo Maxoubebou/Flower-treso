@@ -1407,3 +1407,141 @@ dialog::backdrop {
 .success-flash {
     animation: success-pulse 1s ease-out;
 }
+
+/* ─── Drive Modal ─────────────────────────────────────────── */
+.drive-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(5px);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn .15s ease-out;
+}
+.drive-modal-overlay.hidden { display: none; }
+.drive-modal-box {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 25px 60px rgba(0,0,0,.25);
+  animation: slideUp .2s ease-out;
+}
+.drive-modal-box h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-gray-800);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── Inline category picker ─────────────────────────────── */
+.cat-picker {
+  position: relative;
+  display: inline-block;
+}
+.cat-picker-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 500;
+  min-width: 160px;
+  padding: 4px;
+  display: none;
+}
+.cat-picker-menu.show { display: block; animation: slideDown .1s ease-out; }
+.cat-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .1s;
+}
+.cat-picker-option:hover { background: var(--color-gray-50); }
+.badge-clickable {
+  cursor: pointer;
+  transition: var(--transition);
+}
+.badge-clickable:hover { opacity: .8; transform: scale(1.05); }
+
+/* ─── Multi-year filter (same as month multi-select) ────── */
+.year-multi-select {
+  position: relative;
+  display: inline-block;
+}
+.year-multi-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-gray-100);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: var(--transition);
+  user-select: none;
+}
+.year-multi-toggle:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+.year-multi-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 180px;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-gray-200);
+  padding: 10px;
+  z-index: 1000;
+  display: none;
+}
+.year-multi-menu.show {
+  display: block;
+  animation: slideDown .15s ease-out;
+}
+.year-multi-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: .85rem;
+  color: var(--color-gray-700);
+}
+.year-multi-item:hover { background: var(--color-gray-50); }
+.year-multi-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+.year-multi-footer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-gray-100);
+}

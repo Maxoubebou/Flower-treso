@@ -4,6 +4,9 @@
 {% block title %}Synthèse TVA {{ mois_nom }} {{ annee }} — Flower-Tréso{% endblock %}
 {% block page_title %}Synthèse TVA — Formulaire CA3{% endblock %}
 
+{% block date_filters %}
+{% endblock %}
+
 {% block content %}
 
 <!-- Sélection de la période -->
@@ -73,6 +76,24 @@
     </div>
   </div>
 </div>
+
+{% if computed.fallback_count > 0 and decl.switch_calcul == 'facture' %}
+<div style="background:#fffbeb; padding: 12px 16px; border: 1px solid #fcd34d; border-radius: var(--radius-lg); margin-bottom: 24px; display:flex; align-items:flex-start; gap:12px;">
+  <i data-lucide="alert-triangle" width="20" height="20" style="color:#d97706; margin-top:2px;"></i>
+  <div style="color:#92400e; font-size:0.9rem;">
+    <strong>Attention :</strong> 
+    <strong>{{ computed.fallback_count }}</strong> opération{{ computed.fallback_count|pluralize }} incluse{{ computed.fallback_count|pluralize }} dans ce calcul l'a été via sa <strong>date bancaire</strong>, car aucune date de facture (envoi/réception) n'était renseignée.
+    <ul style="margin-top: 8px; padding-left: 20px; font-size: 0.85rem; list-style-type: none; display: flex; flex-direction: column; gap: 4px;">
+      {% for v in computed.ventes_fallback_details %}
+        <li><i data-lucide="arrow-right" width="12" height="12" style="display:inline; margin-right:4px; color:var(--color-primary);"></i> <strong>Vente :</strong> {{ v.nom }} — {{ v.date|date:"d/m/Y" }} — <strong>{{ v.valeur|floatformat:2 }} € TTC</strong></li>
+      {% endfor %}
+      {% for a in computed.achats_fallback_details %}
+        <li><i data-lucide="arrow-right" width="12" height="12" style="display:inline; margin-right:4px; color:var(--color-danger);"></i> <strong>Achat :</strong> {{ a.nom }} — {{ a.date|date:"d/m/Y" }} — <strong>{{ a.valeur|floatformat:2 }} € TTC</strong></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
 
 <div class="grid-2">
 

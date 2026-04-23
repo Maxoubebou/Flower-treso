@@ -26,11 +26,15 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
     annee = int(periode[:4])
     mois = int(periode[4:])
 
+    from django.db.models.functions import Coalesce
+
     # ─── Filtrer les factures de vente ───────────────────────────────────────
     if switch == 'facture':
-        ventes_qs = FactureVente.objects.filter(
-            date_envoi__year=annee,
-            date_envoi__month=mois,
+        ventes_qs = FactureVente.objects.annotate(
+            effective_date=Coalesce('date_envoi', 'date_operation')
+        ).filter(
+            effective_date__year=annee,
+            effective_date__month=mois,
         )
     else:
         ventes_qs = FactureVente.objects.filter(
@@ -40,15 +44,40 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
 
     # ─── Filtrer les factures d'achat ────────────────────────────────────────
     if switch == 'facture':
-        achats_qs = FactureAchat.objects.filter(
-            date_reception__year=annee,
-            date_reception__month=mois,
+        achats_qs = FactureAchat.objects.annotate(
+            effective_date=Coalesce('date_reception', 'date_operation')
+        ).filter(
+            effective_date__year=annee,
+            effective_date__month=mois,
         )
+        achats_fallback = achats_qs.filter(date_reception__isnull=True)
+        ventes_fallback = ventes_qs.filter(date_envoi__isnull=True)
+        achats_fallback_count = achats_fallback.count()
+        ventes_fallback_count = ventes_fallback.count()
+
+        achats_fallback_details = [{
+            'nom': a.fournisseur or f"Facture {a.numero}",
+            'date': a.date_operation,
+            'valeur': a.montant_ttc,
+        } for a in achats_fallback]
+
+        ventes_fallback_details = [{
+            'nom': v.libelle or f"Facture {v.numero}",
+            'date': v.date_operation,
+            'valeur': v.montant_ttc,
+        } for v in ventes_fallback]
+
     else:
         achats_qs = FactureAchat.objects.filter(
             date_operation__year=annee,
             date_operation__month=mois,
         )
+        achats_fallback_count = 0
+        ventes_fallback_count = 0
+        achats_fallback_details = []
+        ventes_fallback_details = []
+
+    fallback_count = achats_fallback_count + ventes_fallback_count
 
     # ─── A1 : Ventes imposables HT (hors cotisations et subventions hors UE) ─
     ventes_imposables = ventes_qs.exclude(
@@ -121,6 +150,11 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
         'ligne_20': ligne_20,
         'ligne_21': Decimal('0'),
         # ligne_22 et ligne_23 à compléter avec le report et les valeurs manuelles
+        'fallback_count': fallback_count,
+        'achats_fallback_count': achats_fallback_count,
+        'ventes_fallback_count': ventes_fallback_count,
+        'achats_fallback_details': achats_fallback_details,
+        'ventes_fallback_details': ventes_fallback_details,
     }
 
 

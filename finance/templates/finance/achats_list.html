@@ -32,76 +32,116 @@
 
   {% if factures %}
   <div class="table-wrapper" style="border:none;border-radius:0">
-    <table class="data-table">
+    <table class="data-table" style="font-size:.8rem">
       <thead>
         <tr>
-          <th>N° Facture</th>
-          <th>Type</th>
-          <th>Fournisseur</th>
-          <th>Catégorie</th>
-          <th class="cursor-pointer">
+          <th style="padding:8px 10px">N° / Type</th>
+          <th style="padding:8px 10px">Fournisseur</th>
+          <th style="padding:8px 10px">Catégorie</th>
+          <th style="padding:8px 10px">
             <a href="?sort=date_operation&order={% if current_sort == 'date_operation' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
-              Date op.
-              {% if current_sort == 'date_operation' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+              Date {% if current_sort == 'date_operation' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th>Pays TVA</th>
-          <th class="cursor-pointer">
+          <th style="padding:8px 10px">
             <a href="?sort=taux_tva&order={% if current_sort == 'taux_tva' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
-              Taux
-              {% if current_sort == 'taux_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+              Taux {% if current_sort == 'taux_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th class="text-right cursor-pointer">
+          <th class="text-right" style="padding:8px 10px">
             <a href="?sort=montant_ht&order={% if current_sort == 'montant_ht' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              HT (€)
-              {% if current_sort == 'montant_ht' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+              HT (€) {% if current_sort == 'montant_ht' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th class="text-right cursor-pointer">
+          <th class="text-right" style="padding:8px 10px">
             <a href="?sort=montant_tva&order={% if current_sort == 'montant_tva' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              TVA (€)
-              {% if current_sort == 'montant_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+              TVA (€) {% if current_sort == 'montant_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th class="text-right cursor-pointer">
+          <th class="text-right" style="padding:8px 10px">
             <a href="?sort=montant_ttc&order={% if current_sort == 'montant_ttc' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              TTC (€)
-              {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="14"></i>{% endif %}
+              TTC (€) {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th style="min-width:140px">Ligne Budg.</th>
-          <th></th>
+          <th style="padding:8px 10px;min-width:120px">Ligne Budg.</th>
+          <th style="padding:8px 10px"></th>
         </tr>
       </thead>
       <tbody>
         {% for f in factures %}
         <tr>
-          <td><span class="font-mono font-bold" style="color:var(--color-primary)">{{ f.numero }}</span></td>
-          <td><span class="badge badge-gray">{{ f.type_achat.nom }}</span></td>
-          <td>{{ f.fournisseur }}</td>
-          <td>
-            {% if f.immobilisation %}
-            <span class="badge badge-warning">Immobilisation</span>
-            {% elif f.categorisation == 'bien' %}
-            <span class="badge badge-primary">Bien</span>
-            {% else %}
-            <span class="badge badge-gray">Service</span>
+          <!-- N° / Type combinés -->
+          <td style="padding:7px 10px">
+            <span class="font-mono font-bold" style="color:var(--color-primary);font-size:.75rem">{{ f.numero }}</span>
+            <br><span class="badge badge-gray" style="font-size:.65rem;margin-top:2px">{{ f.type_achat.nom }}</span>
+          </td>
+
+          <!-- Fournisseur + Libellé -->
+          <td style="padding:7px 10px;max-width:160px">
+            <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.fournisseur }}</div>
+            {% if f.libelle and f.libelle != f.fournisseur %}
+            <div class="text-xs text-muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.libelle }}</div>
             {% endif %}
           </td>
-          <td class="text-sm">{{ f.date_operation|date:"d/m/Y" }}</td>
-          <td>
-            <span class="badge {% if f.pays_tva == 'FR' %}badge-gray{% elif f.pays_tva == 'intracom' %}badge-warning{% else %}badge-danger{% endif %}">
-              {{ f.get_pays_tva_display }}
-            </span>
+
+          <!-- Catégorie cliquable inline -->
+          <td style="padding:7px 10px">
+            <div class="cat-picker" id="cat-picker-{{ f.id }}">
+              <span id="cat-badge-{{ f.id }}" class="badge-clickable"
+                    onclick="toggleCatPicker({{ f.id }})"
+                    title="Cliquer pour modifier">
+                {% if f.immobilisation %}
+                <span class="badge badge-warning">Immobilisation</span>
+                {% elif f.categorisation == 'bien' %}
+                <span class="badge badge-primary">Bien</span>
+                {% else %}
+                <span class="badge badge-gray">Service</span>
+                {% endif %}
+              </span>
+              <div class="cat-picker-menu" id="cat-menu-{{ f.id }}">
+                <div class="cat-picker-option" onclick="setCat({{ f.id }}, 'service')">
+                  <span class="badge badge-gray" style="font-size:.7rem">Service</span>
+                </div>
+                <div class="cat-picker-option" onclick="setCat({{ f.id }}, 'bien')">
+                  <span class="badge badge-primary" style="font-size:.7rem">Bien</span>
+                  {% if f.montant_ttc > 500 %}<span class="text-xs text-muted">→ Immo. auto</span>{% endif %}
+                </div>
+                <div class="cat-picker-option" onclick="setCat({{ f.id }}, 'immobilisation')">
+                  <span class="badge badge-warning" style="font-size:.7rem">Immobilisation</span>
+                </div>
+              </div>
+            </div>
           </td>
-          <td class="font-mono">{{ f.taux_tva }}%</td>
-          <td class="text-right font-mono">{{ f.montant_ht|floatformat:2 }}</td>
-          <td class="text-right font-mono text-muted">{{ f.montant_tva|floatformat:2 }}</td>
-          <td class="text-right font-mono font-bold">{{ f.montant_ttc|floatformat:2 }}</td>
-          <td class="relative">
-            <input list="budget-lines-list" 
-                   class="form-control" 
+
+          <!-- Date -->
+          <td style="padding:7px 10px;font-size:.78rem;white-space:nowrap">
+            {% if date_filter_type == 'facture' %}
+              {% if f.date_reception %}
+                {{ f.date_reception|date:"d/m/Y" }}
+                <span class="text-muted text-xs" style="display:block">Op: {{ f.date_operation|date:"d/m/Y" }}</span>
+              {% else %}
+                {{ f.date_operation|date:"d/m/Y" }}
+                <i data-lucide="alert-triangle" width="12" height="12" class="text-warning" style="display:inline-block;vertical-align:middle;margin-left:2px" title="Date de facture non renseignée"></i>
+              {% endif %}
+            {% else %}
+              {{ f.date_operation|date:"d/m/Y" }}
+            {% endif %}
+          </td>
+
+          <!-- Taux + Pays TVA (combinés) -->
+          <td style="padding:7px 10px;font-size:.78rem">
+            <span class="font-mono">{{ f.taux_tva }}%</span>
+            <br><span class="text-xs {% if f.pays_tva == 'FR' %}text-muted{% elif f.pays_tva == 'intracom' %}text-warning{% else %}text-danger{% endif %}">{{ f.get_pays_tva_display }}</span>
+          </td>
+
+          <td class="text-right font-mono" style="padding:7px 10px">{{ f.montant_ht|floatformat:2 }}</td>
+          <td class="text-right font-mono text-muted" style="padding:7px 10px">{{ f.montant_tva|floatformat:2 }}</td>
+          <td class="text-right font-mono font-bold" style="padding:7px 10px">{{ f.montant_ttc|floatformat:2 }}</td>
+
+          <!-- Ligne budgétaire -->
+          <td style="padding:7px 10px">
+            <input list="budget-lines-list"
+                   class="form-control"
                    style="font-size:.7rem;padding:4px 8px;border-radius:6px"
                    placeholder="Ligne..."
                    value="{{ f.ligne_budgetaire.nom|default:'' }}"
@@ -112,16 +152,41 @@
                    hx-vals='js:{"type": "achat", "id": "{{ f.id }}", "lb_name": event.target.value, "lb_id": (Array.from(document.getElementById("budget-lines-list").options).find(o => o.value.trim() === event.target.value.trim()))?.dataset.id || ""}'
                    onhtmx:after-request="if(event.detail.successful) { this.classList.add('success-flash'); setTimeout(() => this.classList.remove('success-flash'), 1000); }">
           </td>
-          <td>
-            <div class="flex gap-1 justify-end">
-              <a href="{% url 'finance:achat_edit' f.pk %}" class="btn btn-ghost btn-icon" title="Modifier">
+
+          <!-- Actions -->
+          <td style="padding:7px 10px">
+            <div class="flex gap-1 justify-end items-center">
+              <!-- Drive button -->
+              {% if f.lien_drive %}
+              <a href="{{ f.lien_drive }}" target="_blank" rel="noopener"
+                 class="btn btn-ghost btn-sm" style="padding:4px 6px"
+                 title="Ouvrir la preuve comptable">
+                <i data-lucide="folder-open" width="14" height="14" style="color:var(--color-success)"></i>
+              </a>
+              {% else %}
+              <button type="button" class="btn btn-ghost btn-sm" style="padding:4px 6px"
+                      onclick="openDriveModal('achat', '{{ f.id }}')"
+                      title="Ajouter un lien Drive">
+                <i data-lucide="folder-plus" width="14" height="14" style="color:var(--color-gray-400)"></i>
+              </button>
+              {% endif %}
+
+              <!-- Checkbox persistante -->
+              <input type="checkbox"
+                data-row-id="achat-{{ f.id }}"
+                class="row-checkbox"
+                title="Sélectionner"
+                style="appearance:none;-webkit-appearance:none;width:1.1rem;height:1.1rem;border:2px solid #cbd5e1;border-radius:50%;background-color:white;cursor:pointer;transition:all .2s;margin:0;outline:none;flex-shrink:0"
+                onclick="event.stopPropagation();toggleRowCheckbox(this)">
+
+              <a href="{% url 'finance:achat_edit' f.pk %}" class="btn btn-ghost btn-sm" style="padding:4px 6px" title="Modifier">
                 <i data-lucide="edit-2" width="14" height="14"></i>
               </a>
               {% if f.operation %}
-              <a href="{% url 'operations:operation_delete' f.operation.pk %}?next={{ request.get_full_path|urlencode }}" 
-                 class="btn btn-ghost btn-icon text-danger" 
-                 onclick="return confirm('Attention : cela supprimera l\'opération bancaire ET cette facture. Continuer ?')"
-                 title="Supprimer l'opération et la facture">
+              <a href="{% url 'operations:operation_delete' f.operation.pk %}?next={{ request.get_full_path|urlencode }}"
+                 class="btn btn-ghost btn-sm text-danger" style="padding:4px 6px"
+                 onclick="return confirm('Supprimer l\'opération bancaire ET cette facture ?')"
+                 title="Supprimer">
                 <i data-lucide="trash-2" width="14" height="14"></i>
               </a>
               {% endif %}
@@ -132,11 +197,11 @@
       </tbody>
       <tfoot>
         <tr>
-          <td colspan="7"><strong>Totaux</strong></td>
-          <td class="text-right font-mono"><strong>{{ total_ht|floatformat:2 }}</strong></td>
-          <td class="text-right font-mono"><strong>{{ total_tva|floatformat:2 }}</strong></td>
-          <td class="text-right font-mono"><strong>{{ total_ttc|floatformat:2 }}</strong></td>
-          <td></td>
+          <td colspan="5" style="padding:8px 10px"><strong>Totaux</strong></td>
+          <td class="text-right font-mono" style="padding:8px 10px"><strong>{{ total_ht|floatformat:2 }}</strong></td>
+          <td class="text-right font-mono" style="padding:8px 10px"><strong>{{ total_tva|floatformat:2 }}</strong></td>
+          <td class="text-right font-mono" style="padding:8px 10px"><strong>{{ total_ttc|floatformat:2 }}</strong></td>
+          <td colspan="2"></td>
         </tr>
       </tfoot>
     </table>
@@ -150,12 +215,148 @@
   {% endif %}
 </div>
 
-
-<!-- Shared Budget Lines Datalist -->
+<!-- Datalist Lignes budgétaires -->
 <datalist id="budget-lines-list">
   {% for lb in all_budget_lines %}
   <option value="{{ lb.nom }}" data-id="{{ lb.id }}"></option>
   {% endfor %}
 </datalist>
 
+<!-- ─── Modale Drive ──────────────────────────────────────────────── -->
+<div id="drive-modal-overlay" class="drive-modal-overlay hidden" onclick="if(event.target===this) closeDriveModal()">
+  <div class="drive-modal-box" onclick="event.stopPropagation()">
+    <h3>
+      <i data-lucide="folder-open" width="20" height="20" style="color:var(--color-primary)"></i>
+      Lien de la preuve comptable
+    </h3>
+    <p class="text-sm text-muted" style="margin-bottom:16px">Collez ici l'URL du dossier Google Drive ou du fichier de la facture.</p>
+    <input type="hidden" id="drive-modal-type" value="">
+    <input type="hidden" id="drive-modal-id" value="">
+    <div class="form-group">
+      <label class="form-label">URL Drive</label>
+      <input type="url" id="drive-modal-url" class="form-control" placeholder="https://drive.google.com/...">
+    </div>
+    <div class="flex gap-3 justify-end" style="margin-top:20px">
+      <button type="button" class="btn btn-outline" onclick="closeDriveModal()">Annuler</button>
+      <button type="button" class="btn btn-primary" onclick="saveDriveLink()">
+        <i data-lucide="save" width="14" height="14"></i> Enregistrer
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ─── Inline category picker ─────────────────────────────────────────────
+function toggleCatPicker(id) {
+  const menu = document.getElementById('cat-menu-' + id);
+  // Fermer tous les autres
+  document.querySelectorAll('.cat-picker-menu.show').forEach(m => {
+    if (m !== menu) m.classList.remove('show');
+  });
+  menu.classList.toggle('show');
+}
+
+function setCat(id, cat) {
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+    || '{{ csrf_token }}';
+  const menu = document.getElementById('cat-menu-' + id);
+  menu.classList.remove('show');
+
+  const formData = new FormData();
+  formData.append('id', id);
+  formData.append('categorisation', cat);
+
+  fetch('{% url "finance:set_categorisation" %}', {
+    method: 'POST',
+    headers: {'X-CSRFToken': csrfToken},
+    body: formData,
+  })
+  .then(r => r.text())
+  .then(html => {
+    document.getElementById('cat-badge-' + id).innerHTML = html;
+    // Ré-init Lucide
+    lucide.createIcons();
+  });
+}
+
+// Fermer les cat-pickers au clic extérieur
+document.addEventListener('click', e => {
+  if (!e.target.closest('.cat-picker')) {
+    document.querySelectorAll('.cat-picker-menu.show').forEach(m => m.classList.remove('show'));
+  }
+});
+
+// ─── Drive Modal ─────────────────────────────────────────────────────────
+function openDriveModal(type, id) {
+  document.getElementById('drive-modal-type').value = type;
+  document.getElementById('drive-modal-id').value = id;
+  document.getElementById('drive-modal-url').value = '';
+  document.getElementById('drive-modal-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('drive-modal-url').focus(), 100);
+}
+
+function closeDriveModal() {
+  document.getElementById('drive-modal-overlay').classList.add('hidden');
+}
+
+function saveDriveLink() {
+  const type = document.getElementById('drive-modal-type').value;
+  const id = document.getElementById('drive-modal-id').value;
+  const url = document.getElementById('drive-modal-url').value.trim();
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+
+  if (!url) return;
+
+  const formData = new FormData();
+  formData.append('type', type);
+  formData.append('id', id);
+  formData.append('url', url);
+
+  fetch('{% url "finance:set_drive_link" %}', {
+    method: 'POST',
+    headers: {'X-CSRFToken': csrfToken},
+    body: formData,
+  })
+  .then(() => {
+    closeDriveModal();
+    // Recharger la page pour mettre à jour le bouton
+    location.reload();
+  });
+}
+
+// ─── Checkbox persistante ────────────────────────────────────────────────
+const STORAGE_KEY = 'achats-checked-rows';
+
+function loadCheckedRows() {
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  document.querySelectorAll('.row-checkbox').forEach(cb => {
+    const rowId = cb.dataset.rowId;
+    if (saved.includes(rowId)) {
+      cb.checked = true;
+      cb.style.backgroundColor = 'var(--color-primary)';
+      cb.style.borderColor = 'var(--color-primary)';
+    }
+  });
+}
+
+function toggleRowCheckbox(cb) {
+  const rowId = cb.dataset.rowId;
+  let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  if (cb.checked) {
+    if (!saved.includes(rowId)) saved.push(rowId);
+    cb.style.backgroundColor = 'var(--color-primary)';
+    cb.style.borderColor = 'var(--color-primary)';
+  } else {
+    saved = saved.filter(id => id !== rowId);
+    cb.style.backgroundColor = 'white';
+    cb.style.borderColor = '#cbd5e1';
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+}
+
+document.addEventListener('DOMContentLoaded', loadCheckedRows);
+</script>
 {% endblock %}
