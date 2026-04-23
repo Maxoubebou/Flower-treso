@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.db.models import Q, Sum, F
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
+from django.middleware.csrf import get_token
 
 from .models import FactureVente, BulletinVersement, FactureAchat, Etude
 from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, ParametreCotisation
@@ -291,6 +292,7 @@ def achats_list(request):
         'total_tva': sum(f.montant_tva for f in qs),
         'total_ttc': sum(f.montant_ttc for f in qs),
         'all_budget_lines': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
+        'all_types_achat': TypeAchat.objects.filter(active=True),
         'current_sort': request.GET.get('sort'),
         'current_order': request.GET.get('order', 'asc'),
     })
@@ -515,29 +517,89 @@ def set_drive_link(request):
 
 @require_POST
 def set_categorisation(request):
-    """Endpoint HTMX pour changer la catégorisation d'une facture d'achat inline."""
+    from django.middleware.csrf import get_token
     obj_id = request.POST.get('id')
     new_cat = request.POST.get('categorisation')
     fa = get_object_or_404(FactureAchat, pk=obj_id)
 
     if new_cat in ('service', 'bien', 'immobilisation'):
-        fa.categorisation = new_cat
-        # Réappliquer la logique d'immobilisation automatique
-        if new_cat == 'bien' and fa.montant_ttc and fa.montant_ttc > 500:
+        if new_cat == 'immobilisation':
             fa.immobilisation = True
             fa.categorisation = 'immobilisation'
-        elif new_cat in ('service', 'immobilisation'):
-            fa.immobilisation = (new_cat == 'immobilisation')
         else:
             fa.immobilisation = False
+            fa.categorisation = new_cat
         fa.save()
 
-    # Retourner le badge HTML mis à jour
-    cat_map = {
-        'immobilisation': ('<span class="badge badge-warning">Immobilisation</span>', 'immobilisation'),
-        'bien': ('<span class="badge badge-primary">Bien</span>', 'bien'),
-        'service': ('<span class="badge badge-gray">Service</span>', 'service'),
-    }
-    effective_cat = fa.categorisation if not fa.immobilisation else 'immobilisation'
-    badge_html = cat_map.get(effective_cat, cat_map['service'])[0]
-    return HttpResponse(badge_html)
+    # Configuration des couleurs pastel / transparentes
+    if fa.immobilisation:
+        bg, border, text = 'rgba(168, 85, 247, 0.15)', '#a855f7', '#7e22ce'
+    elif fa.categorisation == 'bien':
+        bg, border, text = 'rgba(59, 130, 246, 0.15)', '#3b82f6', '#1d4ed8'
+    else:
+        bg, border, text = 'rgba(34, 197, 94, 0.15)', '#22c55e', '#15803d'
+
+    csrf_token = get_token(request)
+    
+    html = f"""
+    <select name="categorisation"
+            class="badge-select"
+            style="font-size: .7rem; padding: 2px 12px; border-radius: 12px; cursor: pointer; font-weight: 700; appearance: none; -webkit-appearance: none; text-align: center; transition: all 0.2s; border: 1px solid {border}; color: {text}; background-color: {bg};"
+            hx-post="/finance/set-categorisation/"
+            hx-vals='{{"id": "{fa.id}"}}'
+            hx-headers='{{"X-CSRFToken": "{csrf_token}"}}'
+            hx-swap="outerHTML"
+            onchange="const colors = {{
+                'service': {{bg: 'rgba(34, 197, 94, 0.15)', border: '#22c55e', text: '#15803d'}},
+                'bien': {{bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#1d4ed8'}},
+                'immobilisation': {{bg: 'rgba(168, 85, 247, 0.15)', border: '#a855f7', text: '#7e22ce'}}
+            }};
+            const c = colors[this.value];
+            this.style.backgroundColor = c.bg;
+            this.style.borderColor = c.border;
+            this.style.color = c.text;">
+      <option value="service" style="background-color: white; color: #333;" {"selected" if fa.categorisation == 'service' and not fa.immobilisation else ""}>Service</option>
+      <option value="bien" style="background-color: white; color: #333;" {"selected" if fa.categorisation == 'bien' and not fa.immobilisation else ""}>Bien</option>
+      <option value="immobilisation" style="background-color: white; color: #333;" {"selected" if fa.immobilisation else ""}>Immobilisation</option>
+    </select>
+    """
+    return HttpResponse(html)
+
+@require_POST
+def set_type_achat(request):
+    """Endpoint HTMX pour changer le type d'achat inline."""
+    obj_id = request.POST.get('id')
+    type_id = request.POST.get('type_achat')
+    fa = get_object_or_404(FactureAchat, pk=obj_id)
+    
+    if type_id:
+        new_type = get_object_or_404(TypeAchat, pk=type_id)
+        fa.type_achat = new_type
+        fa.save()
+
+    # Logique de couleur : Bleu pour Fournisseur, Orange pour Note de frais
+    is_ndf = "frais" in fa.type_achat.nom.lower()
+    bg, border, text = ('rgba(245, 158, 11, 0.15)', '#f59e0b', '#b45309') if is_ndf else ('rgba(6, 182, 212, 0.15)', '#06b6d4', '#0e7490')
+
+    csrf_token = get_token(request)
+    all_types = TypeAchat.objects.filter(active=True)
+    
+    options = "".join([
+        f'<option value="{t.id}" style="background-color: white; color: #333;" {"selected" if fa.type_achat_id == t.id else ""}>{t.nom}</option>'
+        for t in all_types
+    ])
+
+    html = f"""
+    <select name="type_achat"
+            style="font-size: .7rem; padding: 2px 12px; border-radius: 12px; cursor: pointer; font-weight: 700; appearance: none; -webkit-appearance: none; text-align: center; transition: all 0.2s; border: 1px solid {border}; color: {text}; background-color: {bg};"
+            hx-post="/finance/set-type-achat/"
+            hx-vals='{{"id": "{fa.id}"}}'
+            hx-headers='{{"X-CSRFToken": "{csrf_token}"}}'
+            hx-swap="outerHTML"
+            onchange="this.style.backgroundColor = (this.options[this.selectedIndex].text.toLowerCase().includes('frais') ? 'rgba(245, 158, 11, 0.15)' : 'rgba(6, 182, 212, 0.15)');
+                      this.style.borderColor = (this.options[this.selectedIndex].text.toLowerCase().includes('frais') ? '#f59e0b' : '#06b6d4');
+                      this.style.color = (this.options[this.selectedIndex].text.toLowerCase().includes('frais') ? '#b45309' : '#0e7490');">
+      {options}
+    </select>
+    """
+    return HttpResponse(html)

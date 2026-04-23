@@ -21,4 +21,5 @@ urlpatterns = [
     path('quick-assign-budget/', views.set_budget_line, name='set_budget_line'),
     path('quick-update-drive/', views.set_drive_link, name='set_drive_link'),
     path('quick-update-cat/', views.set_categorisation, name='set_categorisation'),
+    path('set-type-achat/', views.set_type_achat, name='set_type_achat'),
 ]
