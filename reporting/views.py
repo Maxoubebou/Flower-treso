@@ -220,8 +220,9 @@ def brc_synthese(request):
         messages.error(request, "Paramètres de cotisation manquants. Veuillez les configurer dans les paramètres.")
         return redirect('config:settings_index')
 
-    # Somme des assiettes de tous les bulletins (le "Salaire arrondi" du BRC)
-    total_assiette = bvs.aggregate(total=Sum('assiette'))['total'] or Decimal('0.00')
+    # Somme des assiettes de tous les bulletins, arrondie à l'entier (le "Salaire arrondi" du BRC)
+    total_assiette_brute = bvs.aggregate(total=Sum('assiette'))['total'] or Decimal('0.00')
+    total_assiette = total_assiette_brute.quantize(Decimal('1'), rounding='ROUND_HALF_UP')
 
     # Définition des lignes BRC basées sur la structure URSSAF du projet
     lignes = []
@@ -239,8 +240,8 @@ def brc_synthese(request):
         taux_j = getattr(p_j, item['field'])
         taux_e = getattr(p_e, item['field'])
         taux_total = taux_j + taux_e
-        # Cotisation = Total Assiette × (Taux Junior + Taux Étudiant)
-        cotisation = (total_assiette * taux_total / Decimal('100')).quantize(Decimal('0.01'))
+        # Cotisation = Total Assiette × (Taux Junior + Taux Étudiant) / 100, arrondie à l'entier
+        cotisation = (total_assiette * taux_total / Decimal('100')).quantize(Decimal('1'), rounding='ROUND_HALF_UP')
         lignes.append({
             'code': item['code'],
             'name': item['name'],
@@ -253,7 +254,7 @@ def brc_synthese(request):
     taux_csg_j = p_j.csg_deductible + p_j.csg_non_deductible
     taux_csg_e = p_e.csg_deductible + p_e.csg_non_deductible
     taux_csg_total = taux_csg_j + taux_csg_e
-    cotisation_csg = (total_assiette * taux_csg_total / Decimal('100')).quantize(Decimal('0.01'))
+    cotisation_csg = (total_assiette * taux_csg_total / Decimal('100')).quantize(Decimal('1'), rounding='ROUND_HALF_UP')
     lignes.append({
         'code': '260D',
         'name': 'CSG / CRDS (Déductible + Non-Déductible)',

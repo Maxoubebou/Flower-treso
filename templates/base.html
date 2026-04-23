@@ -86,6 +86,11 @@
         <i data-lucide="file-text" width="17" height="17"></i>
         <span>Synthèse TVA</span>
       </a>
+      <a href="{% url 'reporting:brc_synthese' %}"
+         class="nav-item {% if 'brc' in request.path %}active{% endif %}">
+        <i data-lucide="clipboard-list" width="17" height="17"></i>
+        <span>Synthèse BRC</span>
+      </a>
     </div>
 
     <div class="sidebar-footer">

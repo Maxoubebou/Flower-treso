@@ -4,30 +4,15 @@
 {% block title %}Synthèse BRC {{ mois_nom }} {{ annee }} — Flower-Tréso{% endblock %}
 {% block page_title %}Synthèse BRC (Bordereau URSSAF){% endblock %}
 
-{% block content %}
-<!-- Sélection de la période -->
-<div class="card mb-6">
-  <div class="card-body" style="padding:16px 20px">
-    <div class="flex items-center gap-4" style="flex-wrap:wrap">
-      <div class="flex items-center gap-2">
-        <i data-lucide="calendar-range" width="16" height="16" style="color:var(--color-primary)"></i>
-        <strong>Période :</strong>
-        <span style="font-size:1.05rem;font-weight:700;color:var(--color-primary)">{{ mois_nom }} {{ annee }}</span>
-      </div>
+{% block date_filters %}
+{% endblock %}
 
-      <form method="get" class="flex gap-2 items-center">
-        <select name="mois" class="form-control" style="width:auto" onchange="this.form.submit()">
-          {% for m in mois_options %}
-          <option value="{{ m.id }}" {% if mois == m.id %}selected{% endif %}>{{ m.nom }}</option>
-          {% endfor %}
-        </select>
-        <select name="annee" class="form-control" style="width:auto" onchange="this.form.submit()">
-          <option value="2024" {% if annee == 2024 %}selected{% endif %}>2024</option>
-          <option value="2025" {% if annee == 2025 %}selected{% endif %}>2025</option>
-          <option value="2026" {% if annee == 2026 %}selected{% endif %}>2026</option>
-        </select>
-      </form>
-    </div>
+{% block content %}
+<div class="mb-6">
+  <div class="flex items-center gap-2">
+    <i data-lucide="calendar-range" width="16" height="16" style="color:var(--color-primary)"></i>
+    <strong>Période du BRC :</strong>
+    <span style="font-size:1.05rem;font-weight:700;color:var(--color-primary)">{{ mois_nom }} {{ annee }}</span>
   </div>
 </div>
 
@@ -70,12 +55,12 @@
           <td style="font-weight:600; text-transform: uppercase; font-size: 0.8rem">{{ l.name }}</td>
           <td class="text-right" style="padding:10px 20px">
             <div style="background:#ffeb3b; padding:8px 12px; border-radius:4px; display:inline-block; min-width:140px; font-family:monospace; font-weight:700; border:1px solid #fdd835">
-              {{ l.assiette|floatformat:2 }}
+              {{ l.assiette|floatformat:0 }}
             </div>
           </td>
           <td class="text-center font-mono" style="padding:10px 20px">{{ l.taux|floatformat:3 }}</td>
           <td class="text-right font-mono" style="padding:10px 20px; font-weight: 700; font-size: 1rem">
-            {% if l.valeur > 0 %}{{ l.valeur|floatformat:2 }}{% else %}0{% endif %}
+            {% if l.valeur > 0 %}{{ l.valeur|floatformat:0 }}{% else %}0{% endif %}
           </td>
         </tr>
         {% endfor %}
@@ -84,7 +69,7 @@
         <tr style="background:#f3f4f6; font-weight:700">
           <td colspan="4" style="padding:16px 20px">Total des cotisations (€)</td>
           <td class="text-right font-mono" style="padding:16px 200px 16px 16px; font-size:1.1rem" id="total-cotisations-val">
-            {{ total_cotisations|floatformat:2 }}
+            {{ total_cotisations|floatformat:0 }}
           </td>
         </tr>
         <tr style="border-top: 1px solid #d1d5db">
@@ -100,7 +85,7 @@
         <tr style="background:#e5e7eb; border-top: 2px solid #9ca3af">
           <td colspan="4" style="padding:16px 20px; font-size: 1.1rem"><strong>Montant à payer (€)</strong></td>
           <td class="text-right font-mono" style="padding:16px 20px; font-size: 1.3rem; color: #111827">
-            <strong id="payable-val">{{ montant_a_payer|floatformat:2 }}</strong>
+            <strong id="payable-val">{{ montant_a_payer|floatformat:0 }}</strong>
           </td>
         </tr>
       </tfoot>
@@ -131,12 +116,12 @@
 
 {% block extra_js %}
 <script>
-const TOTAL_COTIS = {{ total_cotisations|stringformat:".2f" }};
+const TOTAL_COTIS = {{ total_cotisations|floatformat:0 }};
 
 function updatePayable() {
   const ded = parseFloat(document.getElementById('deduction-input').value) || 0;
-  const payable = TOTAL_COTIS - ded;
-  document.getElementById('payable-val').textContent = payable.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const payable = Math.round(TOTAL_COTIS - ded);
+  document.getElementById('payable-val').textContent = payable.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
