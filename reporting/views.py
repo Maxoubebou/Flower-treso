@@ -264,6 +264,9 @@ def brc_synthese(request):
     })
 
     # Totaux finaux
+    total_nb_jeh = bvs.aggregate(total=Sum('nb_jeh'))['total'] or Decimal('0.00')
+    base_urssaf_unitaire = p_j.base_urssaf  # On prend celle du profil junior (généralement identique)
+    
     total_cotisations = sum(l['valeur'] for l in lignes)
     deduction = to_decimal(request.GET.get('deduction', '0'))
     montant_a_payer = total_cotisations - deduction
@@ -282,6 +285,8 @@ def brc_synthese(request):
         'mois_options': mois_options,
         'effectif_dernier_jour': effectif_dernier_jour,
         'effectif_remunere': effectif_remunere,
+        'total_nb_jeh': total_nb_jeh,
+        'base_urssaf_unitaire': base_urssaf_unitaire,
         'lignes': lignes,
         'total_cotisations': total_cotisations,
         'deduction': deduction,

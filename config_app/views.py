@@ -66,8 +66,13 @@ def cotisation_unified_update(request):
             p_j = ParametreCotisation.objects.get(type_cotisant='junior')
             p_e = ParametreCotisation.objects.get(type_cotisant='etudiant')
             
+            if 'common_base_urssaf' in request.POST:
+                base_val = Decimal(request.POST['common_base_urssaf'].replace(',', '.'))
+                p_j.base_urssaf = base_val
+                p_e.base_urssaf = base_val
+            
             fields = [
-                'base_urssaf', 'assurance_maladie', 'accident_travail',
+                'assurance_maladie', 'accident_travail',
                 'vieillesse_plafonnee', 'vieillesse_deplafonnee',
                 'allocations_familiales', 'csg_deductible', 'csg_non_deductible'
             ]
