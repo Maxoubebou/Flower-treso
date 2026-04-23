@@ -141,14 +141,15 @@
       </div>
 
       <!-- Cotisations dynamiques (Calculées en JS) -->
-      <div class="card" id="cotisations-card">
-        <div class="card-header flex justify-between items-center w-full">
-          <div class="card-title">
-            <i data-lucide="calculator" width="18" height="18" style="color:var(--color-primary)"></i>
-            Cotisations URSSAF
+      <div class="card collapsed" id="cotisations-card">
+        <div class="card-header flex justify-between items-center w-full cursor-pointer" onclick="toggleCotisations()">
+          <div class="flex items-center gap-2">
+            <i data-lucide="chevron-down" id="toggle-symbol" width="18" height="18" style="transition: transform 0.2s;"></i>    
+            <div class="card-title">Cotisations URSSAF</div>
           </div>
-          <div class="card-title text-sm">
-            Assiette : <span id="c-assiette">{{ bv.assiette|floatformat:2 }}</span> €
+          <div class="card-title" style="font-size: .85rem; font-weight: 600;">
+            Total : <span id="c-total-header" class="text-danger">{{ bv.total_global|floatformat:2 }}</span> €
+            <span class="text-muted" style="font-weight: 400; font-size: .75rem; margin-left:8px;">(Assiette : <span id="c-assiette">{{ bv.assiette|floatformat:2 }}</span> €)</span>
           </div>
         </div>
         <div class="card-body" style="padding:0">
@@ -276,6 +277,14 @@ function computeCotisations() {
   totalE += calcField('etudiant', 'csgd', 'c-csgd-e');
   totalE += calcField('etudiant', 'csgnd', 'c-csgnd-e');
   document.getElementById('c-total-e').textContent = totalE.toFixed(2);
+  
+  // Mise à jour du header
+  document.getElementById('c-total-header').textContent = (totalJ + totalE).toFixed(2);
+}
+
+function toggleCotisations() {
+  const card = document.getElementById('cotisations-card');
+  card.classList.toggle('collapsed');
 }
 
 function nb_round(num) {
