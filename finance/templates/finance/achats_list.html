@@ -35,7 +35,7 @@
     <table class="data-table" style="font-size:.8rem">
       <thead>
         <tr>
-          <th style="padding:8px 10px">Référence</th>
+          <th style="padding:8px px">Référence</th>
           <th style="padding:8px 10px">Type d'achat</th>
           <th style="padding:8px 10px">Fournisseur</th>
           <th style="padding:8px 10px">Catégorie</th>
@@ -71,12 +71,13 @@
       <tbody>
         {% for f in factures %}
         <tr>
-          <!-- N° / Type combinés -->
+          <!-- Référence -->
           <td style="padding:7px 10px">
             <span class="font-mono font-bold" style="color:var(--color-primary);font-size:.75rem">{{ f.numero }}</span>
           </td>
 
-          <td class="text-center">
+          <!-- Type d'achat -->
+          <td class="text-center" style="padding: 0px 0px;">
             <select name="type_achat"
                     style="font-size: .7rem; padding: 2px 12px; border-radius: 12px; cursor: pointer; font-weight: 700; appearance: none; -webkit-appearance: none; text-align: center; transition: all 0.2s;
                           border: 1px solid {% if 'frais' in f.type_achat.nom|lower %}#f59e0b{% else %}#06b6d4{% endif %};
