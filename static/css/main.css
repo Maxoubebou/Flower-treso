@@ -1443,6 +1443,14 @@ dialog::backdrop {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* ─── Inline category picker ─────────────────────────────── */
 .cat-picker {
@@ -1451,35 +1459,47 @@ dialog::backdrop {
 }
 .cat-picker-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: 100%;
   left: 0;
   background: #fff;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-  z-index: 500;
-  min-width: 160px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  min-width: 140px;
   padding: 4px;
   display: none;
+  margin-top: 4px;
 }
-.cat-picker-menu.show { display: block; animation: slideDown .1s ease-out; }
+.cat-picker-menu.show { 
+  display: block; 
+  animation: slideDown 0.1s ease-out; 
+}
 .cat-picker-option {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 12px;
+  padding: 6px 10px;
   border-radius: var(--radius-sm);
-  font-size: .82rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background .1s;
+  transition: background 0.1s;
+  color: var(--color-gray-700);
 }
-.cat-picker-option:hover { background: var(--color-gray-50); }
+.cat-picker-option:hover { 
+  background: var(--color-gray-50); 
+  color: var(--color-primary);
+}
 .badge-clickable {
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s;
+  display: inline-flex;
 }
-.badge-clickable:hover { opacity: .8; transform: scale(1.05); }
+.badge-clickable:hover { 
+  opacity: 0.8; 
+  transform: translateY(-1px);
+}
 
 /* ─── Multi-year filter (same as month multi-select) ────── */
 .year-multi-select {
