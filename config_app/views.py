@@ -13,7 +13,8 @@ def settings_index(request):
         'types_facture_vente': TypeFactureVente.objects.all().order_by('ordre'),
         'types_achat': TypeAchat.objects.all().order_by('ordre'),
         'taux_tva': ParametreTVA.objects.all().order_by('ordre', 'taux'),
-        'params_cotisations': ParametreCotisation.objects.all(),
+        'param_j': ParametreCotisation.objects.filter(type_cotisant='junior').first(),
+        'param_e': ParametreCotisation.objects.filter(type_cotisant='etudiant').first(),
         'autofill_rules': AutofillRule.objects.all().order_by('ordre', 'nom'),
     })
 
@@ -54,23 +55,64 @@ def taux_tva_create(request):
 
 # ─── Cotisations URSSAF ──────────────────────────────────────────────────────
 
-def cotisation_update(request, pk):
-    obj = get_object_or_404(ParametreCotisation, pk=pk)
+def cotisation_unified_update(request):
+    """Mise à jour globale des taux URSSAF et recalcul de tous les BV."""
     if request.method == 'POST':
         try:
             from decimal import Decimal
+            from finance.models import BulletinVersement
+            from finance.services import calculate_cotisations_urssaf
+            
+            p_j = ParametreCotisation.objects.get(type_cotisant='junior')
+            p_e = ParametreCotisation.objects.get(type_cotisant='etudiant')
+            
             fields = [
                 'base_urssaf', 'assurance_maladie', 'accident_travail',
                 'vieillesse_plafonnee', 'vieillesse_deplafonnee',
-                'allocations_familiales', 'csg_deductible', 'csg_non_deductible',
+                'allocations_familiales', 'csg_deductible', 'csg_non_deductible'
             ]
+            
             for f in fields:
-                if f in request.POST:
-                    setattr(obj, f, Decimal(request.POST[f]))
-            obj.save()
-            messages.success(request, f"Paramètres cotisations {obj.get_type_cotisant_display()} mis à jour.")
+                # Junior values
+                if f"junior_{f}" in request.POST:
+                    setattr(p_j, f, Decimal(request.POST[f"junior_{f}"].replace(',', '.')))
+                # Etudiant values
+                if f"etudiant_{f}" in request.POST:
+                    setattr(p_e, f, Decimal(request.POST[f"etudiant_{f}"].replace(',', '.')))
+            
+            p_j.save()
+            p_e.save()
+            
+            # Recalculer TOUS les BV existants
+            bvs = BulletinVersement.objects.all()
+            for bv in bvs:
+                cotis = calculate_cotisations_urssaf(bv.nb_jeh)
+                bv.assiette = cotis['assiette']
+                # Junior
+                bv.j_assurance_maladie = cotis['j_maladie']
+                bv.j_accident_travail = cotis['j_at']
+                bv.j_vieillesse_plafonnee = cotis['j_vp']
+                bv.j_vieillesse_deplafonnee = cotis['j_vd']
+                bv.j_allocations_familiales = cotis['j_af']
+                bv.j_csg_deductible = cotis['j_csgd']
+                bv.j_csg_non_deductible = cotis['j_csgnd']
+                bv.total_junior = cotis['total_j']
+                # Etudiant
+                bv.e_assurance_maladie = cotis['e_maladie']
+                bv.e_accident_travail = cotis['e_at']
+                bv.e_vieillesse_plafonnee = cotis['e_vp']
+                bv.e_vieillesse_deplafonnee = cotis['e_vd']
+                bv.e_allocations_familiales = cotis['e_af']
+                bv.e_csg_deductible = cotis['e_csgd']
+                bv.e_csg_non_deductible = cotis['e_csgnd']
+                bv.total_etudiant = cotis['total_e']
+                
+                bv.total_global = cotis['total_global']
+                bv.save()
+                
+            messages.success(request, f"Taux URSSAF mis à jour et {bvs.count()} bulletins synchronisés.")
         except Exception as e:
-            messages.error(request, f"Erreur : {e}")
+            messages.error(request, f"Erreur lors de la mise à jour des taux : {e}")
     return redirect('config:settings_index')
 
 
