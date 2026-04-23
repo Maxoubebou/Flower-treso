@@ -309,7 +309,6 @@ def achat_edit(request, pk):
             try:
                 from datetime import datetime
                 from finance.services import generate_numero_bv, calculate_cotisations_urssaf
-                from config_app.models import ParametreCotisation
 
                 nb_jeh = abs(to_decimal(request.POST.get('nb_jeh', '0')))
                 retrib = abs(to_decimal(request.POST.get('retribution_brute_par_jeh', '0')))

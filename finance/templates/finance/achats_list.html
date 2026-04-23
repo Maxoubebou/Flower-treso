@@ -3,6 +3,41 @@
 {% block page_title %}Factures d'achat{% endblock %}
 
 {% block content %}
+<style>
+  #drive-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-content {
+    position: relative;
+    background: #fff;
+    padding: 24px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+  }
+</style>
+
 
 <div class="stats-grid mb-6" style="grid-template-columns:repeat(3,1fr)">
   <div class="stat-card danger">
@@ -187,10 +222,10 @@
                 <i data-lucide="folder-open" width="14" height="14" style="color:var(--color-success)"></i>
               </a>
               {% else %}
-              <button type="button" class="btn btn-ghost btn-sm" style="padding:4px 6px"
-                      onclick="openDriveModal('achat', '{{ f.id }}')"
-                      title="Ajouter un lien Drive">
-                <i data-lucide="folder-plus" width="14" height="14" style="color:var(--color-gray-400)"></i>
+              <button onclick="openDriveModal('achat', '{{ f.id }}', '{{ f.lien_drive }}')" 
+                class="btn btn-ghost btn-icon {% if f.lien_drive %}text-success{% endif %}" 
+                title="Lien Drive">
+                <i data-lucide="link" width="14" height="14"></i>
               </button>
               {% endif %}
 
@@ -246,23 +281,31 @@
 </datalist>
 
 <!-- ─── Modale Drive ──────────────────────────────────────────────── -->
-<div id="drive-modal-overlay" class="drive-modal-overlay hidden" onclick="if(event.target===this) closeDriveModal()">
-  <div class="drive-modal-box" onclick="event.stopPropagation()">
-    <h3>
-      <i data-lucide="folder-open" width="20" height="20" style="color:var(--color-primary)"></i>
-      Lien de la preuve comptable
-    </h3>
-    <p class="text-sm text-muted" style="margin-bottom:16px">Collez ici l'URL du dossier Google Drive ou du fichier de la facture.</p>
-    <input type="hidden" id="drive-modal-type" value="">
-    <input type="hidden" id="drive-modal-id" value="">
-    <div class="form-group">
-      <label class="form-label">URL Drive</label>
-      <input type="url" id="drive-modal-url" class="form-control" placeholder="https://drive.google.com/...">
+<div id="drive-modal">
+  <div class="modal-backdrop" onclick="closeDriveModal()"></div>
+  
+  <div class="modal-content">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+      <h3 style="margin: 0; font-size: 1.25rem;">Lien Google Drive</h3>
+      <button onclick="closeDriveModal()" style="background: none; border: none; cursor: pointer; color: #9ca3af;">
+        <i data-lucide="x" width="20" height="20"></i>
+      </button>
     </div>
-    <div class="flex gap-3 justify-end" style="margin-top:20px">
-      <button type="button" class="btn btn-outline" onclick="closeDriveModal()">Annuler</button>
-      <button type="button" class="btn btn-primary" onclick="saveDriveLink()">
-        <i data-lucide="save" width="14" height="14"></i> Enregistrer
+    
+    <input type="hidden" id="modal-obj-type">
+    <input type="hidden" id="modal-obj-id">
+    
+    <div style="margin-bottom: 20px;">
+      <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 8px;">URL du document</label>
+      <input type="url" id="modal-drive-url" 
+             placeholder="Collez le lien ici..."
+             style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 0.5rem; outline: none;">
+    </div>
+    
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <button onclick="closeDriveModal()" class="btn btn-gray">Annuler</button>
+      <button onclick="saveDriveLink()" class="btn btn-primary" style="background: var(--color-primary); color: white; padding: 10px 20px; border-radius: 0.5rem; border: none; cursor: pointer;">
+        Enregistrer le lien
       </button>
     </div>
   </div>
@@ -316,25 +359,30 @@ document.addEventListener('click', e => {
 });
 
 // ─── Drive Modal ─────────────────────────────────────────────────────────
-function openDriveModal(type, id) {
-  document.getElementById('drive-modal-type').value = type;
-  document.getElementById('drive-modal-id').value = id;
-  document.getElementById('drive-modal-url').value = '';
-  document.getElementById('drive-modal-overlay').classList.remove('hidden');
-  setTimeout(() => document.getElementById('drive-modal-url').focus(), 100);
+const csrfToken = "{{ csrf_token }}";
+
+function openDriveModal(type, id, currentUrl) {
+  document.getElementById('modal-obj-type').value = type;
+  document.getElementById('modal-obj-id').value = id;
+  // Nettoyer l'URL si elle contient 'None'
+  document.getElementById('modal-drive-url').value = (currentUrl === 'None' || currentUrl === 'None') ? '' : currentUrl;
+  
+  const modal = document.getElementById('drive-modal');
+  modal.style.display = 'flex'; // Affiche la modale et active le centrage flex
+  document.body.style.overflow = 'hidden'; // Bloque le scroll de la page derrière
+  
+  setTimeout(() => document.getElementById('modal-drive-url').focus(), 50);
 }
 
 function closeDriveModal() {
-  document.getElementById('drive-modal-overlay').classList.add('hidden');
+  document.getElementById('drive-modal').style.display = 'none';
+  document.body.style.overflow = ''; // Libère le scroll
 }
 
 function saveDriveLink() {
-  const type = document.getElementById('drive-modal-type').value;
-  const id = document.getElementById('drive-modal-id').value;
-  const url = document.getElementById('drive-modal-url').value.trim();
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
-
-  if (!url) return;
+  const type = document.getElementById('modal-obj-type').value;
+  const id = document.getElementById('modal-obj-id').value;
+  const url = document.getElementById('modal-drive-url').value;
 
   const formData = new FormData();
   formData.append('type', type);
@@ -343,13 +391,14 @@ function saveDriveLink() {
 
   fetch('{% url "finance:set_drive_link" %}', {
     method: 'POST',
-    headers: {'X-CSRFToken': csrfToken},
+    headers: {'X-CSRFToken': '{{ csrf_token }}'},
     body: formData,
   })
-  .then(() => {
-    closeDriveModal();
-    // Recharger la page pour mettre à jour le bouton
-    location.reload();
+  .then(response => {
+    if (response.ok) {
+      closeDriveModal();
+      location.reload();
+    }
   });
 }
 
