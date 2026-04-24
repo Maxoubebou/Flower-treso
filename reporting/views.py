@@ -65,32 +65,29 @@ def dashboard(request):
 
 
 def tva_synthese(request):
-    """Page de synthèse TVA (formulaire CA3)."""
+    """Page de synthèse TVA (formulaire CA3) avec rafraîchissement automatique."""
     from datetime import date
-
     aujourd_hui = date.today()
 
     # Période sélectionnée
     mois_param = request.GET.get('mois') or request.session.get('filtre_mois')
-    # Si c'est une liste (filtre global), on prend le premier élément
     if isinstance(mois_param, list):
-        mois_val = mois_param[0] if mois_param else aujourd_hui.month
+        mois = int(mois_param[0]) if mois_param else aujourd_hui.month
     else:
-        mois_val = mois_param or aujourd_hui.month
+        mois = int(mois_param or aujourd_hui.month)
 
-    mois = int(mois_val)
     annee_param = request.GET.get('annee') or request.session.get('filtre_annee')
     if isinstance(annee_param, list):
-        annee_val = annee_param[0] if annee_param else aujourd_hui.year
+        annee = int(annee_param[0]) if annee_param else aujourd_hui.year
     else:
-        annee_val = annee_param or aujourd_hui.year
-    annee = int(annee_val)    
+        annee = int(annee_param or aujourd_hui.year)
+
     periode = f"{annee}{mois:02d}"
 
-    if 'mois' in request.GET:
-        request.session['filtre_mois'] = [str(mois)]
-    if 'annee' in request.GET:
-        request.session['filtre_annee'] = str(annee)
+
+    # Sauvegarde en session
+    request.session['filtre_mois'] = str(mois)
+    request.session['filtre_annee'] = str(annee)
 
     # Récupérer ou créer la déclaration
     decl, created = DeclarationTVA.objects.get_or_create(
@@ -98,61 +95,68 @@ def tva_synthese(request):
         defaults={'switch_calcul': 'operation'}
     )
 
-    if created:
-        # Initialisation automatique de la ligne 22 (report mois précédent)
-        mois_prec = mois - 1 if mois > 1 else 12
-        annee_prec = annee if mois > 1 else annee - 1
-        periode_prec = f"{annee_prec}{mois_prec:02d}"
-        decl_prec = DeclarationTVA.objects.filter(periode=periode_prec).first()
-        if decl_prec:
-            decl.ligne_22 = decl_prec.ligne_27
-            decl.save()
-            finalise_declaration(decl)
+    # Rafraîchissement automatique si non finalisée
+    if not decl.finalisee:
+        finalise_declaration(decl)
 
     if request.method == 'POST':
         action = request.POST.get('action')
 
-        if action == 'calculer':
-            # Recalculer automatiquement
-            # Note: switch_calcul n'est plus utilisé comme option globale mais le service gère la logique mixte
-            computed = compute_declaration_tva(periode, decl.switch_calcul)
-            for champ, valeur in computed.items():
-                setattr(decl, champ, valeur)
-            # Ligne 22 : report du mois précédent
-            if not decl.ligne_22_modifiee_manuellement:
-                mois_prec = mois - 1 if mois > 1 else 12
-                annee_prec = annee if mois > 1 else annee - 1
-                periode_prec = f"{annee_prec}{mois_prec:02d}"
-                decl_prec = DeclarationTVA.objects.filter(periode=periode_prec).first()
-                decl.ligne_22 = decl_prec.ligne_27 if decl_prec else 0
-
-            finalise_declaration(decl)
-            messages.success(request, "Déclaration TVA recalculée.")
+        if action == 'valider' and not decl.finalisee:
+            decl.lien_declaration = request.POST.get('lien_declaration')
+            decl.lien_accuse_reception = request.POST.get('lien_accuse_reception')
+            decl.lien_ordre_paiement = request.POST.get('lien_ordre_paiement')
+            
+            # Validation sommaire
+            if decl.lien_declaration and decl.lien_accuse_reception:
+                # Ordre de paiement obligatoire si reste à payer (L32 > 0)
+                if decl.ligne_32 > 0 and not decl.lien_ordre_paiement:
+                    messages.error(request, "L'ordre de paiement est obligatoire car vous avez de la TVA à payer.")
+                else:
+                    decl.finalisee = True
+                    decl.date_validation = timezone.now()
+                    decl.save()
+                    messages.success(request, f"La déclaration de {decl.libelle_periode} a été validée et figée.")
+            else:
+                messages.error(request, "Veuillez renseigner au moins la déclaration et l'accusé de réception.")
+            
             return redirect(request.path + f'?mois={mois}&annee={annee}')
 
-        elif action == 'modifier_ligne_22':
-            try:
-                decl.ligne_22 = to_decimal(request.POST.get('ligne_22', '0'))
-                decl.ligne_22_modifiee_manuellement = True
-                decl.save()
-                finalise_declaration(decl)
-                messages.warning(request, "La ligne 22 a été modifiée manuellement.")
-            except Exception as e:
-                messages.error(request, f"Erreur : {e}")
-            return redirect(request.path + f'?mois={mois}&annee={annee}')
+    # Valeurs calculées avec détails pour l'affichage
+    computed_data = compute_declaration_tva(periode, decl.switch_calcul)
 
-    # Valeurs calculées en direct pour l'affichage (sans sauvegarder)
-    computed = compute_declaration_tva(periode, decl.switch_calcul)
+    # Préparation des lignes pour le template (filtrage des zéros)
+    display_lines = []
+    # Ordre des lignes à afficher
+    order = [
+        'ligne_A1', 'ligne_A2', 'ligne_A3', 'ligne_B2', 'ligne_E2',
+        'ligne_16', 'ligne_17', 'ligne_20', 'ligne_21', 'ligne_22', 'ligne_23',
+        'ligne_25', 'ligne_27', 'ligne_28', 'ligne_32'
+    ]
+    
+    for key in order:
+        if key in computed_data:
+            line_data = computed_data[key]
+        else:
+            # Pour les lignes de report/total qui ne sont pas dans compute_declaration_tva
+            val = getattr(decl, key, 0)
+            line_data = {
+                'value': val,
+                'details': [],
+                'logic': "Valeur calculée ou reportée.",
+                'label': decl._meta.get_field(key).help_text
+            }
+            if key == 'ligne_22':
+                line_data['logic'] = "Valeur issue de la précédente déclaration (ou 536€ si Janvier 2026)."
 
-    # Générer la liste des mois disponibles (12 mois glissants)
-    mois_disponibles = []
-    for i in range(12):
-        m = aujourd_hui.month - i
-        a = aujourd_hui.year
-        if m <= 0:
-            m += 12
-            a -= 1
-        mois_disponibles.append({'mois': m, 'annee': a, 'periode': f"{a}{m:02d}"})
+        if line_data['value'] != 0 or key in ['ligne_16', 'ligne_23', 'ligne_32', 'ligne_27']:
+            display_lines.append({
+                'id': key,
+                'label': line_data['label'],
+                'value': line_data['value'],
+                'details': line_data['details'],
+                'logic': line_data['logic']
+            })
 
     MOIS_NOMS = [
         '', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -161,14 +165,15 @@ def tva_synthese(request):
 
     return render(request, 'reporting/tva_synthese.html', {
         'decl': decl,
-        'computed': computed,
+        'display_lines': display_lines,
+        'meta': computed_data.get('meta', {}),
         'mois': mois,
         'annee': annee,
         'periode': periode,
         'mois_nom': MOIS_NOMS[mois],
-        'mois_disponibles': mois_disponibles,
         'mois_noms': MOIS_NOMS,
     })
+
 
 
 def brc_synthese(request):

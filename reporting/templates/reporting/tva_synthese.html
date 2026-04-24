@@ -2,334 +2,495 @@
 {% load static %}
 
 {% block title %}Synthèse TVA {{ mois_nom }} {{ annee }} — Flower-Tréso{% endblock %}
-{% block page_title %}Synthèse TVA — Formulaire CA3{% endblock %}
+{% block page_title %}Synthèse TVA — {{ mois_nom }} {{ annee }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    :root {
+        --tva-primary: #6366f1;
+        --tva-success: #10b981;
+        --tva-danger: #ef4444;
+        --tva-warning: #f59e0b;
+        --tva-bg-accent: #f8fafc;
+    }
+
+    .tva-container {
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tva-line-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        overflow: hidden;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .tva-line-card:hover {
+        border-color: var(--tva-primary);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+    }
+
+    .tva-line-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .tva-line-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .tva-badge-num {
+        background: var(--tva-bg-accent);
+        color: #475569;
+        font-weight: 700;
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        border-radius: 6px;
+        min-width: 32px;
+        text-align: center;
+    }
+
+    .tva-line-label {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+
+    .tva-line-value {
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #0f172a;
+    }
+
+    .tva-line-details {
+        display: none;
+        padding: 0 24px 24px 24px;
+        border-top: 1px solid #f1f5f9;
+        background: #fafafa;
+    }
+
+    .tva-line-card.open .tva-line-details {
+        display: block;
+    }
+
+    .tva-logic-box {
+        background: #eff6ff;
+        border-left: 4px solid #3b82f6;
+        padding: 12px 16px;
+        margin: 16px 0;
+        border-radius: 0 8px 8px 0;
+        font-size: 0.85rem;
+        color: #1e40af;
+    }
+
+    .tva-details-table {
+        width: 100%;
+        font-size: 0.85rem;
+        border-collapse: collapse;
+    }
+
+    .tva-details-table th {
+        text-align: left;
+        padding: 8px;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .tva-details-table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+    }
+
+    .tva-total-section {
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 2px solid #e2e8f0;
+    }
+
+    .tva-final-card {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: white;
+        padding: 24px;
+        border-radius: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .tva-final-label {
+        font-size: 1rem;
+        font-weight: 500;
+        opacity: 0.9;
+    }
+
+    .tva-final-amount {
+        font-size: 2rem;
+        font-weight: 800;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 23, 42, 0.3);
+        backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: white;
+        width: 100%;
+        max-width: 500px;
+        border-radius: 24px;
+        padding: 32px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        position: relative;
+        animation: modalIn 0.3s ease-out;
+    }
+
+    @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #334155;
+        font-size: 0.9rem;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+
+    .form-input:focus {
+        border-color: var(--tva-primary);
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .validation-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-pending { background: #fffbeb; color: #92400e; }
+    .status-finalized { background: #ecfdf5; color: #065f46; }
+
+    .btn-validate {
+        background: var(--tva-primary);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s, background 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-validate:hover {
+        background: #4f46e5;
+        transform: translateY(-2px);
+    }
+
+    .btn-validate:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+        transform: none;
+    }
+</style>
+{% endblock %}
 
 {% block date_filters %}
 {% endblock %}
 
 {% block content %}
 
-<!-- Sélection de la période -->
-<div class="card mb-6">
-  <div class="card-body" style="padding:16px 20px">
-    <div class="flex items-center gap-4" style="flex-wrap:wrap">
-      <div class="flex items-center gap-2">
-        <i data-lucide="calendar-range" width="16" height="16" style="color:var(--color-primary)"></i>
-        <strong>Période :</strong>
-        <span style="font-size:1.05rem;font-weight:700;color:var(--color-primary)">{{ mois_nom }} {{ annee }}</span>
-      </div>
-
-      <!-- Sélecteur de mois/période -->
-      <form method="get" class="flex gap-2 items-center">
-        <select name="mois" class="form-control" style="width:auto" onchange="this.form.submit()">
-          {% for m in mois_noms %}
-            {% if m %}
-          <option value="{{ forloop.counter0 }}" {% if mois == forloop.counter0 %}selected{% endif %}>{{ m }}</option>
+<div class="tva-container">
+    
+    <!-- Période et Statut -->
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-4">
+            <form method="get" class="flex gap-2 items-center">
+                <select name="mois" class="form-control" style="width:auto; border-radius:12px;" onchange="this.form.submit()">
+                    {% for m in mois_noms %}
+                        {% if m %}
+                        <option value="{{ forloop.counter0 }}" {% if mois == forloop.counter0 %}selected{% endif %}>{{ m }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+                <select name="annee" class="form-control" style="width:auto; border-radius:12px;" onchange="this.form.submit()">
+                    <option value="2025" {% if annee == 2025 %}selected{% endif %}>2025</option>
+                    <option value="2026" {% if annee == 2026 %}selected{% endif %}>2026</option>
+                </select>
+            </form>
+            
+            {% if decl.finalisee %}
+            <div class="validation-status status-finalized">
+                <i data-lucide="check-circle" width="16" height="16"></i>
+                Déclaration validée le {{ decl.date_validation|date:"d/m/Y H:i" }}
+            </div>
+            {% else %}
+            <div class="validation-status status-pending">
+                <i data-lucide="clock" width="16" height="16"></i>
+                Déclaration en cours
+            </div>
             {% endif %}
-          {% endfor %}
-        </select>
-        <select name="annee" class="form-control" style="width:auto" onchange="this.form.submit()">
-          <option value="2025" {% if annee == 2025 %}selected{% endif %}>2025</option>
-          <option value="2026" {% if annee == 2026 %}selected{% endif %}>2026</option>
-        </select>
-      </form>
+        </div>
 
-      <span class="text-xs text-muted" style="margin-left: 10px;">
-        <i data-lucide="info" width="12" height="12" style="display:inline; vertical-align:middle; margin-right:4px;"></i>
-        Calcul mixte : Ventes (Opération) / Achats (Facture)
-      </span>
-
-      <!-- Calculer bouton -->
-      <form method="post" style="margin-left:auto">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="calculer">
-        <button type="submit" class="btn btn-primary">
-          <i data-lucide="refresh-cw" width="15" height="15"></i>
-          Recalculer pour {{ mois_nom }}
+        {% if not decl.finalisee %}
+        <button onclick="openValidationModal()" class="btn-validate">
+            <i data-lucide="shield-check" width="18" height="18"></i>
+            Valider la déclaration
         </button>
-      </form>
-
-      <!-- Statut -->
-      <span class="badge {% if decl.finalisee %}badge-success{% else %}badge-warning{% endif %}">
-        {% if decl.finalisee %}
-        <i data-lucide="check" width="11" height="11"></i> Finalisée
         {% else %}
-        <i data-lucide="clock" width="11" height="11"></i> En cours
+        <div class="flex gap-2">
+            {% if decl.lien_declaration %}<a href="{{ decl.lien_declaration }}" target="_blank" class="btn btn-sm btn-outline"><i data-lucide="file-text" width="14" height="14"></i> Décl.</a>{% endif %}
+            {% if decl.lien_accuse_reception %}<a href="{{ decl.lien_accuse_reception }}" target="_blank" class="btn btn-sm btn-outline"><i data-lucide="mail" width="14" height="14"></i> Accusé</a>{% endif %}
+            {% if decl.lien_ordre_paiement %}<a href="{{ decl.lien_ordre_paiement }}" target="_blank" class="btn btn-sm btn-outline"><i data-lucide="credit-card" width="14" height="14"></i> Paiement</a>{% endif %}
+        </div>
         {% endif %}
-      </span>
     </div>
-  </div>
-</div>
 
-{% if computed.achats_manquants_count > 0 %}
-<div style="background:#fff5f5; padding: 16px 20px; border: 1px solid #feb2b2; border-radius: var(--radius-lg); margin-bottom: 24px; display:flex; align-items:flex-start; gap:16px;">
-  <i data-lucide="alert-octagon" width="24" height="24" style="color:var(--color-danger); margin-top:2px;"></i>
-  <div style="flex:1">
-    <h4 style="color:#c53030; margin:0 0 8px 0; font-size:1rem; font-weight:700;">Attention : TVA déductible manquante !</h4>
-    <p style="color:#9b2c2c; font-size:0.9rem; margin:0 0 12px 0;">
-      <strong>{{ computed.achats_manquants_count }}</strong> achat{{ computed.achats_manquants_count|pluralize }} réalisé{{ computed.achats_manquants_count|pluralize }} ce mois-ci ne possède{{ computed.achats_manquants_count|pluralize:"nt," }} pas encore de <strong>date de facture</strong>. 
-      Leur TVA n'est donc <strong>pas incluse</strong> dans cette synthèse. Vous risquez de rater une déduction.
-    </p>
-    <div class="flex flex-col gap-2">
-      {% for a in computed.achats_manquants_details %}
-      <div class="flex items-center justify-between p-2" style="background:rgba(255,255,255,0.5); border-radius:8px; border:1px solid #fed7d7;">
-        <div style="font-size:0.85rem; color:#822727; display: flex; align-items: center; gap: 10px; padding-left: 12px;">
-          <i data-lucide="shopping-cart" width="13" height="13" style="flex-shrink:0;"></i>
-          <span><strong>{{ a.nom }}</strong> — {{ a.date|date:"d/m/Y" }} — <strong>{{ a.valeur|floatformat:2 }} € TTC</strong></span>
+    {% if meta.achats_manquants_count > 0 and not decl.finalisee %}
+    <div style="background:#fff1f2; border:1px solid #fecdd3; border-radius:16px; padding:16px 24px; margin-bottom:12px; display:flex; gap:16px; align-items:flex-start;">
+        <i data-lucide="alert-circle" style="color:var(--tva-danger); flex-shrink:0; margin-top:2px;"></i>
+        <div>
+            <h4 style="margin:0 0 4px 0; color:#9f1239;">Attention : {{ meta.achats_manquants_count }} achat{{ meta.achats_manquants_count|pluralize }} sans date de facture</h4>
+            <p style="margin:0; font-size:0.85rem; color:#be123c;">Leurs montants de TVA ne sont pas inclus dans cette synthèse car ils ne sont pas encore déductibles.</p>
         </div>
-        <a href="{% url 'finance:achat_edit' a.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:0.75rem; border-color:#fc8181; color:#c53030">
-          <i data-lucide="edit-2" width="12" height="12"></i> Éditer
-        </a>
-      </div>
-      {% endfor %}
     </div>
-  </div>
+    {% endif %}
+
+    <!-- Liste des lignes -->
+    {% for line in display_lines %}
+    <div class="tva-line-card" id="card-{{ line.id }}">
+        <div class="tva-line-header" onclick="toggleDetails('{{ line.id }}')">
+            <div class="tva-line-title">
+                <span class="tva-badge-num">{{ line.id|slice:"6:" }}</span>
+                <span class="tva-line-label">{{ line.label }}</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="tva-line-value">{{ line.value|floatformat:2 }} €</span>
+                <i data-lucide="chevron-down" width="18" height="18" style="color:#94a3b8; transition: transform 0.2s;"></i>
+            </div>
+        </div>
+        
+        <div class="tva-line-details">
+            <div class="tva-logic-box">
+                <i data-lucide="info" width="14" height="14" style="display:inline; vertical-align:middle; margin-right:4px;"></i>
+                {{ line.logic }}
+            </div>
+
+            {% if line.id == 'ligne_22' %}
+                <p style="color:#475569; font-size:0.9rem; margin-left:8px;">
+                    Cette ligne correspond au report de crédit du mois précédent. 
+                    En Janvier 2026, elle est fixée contractuellement à <strong>536.00 €</strong>.
+                </p>
+            {% elif line.details %}
+                <table class="tva-details-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Tiers / Fournisseur</th>
+                            <th>Libellé</th>
+                            <th class="text-right">HT (€)</th>
+                            <th class="text-right">TVA (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in line.details %}
+                        <tr>
+                            <td>{{ item.date|date:"d/m/y" }}</td>
+                            <td><span style="font-weight:600;">{{ item.tiers|truncatechars:20 }}</span></td>
+                            <td>{{ item.libelle|truncatechars:30 }}</td>
+                            <td class="text-right font-mono">{{ item.ht|floatformat:2 }}</td>
+                            <td class="text-right font-mono" style="color:var(--tva-primary)">{{ item.tva|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:#f8fafc; font-weight:700;">
+                            <td colspan="3" style="text-align:right; padding:10px;">TOTAL</td>
+                            <td class="text-right font-mono" style="padding:10px;">
+                                {% if 'HT' in line.label or 'ligne_A' in line.id or 'ligne_B' in line.id or 'ligne_E' in line.id %}
+                                    {{ line.value|floatformat:2 }}
+                                {% endif %}
+                            </td>
+                            <td class="text-right font-mono" style="padding:10px; color:var(--tva-primary)">
+                                {% if 'TVA' in line.label or 'ligne_16' in line.id or 'ligne_20' in line.id %}
+                                    {{ line.value|floatformat:2 }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            {% else %}
+                <p style="color:#94a3b8; font-style:italic; font-size:0.85rem; padding-left:8px;">Aucune opération enregistrée pour cette ligne.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if line.id == 'ligne_E2' or line.id == 'ligne_17' or line.id == 'ligne_23' %}
+    <div style="margin: 8px 0;"></div>
+    {% endif %}
+
+    {% endfor %}
+
+    <!-- Carte Finale -->
+    <div class="tva-final-card">
+        <div>
+            <div class="tva-final-label">
+                {% if decl.ligne_32 > 0 %}Total à payer{% else %}Crédit à reporter (Ligne 27){% endif %}
+            </div>
+            <div style="font-size:0.85rem; opacity:0.7;">Période de {{ mois_nom }} {{ annee }}</div>
+        </div>
+        <div class="tva-final-amount">
+            {% if decl.ligne_32 > 0 %}
+                {{ decl.ligne_32|floatformat:2 }} €
+            {% else %}
+                {{ decl.ligne_27|floatformat:2 }} €
+            {% endif %}
+        </div>
+    </div>
+
 </div>
-{% endif %}
 
-<div class="grid-2">
+<!-- Modale de Validation -->
+<div class="modal-overlay" id="validation-modal" onclick="closeValidationModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h2 style="margin-top:0; font-size:1.5rem; display:flex; align-items:center; gap:12px;">
+            <i data-lucide="shield-check" style="color:var(--tva-primary)"></i>
+            Valider la déclaration
+        </h2>
+        <p style="color:#64748b; font-size:0.9rem; margin-bottom:24px;">
+            Une fois validée, la déclaration sera <strong>figée</strong> et ne pourra plus être modifiée. 
+            Veuillez fournir les liens vers les documents officiels.
+        </p>
 
-<!-- ─── Colonne gauche : Section A ───────────────────────────────────────── -->
-<div class="flex flex-col gap-4">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="valider">
+            
+            <div class="form-group">
+                <label class="form-label">Lien Déclaration de TVA (indispensable)</label>
+                <input type="url" name="lien_declaration" class="form-input" placeholder="https://..." required>
+            </div>
 
-  <!-- Section A : Opérations -->
-  <div style="border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)">
-    <div class="tva-section-header">
-      <i data-lucide="file-text" width="17" height="17"></i>
-      A — Montant des opérations réalisées
-    </div>
-    <div style="background:#fff;border:1px solid var(--color-gray-200);border-top:none">
-      <div style="padding:8px 16px;background:var(--color-gray-50);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-gray-500);border-bottom:1px solid var(--color-gray-200)">
-        Opérations imposables (base HT)
-      </div>
-      <table class="tva-table">
-        {% include "reporting/partials/tva_row.html" with num="A1" label="Ventes et prestations de services" value=computed.ligne_A1 tooltip="Somme HT de toutes les factures de vente imposables (hors cotisations et extracom) sur la période." %}
-        {% include "reporting/partials/tva_row.html" with num="A2" label="Autres opérations imposables" value=computed.ligne_A2 tooltip="Opérations imposables diverses — non calculé automatiquement." %}
-        {% include "reporting/partials/tva_row.html" with num="A3" label="Importations" value=computed.ligne_A3 tooltip="Importations depuis des pays hors UE." %}
-        {% include "reporting/partials/tva_row.html" with num="A4" label="Sorties de régime suspensif" value=computed.ligne_A4 tooltip="Sorties de régime de suspension de TVA." %}
-        {% include "reporting/partials/tva_row.html" with num="A5" label="Autres opérations" value=computed.ligne_A5 tooltip="Autres opérations imposables non classées." %}
-      </table>
+            <div class="form-group">
+                <label class="form-label">Lien Accusé de Réception (indispensable)</label>
+                <input type="url" name="lien_accuse_reception" class="form-input" placeholder="https://..." required>
+            </div>
 
-      <div style="padding:8px 16px;background:var(--color-gray-50);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-gray-500);border-bottom:1px solid var(--color-gray-200);border-top:1px solid var(--color-gray-200)">
-        Opérations diverses
-      </div>
-      <table class="tva-table">
-        {% include "reporting/partials/tva_row.html" with num="B1" label="Livraisons intracommunautaires" value=computed.ligne_B1 tooltip="Livraisons de biens vers d'autres États membres de l'UE." %}
-        {% include "reporting/partials/tva_row.html" with num="B2" label="Acquisitions intracommunautaires" value=computed.ligne_B2 tooltip="Somme HT des achats de biens auprès de fournisseurs UE (pays TVA = Intracom)." %}
-        {% include "reporting/partials/tva_row.html" with num="B3" label="Autres opérations non imposables" value=computed.ligne_B3 tooltip="Autres opérations non soumises à la TVA." %}
-        {% include "reporting/partials/tva_row.html" with num="B4" label="Livraisons à distance" value=computed.ligne_B4 tooltip="Ventes à distance à des particuliers UE." %}
-        {% include "reporting/partials/tva_row.html" with num="B5" label="Autres opérations nouvelles" value=computed.ligne_B5 tooltip="Autres catégories particulières." %}
-      </table>
-
-      <div style="padding:8px 16px;background:var(--color-gray-50);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-gray-500);border-bottom:1px solid var(--color-gray-200);border-top:1px solid var(--color-gray-200)">
-        Opérations non imposables
-      </div>
-      <table class="tva-table">
-        {% include "reporting/partials/tva_row.html" with num="E1" label="Exportations hors UE" value=computed.ligne_E1 tooltip="Ventes à des clients hors Union Européenne — exonérées de TVA." %}
-        {% include "reporting/partials/tva_row.html" with num="E2" label="Autres opérations non imposables" value=computed.ligne_E2 tooltip="Cotisations et autres opérations hors champ TVA (type facture = Cotisation)." %}
-      </table>
-    </div>
-  </div>
-
-</div>
-
-<!-- ─── Colonne droite : Section B ───────────────────────────────────────── -->
-<div class="flex flex-col gap-4">
-
-  <!-- TVA brute -->
-  <div style="border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)">
-    <div class="tva-section-header" style="background:linear-gradient(90deg,var(--color-danger),#b91c1c)">
-      <i data-lucide="calculator" width="17" height="17"></i>
-      B — Décompte de la TVA à payer
-    </div>
-    <div style="background:#fff;border:1px solid var(--color-gray-200);border-top:none">
-      <div style="padding:8px 16px;background:var(--color-gray-50);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-gray-500);border-bottom:1px solid var(--color-gray-200)">
-        TVA brute (à payer)
-      </div>
-      <table class="tva-table">
-        <thead>
-          <tr style="background:var(--color-gray-100)">
-            <td class="line-num" style="padding:8px 16px;font-size:.7rem;color:var(--color-gray-500)">Ligne</td>
-            <td style="padding:8px 16px;font-size:.7rem;color:var(--color-gray-500)">Description</td>
-            <td class="text-right" style="padding:8px 16px;font-size:.7rem;color:var(--color-gray-500)">Base HT (€)</td>
-            <td class="text-right" style="padding:8px 16px;font-size:.7rem;color:var(--color-gray-500)">Taxe due (€)</td>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="line-num" style="position:relative">08
-              <div class="tva-tooltip">Taux normal 20% — Somme HT de toutes les opérations imposables au taux normal.</div>
-            </td>
-            <td>Taux normal — 20%</td>
-            <td class="text-right font-mono">{{ computed.ligne_08_base|floatformat:2 }}</td>
-            <td class="text-right font-mono font-bold text-danger">{{ computed.ligne_08_taxe|floatformat:2 }}</td>
-          </tr>
-          <tr>
-            <td class="line-num" style="position:relative">09
-              <div class="tva-tooltip">Taux réduit 10% — Restauration, travaux de rénovation...</div>
-            </td>
-            <td>Taux réduit — 10%</td>
-            <td class="text-right font-mono">{{ computed.ligne_09_base|floatformat:2 }}</td>
-            <td class="text-right font-mono">{{ computed.ligne_09_taxe|floatformat:2 }}</td>
-          </tr>
-          <tr>
-            <td class="line-num" style="position:relative">09b
-              <div class="tva-tooltip">Taux super réduit 5,5% — Produits alimentaires, livres...</div>
-            </td>
-            <td>Taux réduit — 5,5%</td>
-            <td class="text-right font-mono">{{ computed.ligne_09b_base|floatformat:2 }}</td>
-            <td class="text-right font-mono">{{ computed.ligne_09b_taxe|floatformat:2 }}</td>
-          </tr>
-          <tr class="total-row">
-            <td class="line-num">16</td>
-            <td><strong>Total TVA brute due</strong></td>
-            <td></td>
-            <td class="text-right font-mono"><strong>{{ decl.ligne_16|floatformat:2 }}</strong></td>
-          </tr>
-          <tr>
-            <td class="line-num" style="position:relative">17
-              <div class="tva-tooltip">TVA sur acquisitions intracommunautaires = B2 × 20%. Correspond à l'autoliquidation de la TVA sur les achats UE.</div>
-            </td>
-            <td>Dont TVA sur acquisitions intracom</td>
-            <td></td>
-            <td class="text-right font-mono text-muted">{{ decl.ligne_17|floatformat:2 }}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- TVA déductible -->
-      <div style="padding:8px 16px;background:var(--color-gray-50);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-gray-500);border-bottom:1px solid var(--color-gray-200);border-top:1px solid var(--color-gray-200)">
-        TVA déductible
-      </div>
-      <table class="tva-table">
-        <tbody>
-          <tr>
-            <td class="line-num" style="position:relative">20
-              <div class="tva-tooltip">Autres biens et services — Somme de la TVA de toutes les factures d'achat de la période.</div>
-            </td>
-            <td>Autres biens et services</td>
-            <td class="text-right font-mono text-success"><strong>{{ computed.ligne_20|floatformat:2 }}</strong></td>
-          </tr>
-          <tr>
-            <td class="line-num" style="position:relative">21
-              <div class="tva-tooltip">Autre TVA à déduire — TVA non incluse dans la ligne 20 (régularisations...).</div>
-            </td>
-            <td>Autre TVA à déduire</td>
-            <td class="text-right font-mono">{{ decl.ligne_21|floatformat:2 }}</td>
-          </tr>
-
-          <!-- Ligne 22 : saisie manuelle possible -->
-          <tr {% if decl.ligne_22_modifiee_manuellement %}style="background:#fffbeb"{% endif %}>
-            <td class="line-num" style="position:relative">22
-              <div class="tva-tooltip">Report de crédit — Valeur de la ligne 27 de la déclaration du mois précédent. Modifiable manuellement si nécessaire.</div>
-            </td>
-            <td>
-              <div class="flex items-center gap-2">
-                Report du crédit (ligne 27 mois précédent)
-                {% if decl.ligne_22_modifiee_manuellement %}
-                <span class="badge badge-warning" style="font-size:.65rem">Modifiée manuellement</span>
+            <div class="form-group">
+                <label class="form-label">
+                    Lien Ordre de Paiement 
+                    {% if decl.ligne_32 > 0 %}<span style="color:var(--tva-danger)">*</span>{% else %}(Optionnel){% endif %}
+                </label>
+                <input type="url" name="lien_ordre_paiement" class="form-input" placeholder="https://..." {% if decl.ligne_32 > 0 %}required{% endif %}>
+                {% if decl.ligne_32 == 0 %}
+                <small style="color:#64748b; font-size:0.75rem;">Optionnel car vous êtes en crédit de TVA.</small>
                 {% endif %}
-              </div>
-            </td>
-            <td class="text-right">
-              <form method="post" class="flex items-center gap-2 justify-end" style="display:inline-flex">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="modifier_ligne_22">
-                <input type="number" step="0.01" name="ligne_22"
-                       value="{{ decl.ligne_22|stringformat:'.2f' }}"
-                       class="form-control font-mono text-right"
-                       style="width:120px;padding:5px 9px">
-                <button type="submit" class="btn btn-outline btn-sm" title="Valider">
-                  <i data-lucide="check" width="12" height="12"></i>
-                </button>
-              </form>
-            </td>
-          </tr>
+            </div>
 
-          <tr class="total-row">
-            <td class="line-num">23</td>
-            <td><strong>Total TVA déductible</strong></td>
-            <td class="text-right font-mono"><strong>{{ decl.ligne_23|floatformat:2 }}</strong></td>
-          </tr>
-        </tbody>
-      </table>
+            <div style="background:#f8fafc; border-radius:12px; padding:16px; margin-bottom:24px; color:#475569; font-size:0.85rem;">
+                <i data-lucide="alert-triangle" width="14" height="14" style="display:inline; vertical-align:middle; margin-right:4px;"></i>
+                L'enregistrement figera les données pour le mois de {{ mois_nom }} {{ annee }}.
+            </div>
 
-      <!-- Résultat -->
-      <div style="padding:8px 16px;background:var(--color-gray-50);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-gray-500);border-bottom:1px solid var(--color-gray-200);border-top:1px solid var(--color-gray-200)">
-        Crédits ou taxe à payer
-      </div>
-      <table class="tva-table">
-        <tbody>
-          {% if decl.ligne_25 > 0 %}
-          <tr class="credit-row">
-            <td class="line-num" style="position:relative">25
-              <div class="tva-tooltip">Crédit de TVA = Ligne 23 − Ligne 16. Si positif, vous avez plus de TVA déductible que de TVA collectée.</div>
-            </td>
-            <td><strong>Crédit de TVA (23 − 16)</strong></td>
-            <td class="text-right font-mono"><strong>{{ decl.ligne_25|floatformat:2 }} €</strong></td>
-          </tr>
-          <tr class="credit-row">
-            <td class="line-num">27</td>
-            <td>Crédit à reporter au mois suivant</td>
-            <td class="text-right font-mono"><strong>{{ decl.ligne_27|floatformat:2 }} €</strong></td>
-          </tr>
-          {% else %}
-          <tr>
-            <td class="line-num" style="position:relative">25
-              <div class="tva-tooltip">Crédit de TVA — 0 si vous devez payer de la TVA ce mois-ci.</div>
-            </td>
-            <td>Crédit de TVA</td>
-            <td class="text-right font-mono text-muted">0.00</td>
-          </tr>
-          <tr class="amount-due">
-            <td class="line-num">28</td>
-            <td><strong>TVA nette due (16 − 23)</strong></td>
-            <td class="text-right font-mono"><strong>{{ decl.ligne_28|floatformat:2 }} €</strong></td>
-          </tr>
-          <tr class="amount-due">
-            <td class="line-num">32</td>
-            <td><strong>Total à payer</strong></td>
-            <td class="text-right font-mono" style="font-size:1.1rem"><strong>{{ decl.ligne_32|floatformat:2 }} €</strong></td>
-          </tr>
-          {% endif %}
-        </tbody>
-      </table>
-
+            <div class="flex justify-end gap-3">
+                <button type="button" class="btn btn-ghost" onclick="closeValidationModal()">Annuler</button>
+                <button type="submit" class="btn-validate">Confirmer et Enregistrer</button>
+            </div>
+        </form>
     </div>
-  </div>
-
-  <!-- Résumé visuel -->
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">
-        <i data-lucide="bar-chart-2" width="18" height="18" style="color:var(--color-primary)"></i>
-        Résumé de la période
-      </div>
-    </div>
-    <div class="card-body">
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <div class="flex justify-between items-center">
-          <span class="text-muted text-sm">TVA collectée (brute)</span>
-          <span class="font-bold font-mono text-danger">{{ decl.ligne_16|floatformat:2 }} €</span>
-        </div>
-        <div class="flex justify-between items-center">
-          <span class="text-muted text-sm">TVA déductible</span>
-          <span class="font-bold font-mono text-success">{{ decl.ligne_23|floatformat:2 }} €</span>
-        </div>
-        <div class="divider" style="margin:0"></div>
-        <div class="flex justify-between items-center">
-          <span class="font-semibold">
-            {% if decl.ligne_28 > 0 %}TVA à payer{% else %}Crédit de TVA{% endif %}
-          </span>
-          <span class="font-bold font-mono" style="font-size:1.3rem;color:{% if decl.ligne_28 > 0 %}var(--color-danger){% else %}var(--color-success){% endif %}">
-            {% if decl.ligne_28 > 0 %}{{ decl.ligne_32|floatformat:2 }} €{% else %}{{ decl.ligne_27|floatformat:2 }} €{% endif %}
-          </span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleDetails(id) {
+        const card = document.getElementById('card-' + id);
+        const icon = card.querySelector('.tva-line-header i');
+        
+        // Fermer les autres (optionnel, mais plus propre)
+        document.querySelectorAll('.tva-line-card').forEach(c => {
+            if (c.id !== 'card-' + id) {
+                c.classList.remove('open');
+                const otherIcon = c.querySelector('.tva-line-header i');
+                if (otherIcon) otherIcon.style.transform = 'rotate(0deg)';
+            }
+        });
+
+        card.classList.toggle('open');
+        if (card.classList.contains('open')) {
+            icon.style.transform = 'rotate(180deg)';
+        } else {
+            icon.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function openValidationModal() {
+        document.getElementById('validation-modal').classList.add('active');
+    }
+
+    function closeValidationModal(e) {
+        if (!e || e.target === document.getElementById('validation-modal')) {
+            document.getElementById('validation-modal').classList.remove('active');
+        }
+    }
+</script>
 {% endblock %}
