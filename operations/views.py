@@ -48,7 +48,7 @@ def process_operation(request, operation_id):
     operation = get_object_or_404(Operation, pk=operation_id)
 
     from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, AutofillRule
-    from finance.models import Etude, FactureVente, FactureAchat
+    from finance.models import Etude, FactureVente, FactureAchat, BulletinVersement
 
     # === Évaluation dynamique des règles d'autocomplétion ===
     text_to_search = f"{operation.libelle} {operation.info_complementaire}".lower()
@@ -140,6 +140,16 @@ def process_operation(request, operation_id):
 
         elif action == 'achat':
             return _process_achat(request, operation)
+
+    # Récupérer les BV non liés pour l'affichage de la liaison
+    unlinked_bvs = BulletinVersement.objects.filter(operation__isnull=True).select_related('etude')
+    
+    # Marquer les BV qui matchent le montant
+    target_amount = abs(operation.debit)
+    for bv in unlinked_bvs:
+        bv.matches_amount = (bv.net_a_payer == target_amount)
+
+    context['unlinked_bvs'] = sorted(unlinked_bvs, key=lambda x: not x.matches_amount)
 
     return render(request, 'operations/process_operation.html', context)
 
@@ -233,87 +243,38 @@ def _process_vente(request, operation):
 
 
 def _process_bv(request, operation):
-    """Traite une opération débit en Bulletin de Versement."""
-    from finance.models import BulletinVersement, Etude
-    from finance.services import generate_numero_bv, calculate_cotisations_urssaf
-    from config_app.models import ParametreCotisation
-    from decimal import Decimal
-    from datetime import datetime
-
+    """Lie une opération de débit à un Bulletin de Versement existant."""
+    from finance.models import BulletinVersement
+    
     try:
-        nb_jeh = abs(to_decimal(request.POST.get('nb_jeh', '0')))
-        retrib = abs(to_decimal(request.POST.get('retribution_brute_par_jeh', '0')))
-
-        cotis = calculate_cotisations_urssaf(nb_jeh)
-
-        numero_propose = request.POST.get('numero') or generate_numero_bv(operation.date_operation.year)
-
-        if BulletinVersement.objects.filter(numero=numero_propose).exists():
-            messages.error(request, f"Le numéro BV {numero_propose} existe déjà.")
+        bv_pk = request.POST.get('bv_id')
+        if not bv_pk:
+            messages.error(request, "Veuillez sélectionner un bulletin de versement.")
+            return redirect('operations:process_operation', operation_id=operation.pk)
+            
+        bv = get_object_or_404(BulletinVersement, pk=bv_pk)
+        target_amount = abs(operation.debit)
+        
+        # Vérification stricte du montant
+        if bv.net_a_payer != target_amount:
+            messages.error(request, f"Erreur : le montant du BV ({bv.net_a_payer} €) ne correspond pas au montant de l'opération ({target_amount} €).")
             return redirect('operations:process_operation', operation_id=operation.pk)
 
-        date_emission_raw = request.POST.get('date_emission', '')
-        date_emission = datetime.strptime(date_emission_raw, '%Y-%m-%d').date() if date_emission_raw else None
-
-        etude_pk = request.POST.get('etude')
-
-        bv = BulletinVersement.objects.create(
-            operation=operation,
-            numero=numero_propose,
-            etude=Etude.objects.get(pk=etude_pk) if etude_pk else None,
-            date_operation=operation.date_operation,
-            date_emission=date_emission,
-            reference_virement=request.POST.get('reference_virement', operation.reference),
-            
-            # Informations Personnelles et Mission
-            intervenant_nom=request.POST.get('intervenant_nom', ''),
-            intervenant_prenom=request.POST.get('intervenant_prenom', ''),
-            adresse=request.POST.get('adresse', ''),
-            code_postal=request.POST.get('code_postal', ''),
-            ville=request.POST.get('ville', ''),
-            num_secu=request.POST.get('num_secu', ''), # Donnée fournie par le formulaire
-            nom_mission=request.POST.get('nom_mission', ''),
-            ref_rm=request.POST.get('ref_rm', ''),
-            ref_avrm=request.POST.get('ref_avrm', ''),
-            
-            # Chiffres de base
-            nb_jeh=nb_jeh,
-            retribution_brute_par_jeh=retrib,
-            assiette=cotis['assiette'],
-
-            # Remplissage Part Junior (JE)
-            j_assurance_maladie=cotis['j_maladie'],
-            j_accident_travail=cotis['j_at'],
-            j_vieillesse_plafonnee=cotis['j_vp'],
-            j_vieillesse_deplafonnee=cotis['j_vd'],
-            j_allocations_familiales=cotis['j_af'],
-            j_csg_deductible=cotis['j_csgd'],
-            j_csg_non_deductible=cotis['j_csgnd'],
-            total_junior=cotis['total_j'],
-
-            # Remplissage Part Étudiant (Intervenant)
-            e_assurance_maladie=cotis['e_maladie'],
-            e_accident_travail=cotis['e_at'],
-            e_vieillesse_plafonnee=cotis['e_vp'],
-            e_vieillesse_deplafonnee=cotis['e_vd'],
-            e_allocations_familiales=cotis['e_af'],
-            e_csg_deductible=cotis['e_csgd'],
-            e_csg_non_deductible=cotis['e_csgnd'],
-            total_etudiant=cotis['total_e'],
-
-            total_global=cotis['total_global']
-        )
+        # Liaison
+        bv.operation = operation
+        bv.commentaire = request.POST.get('commentaire', bv.commentaire)
+        bv.save()
 
         operation.statut = 'processed'
         operation.save()
-        messages.success(request, f"Bulletin de versement {bv.numero} créé avec succès.")
         
-        # Choix de redirection
+        messages.success(request, f"Bulletin de versement {bv.numero} lié avec succès.")
+        
         to_next = 'save_next' in request.POST
         return _redirect_next(operation, to_next=to_next)
 
     except Exception as e:
-        messages.error(request, f"Erreur lors de la création du BV : {e}")
+        messages.error(request, f"Erreur lors de la liaison du BV : {e}")
         return redirect('operations:process_operation', operation_id=operation.pk)
 
 

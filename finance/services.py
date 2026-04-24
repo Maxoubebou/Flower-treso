@@ -86,19 +86,23 @@ def generate_numero_facture_achat(type_achat, annee: int, mois: int) -> str:
 def generate_numero_bv(annee: int) -> str:
     """
     Génère le numéro de BV.
-    Format : BV_[AAAA]-[NNN], incrémental sur l'année.
+    Format : BV_YY-NN (ex: BV_26-01), incrémental sur l'année.
     Unicité garantie.
     """
     from .models import BulletinVersement
 
-    # Trouver le plus grand index existant de l'année
+    aa = str(annee)[-2:]
+    prefix = f"BV_{aa}-"
+
+    # Trouver le plus grand index existant pour ce préfixe
     existing = BulletinVersement.objects.filter(
-        numero__startswith=f"BV_{annee}-"
+        numero__startswith=prefix
     ).order_by('-numero')
 
     if existing.exists():
         last_num = existing.first().numero
         try:
+            # Extraction du nombre après le tiret
             last_idx = int(last_num.split('-')[-1])
         except (ValueError, IndexError):
             last_idx = 0
@@ -106,7 +110,7 @@ def generate_numero_bv(annee: int) -> str:
     else:
         new_idx = 1
 
-    return f"BV_{annee}-{new_idx:03d}"
+    return f"{prefix}{new_idx:02d}"
 
 
 # ─── Calculs TVA ─────────────────────────────────────────────────────────────

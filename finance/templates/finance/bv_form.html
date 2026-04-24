@@ -82,7 +82,14 @@
             </div>
             <div class="form-group">
               <label class="form-label">Nombre de JEH <span class="required">*</span></label>
-              <input type="number" step="0.5" name="nb_jeh" class="form-control font-mono" value="{{ bv.nb_jeh }}" required min="0" oninput="computeCotisations()">
+              <input type="number" 
+                     step="1" 
+                     name="nb_jeh" 
+                     class="form-control font-mono" 
+                     value="{{ bv.nb_jeh|floatformat:0 }}" 
+                     required min="0" 
+                     oninput="computeCotisations()"
+                     onkeydown="return event.key !== '.' && event.key !== ',' && event.key !== 'e' && event.key !== 'E';">
             </div>
           </div>
         </div>

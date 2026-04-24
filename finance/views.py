@@ -1098,6 +1098,7 @@ def bv_generation(request):
                 total_etudiant=res['total_e'],
                 
                 total_global=res['total_global'],
+                etude=Etude.objects.filter(reference=request.POST.get('etude_ref')).first(),
                 commentaire=request.POST.get('commentaire', '')
             )
             
