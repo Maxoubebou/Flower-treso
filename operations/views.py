@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
+from django.db.models import Q
 from .models import Operation, ImportBatch
 from .services import parse_csv
 from flower_treso.utils import to_decimal
@@ -148,11 +149,14 @@ def _redirect_next(operation, to_next=True):
     if not to_next:
         return redirect('operations:process_list')
 
+    from django.db.models import Q
     next_op = Operation.objects.filter(
-        statut='pending',
-        date_operation__gte=operation.date_operation,
-        id__gt=operation.id
-    ).first()
+        statut='pending'
+    ).filter(
+        Q(date_operation__gt=operation.date_operation) | 
+        Q(date_operation=operation.date_operation, id__gt=operation.id)
+    ).order_by('date_operation', 'id').first()
+    
     if next_op:
         return redirect('operations:process_operation', operation_id=next_op.pk)
     return redirect('operations:process_list')
