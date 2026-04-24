@@ -49,7 +49,7 @@
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label">N° Sécurité Sociale <span class="required">*</span></label>
-              <input type="text" name="num_secu" class="form-control font-mono" placeholder="1 00 00 00 000 000 00" maxlength="21" required>
+              <input type="text" name="num_secu" id="id_num_secu" class="form-control font-mono" placeholder="1 00 00 00 000 000 00" maxlength="21" required>
             </div>
             <div class="form-group">
               <label class="form-label">Nom de la mission <span class="required">*</span></label>
@@ -63,7 +63,7 @@
               <input type="text" name="ref_rm" class="form-control" placeholder="RM XXX" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Réf. dernier AVRM</label>
+              <label class="form-label">Réf. dernier AVRM (si existant)</label>
               <input type="text" name="ref_avrm" class="form-control" placeholder="AVRM XXX">
             </div>
           </div>
@@ -82,7 +82,15 @@
             </div>
             <div class="form-group">
               <label class="form-label">Nombre de JEH <span class="required">*</span></label>
-              <input type="number" step="0.5" name="nb_jeh" class="form-control font-mono" value="1.0" required min="0" oninput="computeCotisations()">
+              <input type="number" 
+                     step="1" 
+                     name="nb_jeh" 
+                     id="id_nb_jeh" 
+                     class="form-control font-mono" 
+                     value="1" 
+                     required min="0" 
+                     oninput="computeCotisations()"
+                     onkeydown="return event.key !== '.' && event.key !== ',' && event.key !== 'e' && event.key !== 'E';">
             </div>
           </div>
         </div>
@@ -95,7 +103,7 @@
         <div class="card-header">
           <div class="card-title text-primary">
             <i data-lucide="info" width="18" height="18"></i>
-            Détails de la génération
+            Référence du Document
           </div>
         </div>
         <div class="card-body">
@@ -110,31 +118,18 @@
               </select>
             </div>
             <div class="form-group flex-1">
-              <label class="form-label">Référence BV (ex: BV_01)</label>
-              <input type="text" name="ref_bv" class="form-control font-mono" placeholder="BV_YYYY-NNN">
+              <label class="form-label">Référence BV <span class="required">*</span></label>
+              <div class="flex flex-col gap-1">
+                <input type="text" name="ref_bv" class="form-control font-mono" 
+                       value="{{ next_bv_numero }}" required
+                       hx-get="{% url 'finance:check_reference_exists' %}" 
+                       hx-vals='{"model": "bv"}'
+                       hx-target="#ref-bv-check"
+                       hx-trigger="keyup changed delay:500ms"
+                       name="numero">
+                <div id="ref-bv-check"></div>
+              </div>
             </div>
-          </div>
-          
-          <div class="form-grid-2">
-            <div class="form-group flex-1">
-              <label class="form-label">Date du document <span class="required">*</span></label>
-              <input type="date" name="date_emission" class="form-control" id="id_date_emission" required>
-            </div>
-          </div>
-
-          
-          <div class="form-group">
-            <label class="form-label">Référence virement (pour l'Excel)</label>
-            <input type="text" name="reference_virement" class="form-control" placeholder="Ex: Virement le 24/03/2026">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Ligne budgétaire (facultatif)</label>
-            <input list="budget-lines-list" 
-                   class="form-control" 
-                   placeholder="Rechercher une ligne..."
-                   onchange="syncBudgetLineId(this)">
-            <input type="hidden" name="ligne_budgetaire" id="id_ligne_budgetaire">
           </div>
         </div>
       </div>
@@ -171,22 +166,27 @@
             </tbody>
             <tfoot>
               <tr>
-                <td><strong>Total retenues</strong></td>
+                <td style="padding:10px"><strong>Total cotisations</strong></td>
                 <td class="text-right font-mono" id="c-total-j"><strong>0.00</strong></td>
                 <td class="text-right font-mono" id="c-total-e"><strong>0.00</strong></td>
               </tr>
             </tfoot>
+
           </table>
-          <div class="p-3 bg-gray-50 border-t flex justify-between items-center">
-             <span class="font-bold">Net à payer estimé :</span>
-             <span class="text-xl font-bold text-primary" id="net-header">0.00 €</span>
+          <div class="px-5 py-4 bg-gray-50 border-t flex justify-between items-center" style="border-radius: 0 0 12px 12px">
+             <div style="line-height: 1.4">
+                <div style="font-weight: 700; padding-left: 10px; color: var(--color-gray-800); font-size: 0.9rem;">Net à payer</div>
+             </div>
+             <div class="font-bold text-primary" id="net-header" style="font-size: 1rem; padding-right: 5px;">0,00 €</div>
           </div>
+
         </div>
       </div>
 
+
       <div class="card">
         <div class="card-header"><div class="card-title">Commentaire (sera inclus dans le PDF)</div></div>
-        <div class="card-body">
+        <div class="card-body" style="padding-top:0">
           <textarea name="commentaire" class="form-control" rows="2" placeholder="Ex: Mission réalisée en Mars..."></textarea>
         </div>
       </div>
@@ -194,22 +194,16 @@
       <div class="flex gap-3 items-center w-full mt-auto">
         <button type="submit" class="btn btn-primary btn-lg flex-1 justify-center" style="background-color: var(--color-success); border-color: var(--color-success);">
           <i data-lucide="file-down" width="20" height="20"></i>
-          Générer et Télécharger le PDF
+          Générer le Bulletin (PDF)
         </button>
       </div>
       <p class="text-center text-xs text-muted">
         <i data-lucide="info" width="12" height="12"></i>
-        Le document sera généré à partir de votre modèle Excel avec les cotisations à jour.
+        Le document sera généré à la date d'aujourd'hui.
       </p>
     </div>
   </div>
 </form>
-
-<datalist id="budget-lines-list">
-  {% for lb in lignes_budgetaires %}
-  <option value="{{ lb.nom }}" data-id="{{ lb.id }}"></option>
-  {% endfor %}
-</datalist>
 
 <!-- Paramètres cotisations -->
 <script id="cotis-params" type="application/json">
@@ -243,8 +237,9 @@
 const params = JSON.parse(document.getElementById('cotis-params').textContent);
 
 function computeCotisations() {
-  const nbJeh = parseFloat(document.getElementsByName('nb_jeh')[0].value) || 0;
-  const retribParJeh = parseFloat(document.getElementsByName('retribution_brute_par_jeh')[0].value) || 0;
+  const nbJehInput = document.getElementById('id_nb_jeh');
+  const nbJeh = parseInt(nbJehInput.value) || 0;
+  const retribParJeh = parseFloat(document.getElementById('id_retribution_brute_par_jeh').value) || 0;
   const brutTotal = nbJeh * retribParJeh;
   
   const baseJ = parseFloat(params.junior.base_urssaf);
@@ -267,7 +262,6 @@ function computeCotisations() {
   totalJ += calcField('junior', 'af', 'c-af-j');
   totalJ += calcField('junior', 'csgd', 'c-csgd-j');
   totalJ += calcField('junior', 'csgnd', 'c-csgnd-j');
-  document.getElementById('c-total-j').textContent = totalJ.toFixed(2);
   
   let totalE = 0;
   totalE += calcField('etudiant', 'maladie', 'c-maladie-e');
@@ -277,9 +271,11 @@ function computeCotisations() {
   totalE += calcField('etudiant', 'af', 'c-af-e');
   totalE += calcField('etudiant', 'csgd', 'c-csgd-e');
   totalE += calcField('etudiant', 'csgnd', 'c-csgnd-e');
-  document.getElementById('c-total-e').textContent = totalE.toFixed(2);
   
+  document.getElementById('c-total-j').textContent = totalJ.toFixed(2);
+  document.getElementById('c-total-e').textContent = totalE.toFixed(2);
   document.getElementById('c-total-header').textContent = (totalJ + totalE).toFixed(2);
+
   
   // Net à payer
   const net = brutTotal - totalE;
@@ -295,18 +291,24 @@ function nb_round(num) {
   return Math.round((num + Number.EPSILON) * 100) / 100;
 }
 
-function syncBudgetLineId(input) {
-  const list = document.getElementById('budget-lines-list');
-  const hidden = document.getElementById('id_ligne_budgetaire');
-  const option = Array.from(list.options).find(o => o.value === input.value);
-  hidden.value = option ? option.dataset.id : '';
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-  // Set default date
-  const now = new Date();
-  document.getElementById('id_date_emission').value = now.toISOString().split('T')[0];
-  
+  // Formatage Secu
+  const secuInput = document.getElementById('id_num_secu');
+  if (secuInput) {
+    secuInput.addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      let formatted = '';
+      if (value.length > 0) formatted += value.substring(0, 1);
+      if (value.length > 1) formatted += ' ' + value.substring(1, 3);
+      if (value.length > 3) formatted += ' ' + value.substring(3, 5);
+      if (value.length > 5) formatted += ' ' + value.substring(5, 7);
+      if (value.length > 7) formatted += ' ' + value.substring(7, 10);
+      if (value.length > 10) formatted += ' ' + value.substring(10, 13);
+      if (value.length > 13) formatted += ' ' + value.substring(13, 15);
+      e.target.value = formatted.trim();
+    });
+  }
+
   computeCotisations();
   lucide.createIcons();
 });

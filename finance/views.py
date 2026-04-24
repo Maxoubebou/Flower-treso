@@ -7,7 +7,9 @@ from django.views.decorators.http import require_POST
 from django.middleware.csrf import get_token
 
 from .models import FactureVente, BulletinVersement, FactureAchat, Etude
+from .services import generate_numero_bv
 from operations.models import Operation
+
 from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, ParametreCotisation
 from flower_treso.utils import to_decimal
 from django.db import IntegrityError
@@ -1103,9 +1105,10 @@ def bv_generation(request):
             return redirect('finance:bv_generation')
 
     return render(request, 'finance/bv_generation.html', {
+        'next_bv_numero': generate_numero_bv(date.today().year),
         'etudes': Etude.objects.filter(active=True).order_by('reference'),
-        'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
         'param_j': ParametreCotisation.objects.filter(type_cotisant='junior').first(),
         'param_e': ParametreCotisation.objects.filter(type_cotisant='etudiant').first(),
     })
+
 
