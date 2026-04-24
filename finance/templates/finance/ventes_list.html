@@ -74,8 +74,8 @@
     <table class="data-table" style="font-size:.8rem">
       <thead>
         <tr>
-          <th style="padding:8px 10px">Référence</th>
-          <th style="padding:8px 10px">Type de vente</th>
+          <th style="padding:8px 10px 8px 12px">Référence</th>
+          <th style="padding:8px 6px">Type de vente</th>
           <th style="padding:8px 10px">Tiers / Libellé</th>
           <th style="padding:8px 10px">
             <a href="?sort=date_operation&order={% if current_sort == 'date_operation' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
@@ -87,31 +87,26 @@
               Taux tva {% if current_sort == 'taux_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th class="text-right" style="padding:8px 10px">
-            <a href="?sort=montant_ht&order={% if current_sort == 'montant_ht' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              HT (€) {% if current_sort == 'montant_ht' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
-            </a>
-          </th>
-          <th class="text-right" style="padding:8px 10px">
+          <th class="text-right" style="padding:8px 6px">
             <a href="?sort=montant_ttc&order={% if current_sort == 'montant_ttc' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              TVA (€) {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
+              Montants (€) {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th class="text-right" style="padding:8px 10px">TTC (€)</th>
-          <th style="padding:8px 10px;min-width:120px">Ligne Budg.</th>
-          <th style="padding:8px 10px"></th>
+          <th style="padding:8px 6px;min-width:80px">Ligne Budg.</th>
+          <th style="padding:8px 10px">Commentaire</th>
+          <th style="padding:8px 12px"></th>
         </tr>
       </thead>
       <tbody>
         {% for f in factures %}
         <tr>
           <!-- Référence -->
-          <td style="padding:7px 10px">
+          <td style="padding:7px 6px 7px 12px">
             <span class="font-mono font-bold" style="color:var(--color-primary);font-size:.75rem;cursor:pointer" onclick="enableQuickEdit(this, 'vente', '{{ f.id }}', 'numero')">{{ f.numero }}</span>
           </td>
 
           <!-- Type de vente -->
-          <td class="text-center">
+          <td class="text-center" style="padding: 7px 6px;">
             <select name="type_vente"
                     style="font-size: .7rem; padding: 2px 12px; border-radius: 12px; cursor: pointer; font-weight: 700; appearance: none; -webkit-appearance: none; text-align: center; transition: all 0.2s;
                           {% if 'acompte' in f.type_facture.nom|lower %} border: 1px solid #a855f7; color: #7e22ce; background-color: rgba(168, 85, 247, 0.15);
@@ -177,18 +172,24 @@
             <br><span class="text-xs {% if f.pays_tva == 'FR' %}text-muted{% else %}text-warning{% endif %}">{{ f.get_pays_tva_display }}</span>
           </td>
 
-          <td class="text-right font-mono" style="padding:7px 10px" id="vente-ht-{{ f.id }}"
-              hx-get="{% url 'finance:refresh_invoice_cell' %}?type=vente&pk={{ f.id }}&field=ht"
-              hx-trigger="refresh-invoice-vente-{{ f.id }} from:body"
-              hx-swap="innerHTML">{{ f.montant_ht|floatformat:2 }}</td>
-          <td class="text-right font-mono text-muted" style="padding:7px 10px" id="vente-tva-{{ f.id }}"
-              hx-get="{% url 'finance:refresh_invoice_cell' %}?type=vente&pk={{ f.id }}&field=tva"
-              hx-trigger="refresh-invoice-vente-{{ f.id }} from:body"
-              hx-swap="innerHTML">{{ f.montant_tva|floatformat:2 }}</td>
-          <td class="text-right font-mono font-bold" style="padding:7px 10px">{{ f.montant_ttc|floatformat:2 }}</td>
+          <td class="text-right font-mono" style="padding:7px 6px">
+            <div class="flex flex-col items-end">
+              <span class="font-bold" style="font-size:0.9rem">{{ f.montant_ttc|floatformat:2 }}</span>
+              <span class="text-muted" style="font-size:0.68rem">
+                <span id="vente-ht-{{ f.id }}"
+                      hx-get="{% url 'finance:refresh_invoice_cell' %}?type=vente&pk={{ f.id }}&field=ht"
+                      hx-trigger="refresh-invoice-vente-{{ f.id }} from:body"
+                      hx-swap="innerHTML">{{ f.montant_ht|floatformat:2 }}</span> HT / 
+                <span id="vente-tva-{{ f.id }}"
+                      hx-get="{% url 'finance:refresh_invoice_cell' %}?type=vente&pk={{ f.id }}&field=tva"
+                      hx-trigger="refresh-invoice-vente-{{ f.id }} from:body"
+                      hx-swap="innerHTML">{{ f.montant_tva|floatformat:2 }}</span> TVA
+              </span>
+            </div>
+          </td>
 
           <!-- Ligne budgétaire -->
-          <td style="padding:7px 10px">
+          <td style="padding:7px 6px; min-width:80px">
             <input list="budget-lines-list"
                    class="form-control"
                    style="font-size:.7rem;padding:4px 8px;border-radius:6px"
@@ -202,8 +203,13 @@
                    onhtmx:after-request="if(event.detail.successful) { this.classList.add('success-flash'); setTimeout(() => this.classList.remove('success-flash'), 1000); }">
           </td>
 
-          <!-- Actions -->
+          <!-- Commentaire -->
           <td style="padding:7px 10px">
+            <div class="text-xs text-muted" style="cursor:pointer; white-space:pre-wrap; word-break:break-word; min-width:150px" onclick="enableQuickEdit(this, 'vente', '{{ f.id }}', 'commentaire')">{{ f.commentaire|default:'—' }}</div>
+          </td>
+
+          <!-- Actions -->
+          <td style="padding:7px 12px">
             <div class="flex gap-1 justify-end items-center">
               <!-- Drive button -->
               {% if f.lien_drive %}
@@ -245,15 +251,6 @@
         </tr>
         {% endfor %}
       </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="5" style="padding:8px 10px"><strong>Totaux</strong></td>
-          <td class="text-right font-mono" style="padding:8px 10px"><strong>{{ total_ht|floatformat:2 }}</strong></td>
-          <td class="text-right font-mono text-muted" style="padding:8px 10px"><strong>{{ total_tva|floatformat:2 }}</strong></td>
-          <td class="text-right font-mono font-bold" style="padding:8px 10px"><strong>{{ total_ttc|floatformat:2 }}</strong></td>
-          <td colspan="2"></td>
-        </tr>
-      </tfoot>
     </table>
   </div>
   {% else %}
@@ -467,19 +464,59 @@ function closeExportModal() {
 // ─── Edition Rapide Champs ───────────────────────────────────────────
 function enableQuickEdit(el, type, pk, field) {
   const currentVal = (el.innerText === '—' || el.innerText === 'Sans libellé') ? '' : el.innerText;
-  const input = document.createElement('input');
-  input.type = 'text';
+  const isComment = field === 'commentaire';
+  
+  let input;
+  if (isComment) {
+    input = document.createElement('textarea');
+    input.rows = 1;
+    input.style.resize = 'none';
+    input.style.overflow = 'hidden';
+    input.style.minHeight = '24px';
+    input.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+  }
+  
   input.value = currentVal;
-  input.className = 'form-control font-mono';
+  input.className = isComment ? 'font-mono' : 'form-control font-mono';
+  
+  if (isComment) {
+    input.style.border = 'none';
+    input.style.outline = 'none';
+    input.style.background = 'rgba(0,0,0,0.03)';
+    input.style.borderRadius = '4px';
+    input.style.padding = '4px 8px';
+    input.style.display = 'block';
+    input.style.lineHeight = '1.4';
+  } else {
+    input.style.height = '24px';
+    input.style.padding = '2px 4px';
+  }
+  
   input.style.fontSize = '0.75rem';
-  input.style.padding = '2px 4px';
   input.style.width = '100%';
-  input.style.height = '24px';
   
   input.setAttribute('name', 'value');
   input.setAttribute('hx-post', '{% url "finance:update_invoice_field" %}');
   input.setAttribute('hx-vals', JSON.stringify({pk: pk, type: type, field: field}));
-  input.setAttribute('hx-trigger', 'blur, keyup[key=="Enter"]');
+  
+  if (isComment) {
+    input.setAttribute('hx-trigger', 'blur, keyup[key=="Enter"&&!shiftKey]');
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.blur();
+      }
+    });
+  } else {
+    input.setAttribute('hx-trigger', 'blur, keyup[key=="Enter"]');
+  }
+  
   input.setAttribute('hx-target', 'closest td');
   input.setAttribute('hx-swap', 'innerHTML');
   input.setAttribute('hx-headers', '{"X-CSRFToken": "{{ csrf_token }}"}');
@@ -487,7 +524,12 @@ function enableQuickEdit(el, type, pk, field) {
   el.parentNode.replaceChild(input, el);
   htmx.process(input);
   input.focus();
-  // Place cursor at the end
+  
+  if (isComment) {
+    input.style.height = 'auto';
+    input.style.height = (input.scrollHeight) + 'px';
+  }
+  
   input.setSelectionRange(input.value.length, input.value.length);
 }
 
