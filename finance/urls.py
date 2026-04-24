@@ -16,6 +16,8 @@ urlpatterns = [
     path('bv/', views.bv_list, name='bv_list'),
     path('bv/generation/', views.bv_generation, name='bv_generation'),
     path('bv/<int:pk>/edit/', views.bv_edit, name='bv_edit'),
+    path('bv/<int:pk>/delete/', views.bv_delete, name='bv_delete'),
+
 
     # Achats
     path('achats/', views.achats_list, name='achats_list'),

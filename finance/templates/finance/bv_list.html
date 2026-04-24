@@ -162,7 +162,15 @@
                  title="Supprimer">
                 <i data-lucide="trash-2" width="14" height="14"></i>
               </a>
+              {% else %}
+              <a href="{% url 'finance:bv_delete' bv.pk %}"
+                 class="btn btn-ghost btn-sm text-danger" style="padding:4px 6px"
+                 onclick="return confirm('Attention : cela supprimera définitivement le bulletin.')"
+                 title="Supprimer">
+                <i data-lucide="trash-2" width="14" height="14"></i>
+              </a>
               {% endif %}
+
             </div>
           </td>
         </tr>
