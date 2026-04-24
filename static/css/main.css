@@ -897,6 +897,7 @@ table.data-table {
 .font-bold { font-weight: 700; }
 .text-muted { color: var(--color-gray-500); }
 .text-danger { color: var(--color-danger); }
+.text-warning { color: #f97316; }
 .text-success { color: var(--color-success); }
 .text-primary { color: var(--color-primary); }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

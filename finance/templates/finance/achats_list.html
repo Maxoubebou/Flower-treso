@@ -172,17 +172,19 @@
 
           <!-- Date -->
           <td style="padding:7px 10px;font-size:.78rem;white-space:nowrap">
-            {% if date_filter_type == 'facture' %}
-              {% if f.date_reception %}
-                {{ f.date_reception|date:"d/m/Y" }}
-                <span class="text-muted text-xs" style="display:block">Op: {{ f.date_operation|date:"d/m/Y" }}</span>
-              {% else %}
-                {{ f.date_operation|date:"d/m/Y" }}
-                <i data-lucide="alert-triangle" width="12" height="12" class="text-warning" style="display:inline-block;vertical-align:middle;margin-left:2px" title="Date de facture non renseignée"></i>
+            <div class="flex items-center justify-between gap-2" style="min-width: 100px;">
+              <div class="flex flex-col">
+                <span style="{% if not f.date_reception %}color: #f97316 !important; font-weight: 700;{% endif %}">{{ f.date_reception|date:"d/m/Y"|default:"--/--/----" }}</span>
+                <span class="text-muted" style="font-size: 0.65rem;">
+                  op : {{ f.date_operation|date:"d/m/Y" }}
+                </span>
+              </div>
+              {% if not f.date_reception or not f.lien_drive %}
+                <div style="cursor:help; margin-left: auto;" title="Incomplet : {% if not f.date_reception %}Date facture manquante{% endif %}{% if not f.date_reception and not f.lien_drive %} & {% endif %}{% if not f.lien_drive %}Justificatif Drive manquant{% endif %}">
+                   <i data-lucide="alert-triangle" width="18" height="18" style="color: #f97316 !important; stroke: #f97316 !important;"></i>
+                </div>
               {% endif %}
-            {% else %}
-              {{ f.date_operation|date:"d/m/Y" }}
-            {% endif %}
+            </div>
           </td>
 
           <!-- Taux + Pays TVA (combinés) -->
