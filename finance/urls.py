@@ -29,4 +29,6 @@ urlpatterns = [
     path('set-type-achat/', views.set_type_achat, name='set_type_achat'),
     path('set-type-vente/', views.set_type_vente, name='set_type_vente'),
     path('set-etude/', views.set_etude, name='set_etude'),
+    path('operations-ignorees/', views.ignored_operations_list, name='ignored_operations_list'),
+    path('operations-ignorees/reset/<int:pk>/', views.operation_reset, name='operation_reset'),
 ]

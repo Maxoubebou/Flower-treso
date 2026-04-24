@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from django.middleware.csrf import get_token
 
 from .models import FactureVente, BulletinVersement, FactureAchat, Etude
+from operations.models import Operation
 from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, ParametreCotisation
 from flower_treso.utils import to_decimal
 from django.db import IntegrityError
@@ -941,3 +942,32 @@ def refresh_invoice_cell(request):
     val = getattr(obj, f'montant_{field}', 0)
     from django.template.defaultfilters import floatformat
     return HttpResponse(floatformat(val, 2))
+
+
+def ignored_operations_list(request):
+    """Affiche les opérations marquées comme ignorées (virements internes)."""
+    mois, annee = _get_filtres(request)
+    
+    qs = Operation.objects.filter(statut='ignored')
+    qs = _appliquer_filtres(qs, mois, annee)
+    
+    # Tri par défaut inverse chronologique
+    qs = qs.order_by('-date_operation', '-id')
+    
+    return render(request, 'finance/ignored_operations_list.html', {
+        'operations': qs,
+        'filtre_mois': mois,
+        'filtre_annee': annee,
+        'total_debit': sum((op.debit or 0) for op in qs),
+        'total_credit': sum((op.credit or 0) for op in qs),
+    })
+
+@require_POST
+def operation_reset(request, pk):
+    """Remet une opération ignorée en statut 'pending'."""
+    operation = get_object_or_404(Operation, pk=pk, statut='ignored')
+    operation.statut = 'pending'
+    operation.commentaire_ignoree = ""
+    operation.save()
+    messages.success(request, f"L'opération '{operation.libelle}' a été remise en attente de traitement.")
+    return redirect('finance:ignored_operations_list')
