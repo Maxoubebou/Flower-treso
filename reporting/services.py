@@ -41,11 +41,12 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
     )
 
     # ─── Détecter les achats "manqués" (Opération ce mois mais pas encore de date facture)
+    # On ignore ceux à 0% de TVA car ils n'impactent pas la déduction
     achats_manquants = FactureAchat.objects.filter(
         date_operation__year=annee,
         date_operation__month=mois,
         date_reception__isnull=True
-    )
+    ).exclude(taux_tva=0)
 
     achats_manquants_details = [{
         'id': a.id,

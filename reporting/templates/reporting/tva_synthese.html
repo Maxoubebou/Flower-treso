@@ -73,9 +73,9 @@
     <div class="flex flex-col gap-2">
       {% for a in computed.achats_manquants_details %}
       <div class="flex items-center justify-between p-2" style="background:rgba(255,255,255,0.5); border-radius:8px; border:1px solid #fed7d7;">
-        <div style="font-size:0.85rem; color:#822727;">
-          <i data-lucide="shopping-cart" width="12" height="12" style="display:inline; margin-right:6px;"></i>
-          <strong>{{ a.nom }}</strong> — {{ a.date|date:"d/m/Y" }} — <strong>{{ a.valeur|floatformat:2 }} € TTC</strong>
+        <div style="font-size:0.85rem; color:#822727; display: flex; align-items: center; gap: 10px; padding-left: 12px;">
+          <i data-lucide="shopping-cart" width="13" height="13" style="flex-shrink:0;"></i>
+          <span><strong>{{ a.nom }}</strong> — {{ a.date|date:"d/m/Y" }} — <strong>{{ a.valeur|floatformat:2 }} € TTC</strong></span>
         </div>
         <a href="{% url 'finance:achat_edit' a.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:0.75rem; border-color:#fc8181; color:#c53030">
           <i data-lucide="edit-2" width="12" height="12"></i> Éditer
