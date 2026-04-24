@@ -204,11 +204,19 @@
           <td style="padding:7px 10px">
             <div class="flex gap-1 justify-end items-center">
               <!-- Drive button -->
+              {% if f.lien_drive %}
+              <a href="{{ f.lien_drive }}" target="_blank" rel="noopener"
+                 class="btn btn-ghost btn-sm" style="padding:4px 6px"
+                 title="Ouvrir la preuve comptable">
+                <i data-lucide="folder-open" width="14" height="14" style="color:var(--color-success)"></i>
+              </a>
+              {% else %}
               <button onclick="openDriveModal('vente', '{{ f.id }}', '{{ f.lien_drive }}')" 
                 class="btn btn-ghost btn-sm" style="padding:4px 6px"
                 title="Lien Drive">
                 <i data-lucide="link" width="14" height="14"></i>
               </button>
+              {% endif %}
 
               <!-- Checkbox persistante -->
               <input type="checkbox"
