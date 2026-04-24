@@ -28,56 +28,33 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
 
     from django.db.models.functions import Coalesce
 
-    # ─── Filtrer les factures de vente ───────────────────────────────────────
-    if switch == 'facture':
-        ventes_qs = FactureVente.objects.annotate(
-            effective_date=Coalesce('date_envoi', 'date_operation')
-        ).filter(
-            effective_date__year=annee,
-            effective_date__month=mois,
-        )
-    else:
-        ventes_qs = FactureVente.objects.filter(
-            date_operation__year=annee,
-            date_operation__month=mois,
-        )
+    # ─── Filtrer les factures de vente (Toujours Date Opération) ─────────────
+    ventes_qs = FactureVente.objects.filter(
+        date_operation__year=annee,
+        date_operation__month=mois,
+    )
 
-    # ─── Filtrer les factures d'achat ────────────────────────────────────────
-    if switch == 'facture':
-        achats_qs = FactureAchat.objects.annotate(
-            effective_date=Coalesce('date_reception', 'date_operation')
-        ).filter(
-            effective_date__year=annee,
-            effective_date__month=mois,
-        )
-        achats_fallback = achats_qs.filter(date_reception__isnull=True)
-        ventes_fallback = ventes_qs.filter(date_envoi__isnull=True)
-        achats_fallback_count = achats_fallback.count()
-        ventes_fallback_count = ventes_fallback.count()
+    # ─── Filtrer les factures d'achat (Toujours Date Réception) ──────────────
+    achats_qs = FactureAchat.objects.filter(
+        date_reception__year=annee,
+        date_reception__month=mois,
+    )
 
-        achats_fallback_details = [{
-            'nom': a.fournisseur or f"Facture {a.numero}",
-            'date': a.date_operation,
-            'valeur': a.montant_ttc,
-        } for a in achats_fallback]
+    # ─── Détecter les achats "manqués" (Opération ce mois mais pas encore de date facture)
+    achats_manquants = FactureAchat.objects.filter(
+        date_operation__year=annee,
+        date_operation__month=mois,
+        date_reception__isnull=True
+    )
 
-        ventes_fallback_details = [{
-            'nom': v.libelle or f"Facture {v.numero}",
-            'date': v.date_operation,
-            'valeur': v.montant_ttc,
-        } for v in ventes_fallback]
+    achats_manquants_details = [{
+        'id': a.id,
+        'nom': a.fournisseur or f"Facture {a.numero}",
+        'date': a.date_operation,
+        'valeur': a.montant_ttc,
+    } for a in achats_manquants]
 
-    else:
-        achats_qs = FactureAchat.objects.filter(
-            date_operation__year=annee,
-            date_operation__month=mois,
-        )
-        achats_fallback_count = 0
-        ventes_fallback_count = 0
-        achats_fallback_details = []
-        ventes_fallback_details = []
-
-    fallback_count = achats_fallback_count + ventes_fallback_count
+    fallback_count = achats_manquants.count()
 
     # ─── A1 : Ventes imposables HT (hors cotisations et subventions hors UE) ─
     ventes_imposables = ventes_qs.exclude(
@@ -151,10 +128,8 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
         'ligne_21': Decimal('0'),
         # ligne_22 et ligne_23 à compléter avec le report et les valeurs manuelles
         'fallback_count': fallback_count,
-        'achats_fallback_count': achats_fallback_count,
-        'ventes_fallback_count': ventes_fallback_count,
-        'achats_fallback_details': achats_fallback_details,
-        'ventes_fallback_details': ventes_fallback_details,
+        'achats_manquants_count': fallback_count,
+        'achats_manquants_details': achats_manquants_details,
     }
 
 

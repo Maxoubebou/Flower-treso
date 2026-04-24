@@ -114,10 +114,11 @@ def tva_synthese(request):
 
         if action == 'calculer':
             # Recalculer automatiquement
+            # Note: switch_calcul n'est plus utilisé comme option globale mais le service gère la logique mixte
             computed = compute_declaration_tva(periode, decl.switch_calcul)
             for champ, valeur in computed.items():
                 setattr(decl, champ, valeur)
-            # Ligne 22 : report du mois précédent (auto depuis le mois précédent si pas modifié manuellement)
+            # Ligne 22 : report du mois précédent
             if not decl.ligne_22_modifiee_manuellement:
                 mois_prec = mois - 1 if mois > 1 else 12
                 annee_prec = annee if mois > 1 else annee - 1
@@ -135,19 +136,9 @@ def tva_synthese(request):
                 decl.ligne_22_modifiee_manuellement = True
                 decl.save()
                 finalise_declaration(decl)
-                messages.warning(
-                    request,
-                    "La ligne 22 (report de crédit) a été modifiée manuellement. "
-                    "Vérifiez la cohérence avec la déclaration du mois précédent."
-                )
+                messages.warning(request, "La ligne 22 a été modifiée manuellement.")
             except Exception as e:
                 messages.error(request, f"Erreur : {e}")
-            return redirect(request.path + f'?mois={mois}&annee={annee}')
-
-        elif action == 'changer_switch':
-            decl.switch_calcul = request.POST.get('switch_calcul', 'operation')
-            decl.save()
-            messages.info(request, "Switch de calcul mis à jour.")
             return redirect(request.path + f'?mois={mois}&annee={annee}')
 
     # Valeurs calculées en direct pour l'affichage (sans sauvegarder)

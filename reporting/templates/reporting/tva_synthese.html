@@ -13,7 +13,6 @@
 <div class="card mb-6">
   <div class="card-body" style="padding:16px 20px">
     <div class="flex items-center gap-4" style="flex-wrap:wrap">
-
       <div class="flex items-center gap-2">
         <i data-lucide="calendar-range" width="16" height="16" style="color:var(--color-primary)"></i>
         <strong>Période :</strong>
@@ -23,37 +22,22 @@
       <!-- Sélecteur de mois/période -->
       <form method="get" class="flex gap-2 items-center">
         <select name="mois" class="form-control" style="width:auto" onchange="this.form.submit()">
-          <option value="1" {% if mois == 1 %}selected{% endif %}>Janvier</option>
-          <option value="2" {% if mois == 2 %}selected{% endif %}>Février</option>
-          <option value="3" {% if mois == 3 %}selected{% endif %}>Mars</option>
-          <option value="4" {% if mois == 4 %}selected{% endif %}>Avril</option>
-          <option value="5" {% if mois == 5 %}selected{% endif %}>Mai</option>
-          <option value="6" {% if mois == 6 %}selected{% endif %}>Juin</option>
-          <option value="7" {% if mois == 7 %}selected{% endif %}>Juillet</option>
-          <option value="8" {% if mois == 8 %}selected{% endif %}>Août</option>
-          <option value="9" {% if mois == 9 %}selected{% endif %}>Septembre</option>
-          <option value="10" {% if mois == 10 %}selected{% endif %}>Octobre</option>
-          <option value="11" {% if mois == 11 %}selected{% endif %}>Novembre</option>
-          <option value="12" {% if mois == 12 %}selected{% endif %}>Décembre</option>
+          {% for m in mois_noms %}
+            {% if m %}
+          <option value="{{ forloop.counter0 }}" {% if mois == forloop.counter0 %}selected{% endif %}>{{ m }}</option>
+            {% endif %}
+          {% endfor %}
         </select>
         <select name="annee" class="form-control" style="width:auto" onchange="this.form.submit()">
-          <option value="2023" {% if annee == 2023 %}selected{% endif %}>2023</option>
-          <option value="2024" {% if annee == 2024 %}selected{% endif %}>2024</option>
           <option value="2025" {% if annee == 2025 %}selected{% endif %}>2025</option>
           <option value="2026" {% if annee == 2026 %}selected{% endif %}>2026</option>
         </select>
       </form>
 
-      <!-- Switch de calcul -->
-      <form method="post" class="flex items-center gap-2">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="changer_switch">
-        <span class="text-sm text-muted">Base de calcul :</span>
-        <select name="switch_calcul" class="form-control" style="width:auto" onchange="this.form.submit()">
-          <option value="operation" {% if decl.switch_calcul == 'operation' %}selected{% endif %}>Date d'opération</option>
-          <option value="facture" {% if decl.switch_calcul == 'facture' %}selected{% endif %}>Date de facture</option>
-        </select>
-      </form>
+      <span class="text-xs text-muted" style="margin-left: 10px;">
+        <i data-lucide="info" width="12" height="12" style="display:inline; vertical-align:middle; margin-right:4px;"></i>
+        Calcul mixte : Ventes (Opération) / Achats (Facture)
+      </span>
 
       <!-- Calculer bouton -->
       <form method="post" style="margin-left:auto">
@@ -61,7 +45,7 @@
         <input type="hidden" name="action" value="calculer">
         <button type="submit" class="btn btn-primary">
           <i data-lucide="refresh-cw" width="15" height="15"></i>
-          Recalculer
+          Recalculer pour {{ mois_nom }}
         </button>
       </form>
 
@@ -77,20 +61,28 @@
   </div>
 </div>
 
-{% if computed.fallback_count > 0 and decl.switch_calcul == 'facture' %}
-<div style="background:#fffbeb; padding: 12px 16px; border: 1px solid #fcd34d; border-radius: var(--radius-lg); margin-bottom: 24px; display:flex; align-items:flex-start; gap:12px;">
-  <i data-lucide="alert-triangle" width="20" height="20" style="color:#d97706; margin-top:2px;"></i>
-  <div style="color:#92400e; font-size:0.9rem;">
-    <strong>Attention :</strong> 
-    <strong>{{ computed.fallback_count }}</strong> opération{{ computed.fallback_count|pluralize }} incluse{{ computed.fallback_count|pluralize }} dans ce calcul l'a été via sa <strong>date bancaire</strong>, car aucune date de facture (envoi/réception) n'était renseignée.
-    <ul style="margin-top: 8px; padding-left: 20px; font-size: 0.85rem; list-style-type: none; display: flex; flex-direction: column; gap: 4px;">
-      {% for v in computed.ventes_fallback_details %}
-        <li><i data-lucide="arrow-right" width="12" height="12" style="display:inline; margin-right:4px; color:var(--color-primary);"></i> <strong>Vente :</strong> {{ v.nom }} — {{ v.date|date:"d/m/Y" }} — <strong>{{ v.valeur|floatformat:2 }} € TTC</strong></li>
+{% if computed.achats_manquants_count > 0 %}
+<div style="background:#fff5f5; padding: 16px 20px; border: 1px solid #feb2b2; border-radius: var(--radius-lg); margin-bottom: 24px; display:flex; align-items:flex-start; gap:16px;">
+  <i data-lucide="alert-octagon" width="24" height="24" style="color:var(--color-danger); margin-top:2px;"></i>
+  <div style="flex:1">
+    <h4 style="color:#c53030; margin:0 0 8px 0; font-size:1rem; font-weight:700;">Attention : TVA déductible manquante !</h4>
+    <p style="color:#9b2c2c; font-size:0.9rem; margin:0 0 12px 0;">
+      <strong>{{ computed.achats_manquants_count }}</strong> achat{{ computed.achats_manquants_count|pluralize }} réalisé{{ computed.achats_manquants_count|pluralize }} ce mois-ci ne possède{{ computed.achats_manquants_count|pluralize:"nt," }} pas encore de <strong>date de facture</strong>. 
+      Leur TVA n'est donc <strong>pas incluse</strong> dans cette synthèse. Vous risquez de rater une déduction.
+    </p>
+    <div class="flex flex-col gap-2">
+      {% for a in computed.achats_manquants_details %}
+      <div class="flex items-center justify-between p-2" style="background:rgba(255,255,255,0.5); border-radius:8px; border:1px solid #fed7d7;">
+        <div style="font-size:0.85rem; color:#822727;">
+          <i data-lucide="shopping-cart" width="12" height="12" style="display:inline; margin-right:6px;"></i>
+          <strong>{{ a.nom }}</strong> — {{ a.date|date:"d/m/Y" }} — <strong>{{ a.valeur|floatformat:2 }} € TTC</strong>
+        </div>
+        <a href="{% url 'finance:achat_edit' a.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:0.75rem; border-color:#fc8181; color:#c53030">
+          <i data-lucide="edit-2" width="12" height="12"></i> Éditer
+        </a>
+      </div>
       {% endfor %}
-      {% for a in computed.achats_fallback_details %}
-        <li><i data-lucide="arrow-right" width="12" height="12" style="display:inline; margin-right:4px; color:var(--color-danger);"></i> <strong>Achat :</strong> {{ a.nom }} — {{ a.date|date:"d/m/Y" }} — <strong>{{ a.valeur|floatformat:2 }} € TTC</strong></li>
-      {% endfor %}
-    </ul>
+    </div>
   </div>
 </div>
 {% endif %}
