@@ -13,18 +13,42 @@ from config_app.models import ParametreCotisation
 def generate_numero_facture_vente(type_facture, annee: int, mois: int, suffixe: str = '') -> str:
     """
     Génère le numéro de facture de vente.
-    Format : FV[AAAA][MM][NNN][suffixe] ou S[AAAA][MM][NNN] pour subventions.
+    Nomenclature : FV + AA + MM + NN + _[Type]
+    Subvention : S + AA + MM + NN
     """
     from .models import FactureVente
 
-    prefix = 'S' if type_facture.est_subvention else 'FV'
+    is_sub = type_facture.est_subvention
+    prefix = 'S' if is_sub else 'FV'
+    
     count = FactureVente.objects.filter(
         date_operation__year=annee,
         date_operation__month=mois,
         numero__startswith=prefix,
     ).count()
     chrono = count + 1
-    return f"{prefix}{annee}{mois:02d}{chrono:03d}{suffixe}"
+    
+    # Formatage : année sur 2 chiffres
+    aa = str(annee)[-2:]
+    mm = f"{mois:02d}"
+    nn = f"{chrono:02d}"
+    
+    base_ref = f"{prefix}{aa}{mm}{nn}"
+    
+    if is_sub:
+        return base_ref
+        
+    # Suffixes spécifiques
+    suffix_map = {
+        'A': '_A',   # Acompte
+        'S': '_S',   # Solde
+        'C': '_C',   # Cotisation
+        'R': '_REF', # Refacturation
+        'AV': '_AV'  # Avoir
+    }
+    ext = suffix_map.get(suffixe, f"_{suffixe}" if suffixe else "")
+    
+    return f"{base_ref}{ext}"
 
 
 def generate_numero_facture_achat(type_achat, annee: int, mois: int) -> str:
