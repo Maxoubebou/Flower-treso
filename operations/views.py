@@ -95,6 +95,10 @@ def process_operation(request, operation_id):
                                                 .values_list('fournisseur', flat=True)
                                                 .order_by()
                                                 .distinct()[:50],
+        'historique_tiers': FactureVente.objects.exclude(tiers="")
+                                                .values_list('tiers', flat=True)
+                                                .order_by()
+                                                .distinct()[:50],
     }
 
     if request.method == 'POST':
@@ -176,6 +180,7 @@ def _process_vente(request, operation):
             operation=operation,
             type_facture=type_facture,
             numero=numero,
+            tiers=request.POST.get('tiers', ''),
             etude=Etude.objects.get(pk=etude_pk) if etude_pk else None,
             libelle=request.POST.get('libelle', operation.info_complementaire),
             lien_drive=request.POST.get('lien_drive', ''),

@@ -7,6 +7,9 @@ urlpatterns = [
     # Ventes
     path('ventes/', views.ventes_list, name='ventes_list'),
     path('ventes/export/', views.vente_export_csv, name='vente_export_csv'),
+    path('update-field/', views.update_invoice_field, name='update_invoice_field'),
+    path('set-taux-tva/', views.set_taux_tva, name='set_taux_tva'),
+    path('refresh-invoice-cell/', views.refresh_invoice_cell, name='refresh_invoice_cell'),
     path('ventes/<int:pk>/', views.vente_detail, name='vente_detail'),
     path('ventes/<int:pk>/edit/', views.vente_edit, name='vente_edit'),
     # Bulletins de versement

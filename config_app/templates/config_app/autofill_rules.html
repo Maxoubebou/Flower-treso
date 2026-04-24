@@ -33,7 +33,7 @@
         <div style="background: var(--color-gray-50); padding: 15px; border-radius: var(--radius); border-left: 3px solid var(--color-success);">
           <div class="text-sm font-semibold mb-2" style="color: var(--color-success);">Préremplissage appliqué :</div>
           <div class="grid-2" style="gap: 10px;">
-            {% if rule.fournisseur %}<div><span class="text-xs text-muted block">Fournisseur</span><span class="font-semibold">{{ rule.fournisseur }}</span></div>{% endif %}
+            {% if rule.fournisseur %}<div><span class="text-xs text-muted block">Tiers</span><span class="font-semibold">{{ rule.fournisseur }}</span></div>{% endif %}
             {% if rule.libelle_defaut %}<div><span class="text-xs text-muted block">Libellé</span><span class="font-semibold">{{ rule.libelle_defaut }}</span></div>{% endif %}
             {% if rule.ligne_budgetaire %}<div><span class="text-xs text-muted block">Ligne budg.</span><span class="font-semibold">{{ rule.ligne_budgetaire.nom }}</span></div>{% endif %}
             {% if rule.taux_tva %}<div><span class="text-xs text-muted block">Taux TVA</span><span class="font-mono">{{ rule.taux_tva }}%</span></div>{% endif %}
@@ -109,7 +109,7 @@
           <div class="text-xs text-muted mb-4">Laissez vide ou sur "Non défini" les champs que la règle ne doit pas modifier.</div>
 
           <div class="form-group">
-            <label class="form-label">Fournisseur</label>
+            <label class="form-label">Tiers</label>
             <input type="text" name="fournisseur" class="form-control" placeholder="ex: Intermarché">
           </div>
           

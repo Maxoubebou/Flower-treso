@@ -20,34 +20,31 @@ def generate_numero_facture_vente(type_facture, annee: int, mois: int, suffixe: 
 
     is_sub = type_facture.est_subvention
     prefix = 'S' if is_sub else 'FV'
-    
-    count = FactureVente.objects.filter(
-        date_operation__year=annee,
-        date_operation__month=mois,
-        numero__startswith=prefix,
-    ).count()
-    chrono = count + 1
-    
-    # Formatage : année sur 2 chiffres
     aa = str(annee)[-2:]
     mm = f"{mois:02d}"
-    nn = f"{chrono:02d}"
     
+    # On cherche l'incrément le plus haut pour ce préfixe et ce mois
+    base_prefix = f"{prefix}{aa}{mm}"
+    existing = FactureVente.objects.filter(numero__startswith=base_prefix).values_list('numero', flat=True)
+    
+    max_nn = 0
+    for num in existing:
+        try:
+            # Extraction des 2 chiffres après le préfixe temporel
+            nn_str = num[len(base_prefix):len(base_prefix)+2]
+            nn = int(nn_str)
+            if nn > max_nn: max_nn = nn
+        except: continue
+    
+    chrono = max_nn + 1
+    nn = f"{chrono:02d}"
     base_ref = f"{prefix}{aa}{mm}{nn}"
     
     if is_sub:
         return base_ref
         
-    # Suffixes spécifiques
-    suffix_map = {
-        'A': '_A',   # Acompte
-        'S': '_S',   # Solde
-        'C': '_C',   # Cotisation
-        'R': '_REF', # Refacturation
-        'AV': '_AV'  # Avoir
-    }
+    suffix_map = {'A': '_A', 'S': '_S', 'C': '_C', 'R': '_REF', 'AV': '_AV'}
     ext = suffix_map.get(suffixe, f"_{suffixe}" if suffixe else "")
-    
     return f"{base_ref}{ext}"
 
 
@@ -58,17 +55,30 @@ def generate_numero_facture_achat(type_achat, annee: int, mois: int) -> str:
     """
     from .models import FactureAchat
 
-    # Compteur partagé sur le mois/année (Factures Fournisseur + NDF partagent le même chrono)
-    count = FactureAchat.objects.filter(
-        date_operation__year=annee,
-        date_operation__month=mois,
-    ).count()
-    chrono = count + 1
-    
+    # Même logique : on cherche le chrono le plus élevé (tous préfixes confondus pour les achats)
     aa = str(annee)[-2:]
     mm = f"{mois:02d}"
-    nn = f"{chrono:02d}"
     
+    # On cherche dans les achats commençant par A ou NF pour ce mois
+    # Note: comme le chrono est partagé, on regarde les deux préfixes possibles
+    # On simplifie en cherchant par date d'opération si le numéro a été sali
+    existing = FactureAchat.objects.filter(
+        date_operation__year=annee,
+        date_operation__month=mois
+    ).values_list('numero', flat=True)
+    
+    max_nn = 0
+    for num in existing:
+        try:
+            # On cherche les 2 chiffres après le préfixe temporel (index 3-5 pour A2404XX ou 4-6 pour NF2404XX)
+            p_len = 3 if num.startswith('A') else 4
+            nn_str = num[p_len:p_len+2]
+            nn = int(nn_str)
+            if nn > max_nn: max_nn = nn
+        except: continue
+        
+    chrono = max_nn + 1
+    nn = f"{chrono:02d}"
     prefix = 'NF' if type_achat.suffixe == 'NF' else 'A'
     return f"{prefix}{aa}{mm}{nn}"
 

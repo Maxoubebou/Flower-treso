@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% block title %}Achats — Flower-Tréso{% endblock %}
 {% block page_title %}Factures d'achat{% endblock %}
 
@@ -72,7 +73,7 @@
         <tr>
           <th style="padding:8px px">Référence</th>
           <th style="padding:8px 10px">Type d'achat</th>
-          <th style="padding:8px 10px">Fournisseur</th>
+          <th style="padding:8px 10px">Tiers/Libellé</th>
           <th style="padding:8px 10px">Catégorie</th>
           <th style="padding:8px 10px">
             <a href="?sort=date_operation&order={% if current_sort == 'date_operation' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
@@ -108,7 +109,7 @@
         <tr>
           <!-- Référence -->
           <td style="padding:7px 10px">
-            <span class="font-mono font-bold" style="color:var(--color-primary);font-size:.75rem">{{ f.numero }}</span>
+            <span class="font-mono font-bold" style="color:var(--color-primary);font-size:.75rem;cursor:pointer" onclick="enableQuickEdit(this, 'achat', '{{ f.id }}', 'numero')">{{ f.numero }}</span>
           </td>
 
           <!-- Type d'achat -->
@@ -136,10 +137,8 @@
 
           <!-- Fournisseur + Libellé -->
           <td style="padding:7px 10px;max-width:160px">
-            <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.fournisseur }}</div>
-            {% if f.libelle and f.libelle != f.fournisseur %}
-            <div class="text-xs text-muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.libelle }}</div>
-            {% endif %}
+            <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" onclick="enableQuickEdit(this, 'achat', '{{ f.id }}', 'tiers')">{{ f.fournisseur }}</div>
+            <div class="text-xs text-muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" onclick="enableQuickEdit(this, 'achat', '{{ f.id }}', 'libelle')">{{ f.libelle|default:'Sans libellé' }}</div>
           </td>
 
           <!-- Catégorie cliquable inline -->
@@ -188,12 +187,18 @@
 
           <!-- Taux + Pays TVA (combinés) -->
           <td style="padding:7px 10px;font-size:.78rem">
-            <span class="font-mono">{{ f.taux_tva }}%</span>
+            <span class="font-mono" style="cursor:pointer" onclick="enableTvaEdit(this, 'achat', '{{ f.id }}')">{{ f.taux_tva|floatformat:0 }}%</span>
             <br><span class="text-xs {% if f.pays_tva == 'FR' %}text-muted{% elif f.pays_tva == 'intracom' %}text-warning{% else %}text-danger{% endif %}">{{ f.get_pays_tva_display }}</span>
           </td>
 
-          <td class="text-right font-mono" style="padding:7px 10px">{{ f.montant_ht|floatformat:2 }}</td>
-          <td class="text-right font-mono text-muted" style="padding:7px 10px">{{ f.montant_tva|floatformat:2 }}</td>
+          <td class="text-right font-mono" style="padding:7px 10px" id="achat-ht-{{ f.id }}"
+              hx-get="{% url 'finance:refresh_invoice_cell' %}?type=achat&pk={{ f.id }}&field=ht"
+              hx-trigger="refresh-invoice-achat-{{ f.id }} from:body"
+              hx-swap="innerHTML">{{ f.montant_ht|floatformat:2 }}</td>
+          <td class="text-right font-mono text-muted" style="padding:7px 10px" id="achat-tva-{{ f.id }}"
+              hx-get="{% url 'finance:refresh_invoice_cell' %}?type=achat&pk={{ f.id }}&field=tva"
+              hx-trigger="refresh-invoice-achat-{{ f.id }} from:body"
+              hx-swap="innerHTML">{{ f.montant_tva|floatformat:2 }}</td>
           <td class="text-right font-mono font-bold" style="padding:7px 10px">{{ f.montant_ttc|floatformat:2 }}</td>
 
           <!-- Ligne budgétaire -->
@@ -223,7 +228,7 @@
               </a>
               {% else %}
               <button onclick="openDriveModal('achat', '{{ f.id }}', '{{ f.lien_drive }}')" 
-                class="btn btn-ghost btn-icon {% if f.lien_drive %}text-success{% endif %}" 
+                class="btn btn-ghost btn-sm" style="padding:4px 6px"
                 title="Lien Drive">
                 <i data-lucide="link" width="14" height="14"></i>
               </button>
@@ -516,6 +521,62 @@ function openExportModal() {
 function closeExportModal() {
   document.getElementById('export-modal').style.display = 'none';
   document.body.style.overflow = '';
+}
+
+// ─── Edition Rapide Champs ───────────────────────────────────────────
+function enableQuickEdit(el, type, pk, field) {
+  const currentVal = (el.innerText === '—' || el.innerText === 'Sans libellé') ? '' : el.innerText;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentVal;
+  input.className = 'form-control font-mono';
+  input.style.fontSize = '0.75rem';
+  input.style.padding = '2px 4px';
+  input.style.width = '100%';
+  input.style.height = '24px';
+  
+  input.setAttribute('name', 'value');
+  input.setAttribute('hx-post', '{% url "finance:update_invoice_field" %}');
+  input.setAttribute('hx-vals', JSON.stringify({pk: pk, type: type, field: field}));
+  input.setAttribute('hx-trigger', 'blur, keyup[key=="Enter"]');
+  input.setAttribute('hx-target', 'closest td');
+  input.setAttribute('hx-swap', 'innerHTML');
+  input.setAttribute('hx-headers', '{"X-CSRFToken": "{{ csrf_token }}"}');
+  
+  el.parentNode.replaceChild(input, el);
+  htmx.process(input);
+  input.focus();
+  // Place cursor at the end
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+
+function enableTvaEdit(el, type, pk) {
+  const select = document.createElement('select');
+  select.className = 'form-control font-mono';
+  select.style.fontSize = '0.75rem';
+  select.style.padding = '2px';
+  select.style.width = '70px';
+  select.style.height = '24px';
+  
+  {% for t in taux_tva_disponibles %}
+    const opt{{ forloop.counter }} = document.createElement('option');
+    opt{{ forloop.counter }}.value = "{{ t.taux|unlocalize }}";
+    opt{{ forloop.counter }}.text = "{{ t.taux|floatformat:0 }}%";
+    if (parseFloat(opt{{ forloop.counter }}.value) === parseFloat(el.innerText)) opt{{ forloop.counter }}.selected = true;
+    select.appendChild(opt{{ forloop.counter }});
+  {% endfor %}
+
+  select.setAttribute('name', 'taux_tva');
+  select.setAttribute('hx-post', '{% url "finance:set_taux_tva" %}');
+  select.setAttribute('hx-vals', JSON.stringify({id: pk, type: type}));
+  select.setAttribute('hx-trigger', 'change');
+  select.setAttribute('hx-target', 'this');
+  select.setAttribute('hx-swap', 'outerHTML');
+  select.setAttribute('hx-headers', '{"X-CSRFToken": "{{ csrf_token }}"}');
+  
+  el.parentNode.replaceChild(select, el);
+  htmx.process(select);
+  select.focus();
 }
 </script>
 {% endblock %}

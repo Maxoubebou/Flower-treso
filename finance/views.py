@@ -9,6 +9,7 @@ from django.middleware.csrf import get_token
 from .models import FactureVente, BulletinVersement, FactureAchat, Etude
 from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, ParametreCotisation
 from flower_treso.utils import to_decimal
+from django.db import IntegrityError
 
 
 def _get_filtres(request):
@@ -112,6 +113,7 @@ def ventes_list(request):
         'all_types_vente': TypeFactureVente.objects.filter(active=True),
         'current_sort': request.GET.get('sort'),
         'current_order': request.GET.get('order', 'asc'),
+        'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True).order_by('ordre'),
     })
 
 
@@ -155,6 +157,7 @@ def vente_edit(request, pk):
             ligne_bud_pk = request.POST.get('ligne_budgetaire')
 
             fv.type_facture = type_facture
+            fv.tiers = request.POST.get('tiers', '')
             fv.etude = Etude.objects.get(pk=etude_pk) if etude_pk else None
             fv.libelle = request.POST.get('libelle', fv.libelle)
             fv.lien_drive = request.POST.get('lien_drive', '')
@@ -180,6 +183,7 @@ def vente_edit(request, pk):
         'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
         'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True),
         'etudes': EtudeModel.objects.filter(active=True).order_by('reference'),
+        'historique_tiers': FactureVente.objects.exclude(tiers="").values_list('tiers', flat=True).distinct()[:50],
     })
 
 
@@ -321,6 +325,7 @@ def achats_list(request):
         'all_types_achat': TypeAchat.objects.filter(active=True),
         'current_sort': request.GET.get('sort'),
         'current_order': request.GET.get('order', 'asc'),
+        'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True).order_by('ordre'),
     })
 
 
@@ -838,3 +843,101 @@ def vente_export_csv(request):
         ])
         
     return response
+@require_POST
+def update_invoice_field(request):
+    """Mise à jour rapide d'un champ via HTMX (Numéro, Tiers ou Libellé)."""
+    obj_type = request.POST.get('type')
+    pk = request.POST.get('pk')
+    field = request.POST.get('field')
+    new_value = request.POST.get('value', '').strip()
+    
+    if obj_type == 'vente':
+        obj = get_object_or_404(FactureVente, pk=pk)
+        prefix = 'S' if obj.type_facture.est_subvention else 'FV'
+    else:
+        obj = get_object_or_404(FactureAchat, pk=pk)
+        prefix = 'NF' if obj.type_achat.suffixe == 'NF' else 'A'
+
+    try:
+        if field == 'numero':
+            if not new_value.startswith(prefix):
+                return HttpResponse(f'<span class="text-danger" style="font-size:0.7rem">Prefix {prefix} requis</span>', status=200)
+            obj.numero = new_value
+        elif field == 'tiers':
+            if obj_type == 'vente':
+                obj.tiers = new_value
+            else:
+                obj.fournisseur = new_value
+        elif field == 'libelle':
+            obj.libelle = new_value
+            
+        obj.save()
+
+        # Retourne le HTML correspondant au champ mis à jour
+        if field == 'numero':
+            return HttpResponse(f'<span class="font-mono font-bold" style="color:var(--color-primary);font-size:.75rem;cursor:pointer" onclick="enableQuickEdit(this, \'{obj_type}\', \'{obj.id}\', \'numero\')">{obj.numero}</span>')
+        elif field == 'tiers' or field == 'libelle':
+            # On retourne tout le bloc Tiers / Libellé pour que l'affichage reste synchro
+            tiers_val = obj.tiers if obj_type == 'vente' else obj.fournisseur
+            libelle_val = obj.libelle or 'Sans libellé'
+            study_html = ""
+            if obj_type == 'vente' and obj.etude:
+                study_html = f'<div class="text-xs" style="color:var(--color-primary); font-size:0.65rem; font-weight:600">Étude: {obj.etude.reference}</div>'
+            
+            return HttpResponse(f'''
+                <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" onclick="enableQuickEdit(this, \'{obj_type}\', \'{obj.id}\', \'tiers\')">{tiers_val or '—'}</div>
+                <div class="text-xs text-muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" onclick="enableQuickEdit(this, \'{obj_type}\', \'{obj.id}\', \'libelle\')">{libelle_val}</div>
+                {study_html}
+            ''')
+
+    except IntegrityError:
+        return HttpResponse(f'<span class="text-danger" style="font-size:0.7rem">Déjà utilisé</span>', status=200)
+    except Exception as e:
+        return HttpResponse(f'<span class="text-danger" style="font-size:0.7rem">Erreur</span>', status=200)
+
+@require_POST
+def set_taux_tva(request):
+    """Endpoint HTMX pour changer le taux de TVA inline."""
+    obj_type = request.POST.get('type')
+    obj_id = request.POST.get('id')
+    taux_val = request.POST.get('taux_tva')
+    
+    if obj_type == 'vente':
+        obj = get_object_or_404(FactureVente, pk=obj_id)
+        is_mixed = obj.taux_mixte
+    else:
+        obj = get_object_or_404(FactureAchat, pk=obj_id)
+        is_mixed = obj.taux_compose
+
+    if taux_val:
+        new_taux = to_decimal(taux_val)
+        obj.taux_tva = new_taux
+        # Si pas en mode mixte, on recalcule HT/TVA depuis le TTC
+        if not is_mixed:
+            from finance.services import calculate_tva
+            calcul = calculate_tva(obj.montant_ttc, new_taux)
+            obj.montant_ht = calcul['ht']
+            obj.montant_tva = calcul['tva']
+        obj.save()
+
+    # On retourne le nouveau taux et on déclenche un événement pour rafraîchir HT et TVA
+    response = HttpResponse(f'<span class="font-mono" style="cursor:pointer" onclick="enableTvaEdit(this, \'{obj_type}\', \'{obj.id}\')">{obj.taux_tva:.0f}%</span>')
+    response['HX-Trigger'] = f'refresh-invoice-{obj_type}-{obj.id}'
+    return response
+
+def refresh_invoice_cell(request):
+    """Retourne la valeur HT ou TVA formatée d'une facture pour rafraîchir le listing."""
+    obj_type = request.GET.get('type')
+    pk = request.GET.get('pk')
+    field = request.GET.get('field')
+    
+    if obj_type == 'vente':
+        from finance.models import FactureVente
+        obj = get_object_or_404(FactureVente, pk=pk)
+    else:
+        from finance.models import FactureAchat
+        obj = get_object_or_404(FactureAchat, pk=pk)
+        
+    val = getattr(obj, f'montant_{field}', 0)
+    from django.template.defaultfilters import floatformat
+    return HttpResponse(floatformat(val, 2))

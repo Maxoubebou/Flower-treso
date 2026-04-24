@@ -36,6 +36,7 @@ class FactureVente(models.Model):
         TypeFactureVente, on_delete=models.PROTECT, related_name='factures'
     )
     numero = models.CharField(max_length=30, unique=True, blank=True)
+    tiers = models.CharField(max_length=255, blank=True)
     etude = models.ForeignKey(
         Etude, on_delete=models.SET_NULL, null=True, blank=True, related_name='factures_vente'
     )

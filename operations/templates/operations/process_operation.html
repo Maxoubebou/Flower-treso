@@ -68,27 +68,37 @@
             <div class="card" style="display: flex; flex-direction: column; flex: 1;">
               <div class="card-header"><div class="card-title">Identification</div></div>
               <div class="card-body" style="display: flex; flex-direction: column; flex: 1;">
-                <div class="form-group">
-                  <label class="form-label">Type de facture <span class="required">*</span></label>
-                  <select name="type_facture" class="form-control" required id="type-facture-select" onchange="updateTVAFromType(this)">
-                    {% for tf in types_facture_vente %}
-                    <option value="{{ tf.pk }}" data-taux="{{ tf.taux_tva_defaut }}" data-cot="{{ tf.est_cotisation|yesno:'1,0' }}">
-                      {{ tf.nom }}
-                    </option>
-                    {% endfor %}
-                  </select>
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Type de facture <span class="required">*</span></label>
+                    <select name="type_facture" class="form-control" required id="type-facture-select" onchange="updateTVAFromType(this)">
+                      {% for tf in types_facture_vente %}
+                      <option value="{{ tf.pk }}" data-taux="{{ tf.taux_tva_defaut }}" data-cot="{{ tf.est_cotisation|yesno:'1,0' }}">
+                        {{ tf.nom }}
+                      </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+  
+                  <div class="form-group" id="etude-group" style="display:none">
+                    <label class="form-label">Référence d'étude <span class="required">*</span></label>
+                    <select name="etude" class="form-control" id="etude-select">
+                      <option value="">— Sans étude associée —</option>
+                      {% for e in etudes %}
+                      <option value="{{ e.pk }}" {% if autofill_rule and autofill_rule.etude == e %}selected{% endif %}>{{ e.reference }} — {{ e.nom }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">
-                    Référence d'étude <span id="etude-asterisk" class="required" style="display:none">*</span>
-                  </label>
-                  <select name="etude" class="form-control" id="etude-select">
-                    <option value="">— Sans étude associée —</option>
-                    {% for e in etudes %}
-                    <option value="{{ e.pk }}" {% if autofill_rule and autofill_rule.etude == e %}selected{% endif %}>{{ e.reference }} — {{ e.nom }}</option>
+                  <label class="form-label">Tiers <span class="required">*</span></label>
+                  <input type="text" name="tiers" class="form-control" required list="tiers-list" value="{% if autofill_rule and autofill_rule.fournisseur %}{{ autofill_rule.fournisseur }}{% else %}{{ operation.libelle }}{% endif %}">
+                  <datalist id="tiers-list">
+                    {% for t in historique_tiers %}
+                      <option value="{{ t }}"></option>
                     {% endfor %}
-                  </select>
+                  </datalist>
                 </div>
 
                 <div class="form-group">
@@ -244,7 +254,7 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Fournisseur <span class="required">*</span></label>
+                  <label class="form-label">Tiers <span class="required">*</span></label>
                   <input type="text" 
                          name="fournisseur" 
                          class="form-control" 
@@ -808,7 +818,7 @@
 
             <div class="form-grid-2 mb-4">
               <div class="form-group">
-                <label class="form-label font-semibold">Fournisseur</label>
+                <label class="form-label font-semibold">Tiers</label>
                 <input type="text" name="fournisseur" class="form-control" placeholder="ex: URSSAF">
               </div>
               <div class="form-group">
@@ -1049,25 +1059,21 @@ const TTC = {{ operation.montant|default:0|unlocalize }};
 
 function updateEtudeStatus() {
   const typeSelect = document.getElementById('type-facture-select');
+  const etudeGroup = document.getElementById('etude-group');
   const etudeSelect = document.getElementById('etude-select');
-  const asterisk = document.getElementById('etude-asterisk');
   
-  if (!typeSelect || !etudeSelect) return;
+  if (!typeSelect || !etudeGroup || !etudeSelect) return;
 
   const selectedText = typeSelect.options[typeSelect.selectedIndex].text.toLowerCase();
   const isMandatory = selectedText.includes('acompte') || selectedText.includes('solde');
 
   if (isMandatory) {
-    etudeSelect.disabled = false;
+    etudeGroup.style.display = 'block';
     etudeSelect.required = true;
-    etudeSelect.style.background = "#fff";
-    asterisk.style.display = 'inline';
   } else {
-    etudeSelect.disabled = true;
+    etudeGroup.style.display = 'none';
     etudeSelect.required = false;
-    etudeSelect.value = ""; // Réinitialise si désactivé
-    etudeSelect.style.background = "var(--color-gray-100)"; // Aspect grisé comme date opération
-    asterisk.style.display = 'none';
+    etudeSelect.value = ""; 
   }
 }
 
