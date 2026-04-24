@@ -118,9 +118,9 @@
             </a>
           </th>
           <th style="padding:8px 10px">Réf. Opération</th>
+          <th style="padding:8px 10px; width: 140px;" class="text-right">Actions</th>
           <th style="padding:8px 10px">ENVOYÉ LE</th>
           <th style="padding:8px 10px">Commentaire</th>
-          <th style="padding:8px 10px; width: 150px;"></th>
         </tr>
       </thead>
 
@@ -171,42 +171,12 @@
                 À traiter
               </a>
             {% endif %}
-          </td>
-
-
-          <!-- Envoyé le (Date Envoi) -->
-          <td style="padding:7px 10px">
-            <input type="text" 
-                   class="bv-date-picker"
-                   placeholder="JJ/MM/AAAA"
-                   style="border:none; background:transparent; font-size:0.85rem; font-weight:400; width:90px; padding:0; outline:none; color:var(--color-gray-700)"
-                   value="{{ bv.date_envoi|date:'d/m/Y' }}"
-                   data-pk="{{ bv.id }}"
-                   oninput="smartDateMask(this)">
-
-          </td>
-
-
-
-
-          <!-- Commentaire -->
-          <td style="padding:7px 10px">
-            <textarea class="comment-textarea"
-                      placeholder="Ajouter un commentaire..."
-                      hx-post="{% url 'finance:update_bv_field' %}"
-                      hx-trigger="keyup changed delay:1s"
-                      hx-vals='{"pk": "{{ bv.id }}", "field": "commentaire"}'
-                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                      name="value"
-                      oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">{{ bv.commentaire }}</textarea>
-          </td>
-
           <!-- Actions -->
           <td style="padding:7px 10px">
             <div class="flex gap-1 justify-end items-center">
               <!-- Export PDF -->
-              <a href="{% url 'finance:bv_pdf_export' bv.pk %}" class="btn btn-ghost btn-icon text-primary" title="Générer le PDF">
-                <i data-lucide="file-text" width="16" height="16"></i>
+              <a href="{% url 'finance:bv_pdf_export' bv.pk %}" class="btn btn-ghost btn-icon text-primary" title="Télécharger le PDF">
+                <i data-lucide="file-down" width="16" height="16"></i>
               </a>
 
               <!-- Drive -->
@@ -244,6 +214,33 @@
                 </a>
               {% endif %}
             </div>
+          </td>
+
+          <!-- Envoyé le (Date Envoi) -->
+          <td style="padding:7px 10px">
+            <input type="text" 
+                   class="bv-date-picker"
+                   placeholder="JJ/MM/AAAA"
+                   style="border:none; background:transparent; font-size:0.85rem; font-weight:400; width:90px; padding:0; outline:none; color:var(--color-gray-700)"
+                   value="{{ bv.date_envoi|date:'d/m/Y' }}"
+                   data-pk="{{ bv.id }}"
+                   oninput="smartDateMask(this)">
+
+          </td>
+
+
+
+
+          <!-- Commentaire -->
+          <td style="padding:7px 10px">
+            <textarea class="comment-textarea"
+                      placeholder="Ajouter un commentaire..."
+                      hx-post="{% url 'finance:update_bv_field' %}"
+                      hx-trigger="keyup changed delay:1s"
+                      hx-vals='{"pk": "{{ bv.id }}", "field": "commentaire"}'
+                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      name="value"
+                      oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">{{ bv.commentaire }}</textarea>
           </td>
         </tr>
         {% endfor %}

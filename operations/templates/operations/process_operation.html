@@ -492,7 +492,7 @@
                                             {{ bv.net_a_payer|floatformat:2 }} €
                                         </div>
                                     </td>
-                                    <td class="text-right">
+                                    <td class="text-left">
                                         {% if bv.matches_amount %}
                                             <button type="button" 
                                                     class="btn btn-primary btn-sm flex items-center gap-2 ml-auto"
@@ -501,13 +501,13 @@
                                                 Lier
                                             </button>
                                         {% else %}
-                                            <div class="flex flex-col items-end gap-1" onclick="event.stopPropagation()">
-                                                <div class="text-xs text-danger font-semibold">Montant incohérent</div>
-                                                <a href="{% url 'finance:bv_list' %}?id={{ bv.id }}" class="btn btn-ghost btn-sm" style="color:var(--color-warning)" target="_blank">
-                                                    <i data-lucide="edit-3" width="12" height="12"></i>
-                                                    Modifier le BV
-                                                </a>
-                                            </div>
+                                            <a href="{% url 'finance:bv_list' %}?id={{ bv.id }}" 
+                                                class="btn btn-sm inline-flex items-center gap-2" 
+                                                style="background: transparent; color: var(--color-gray-600); border: 1px solid var(--color-gray-300); font-size: 0.75rem; font-weight: 600; padding: 4px 8px; border-radius: 6px;" 
+                                                onclick="event.stopPropagation()">
+                                                <i data-lucide="edit-2" width="14" height="14"></i>
+                                                Modifier le BV
+                                            </a>
                                         {% endif %}
                                     </td>
                                 </tr>
