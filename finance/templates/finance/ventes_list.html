@@ -164,7 +164,7 @@
                 </span>
               </div>
               {% if not f.date_envoi or not f.lien_drive %}
-                <div style="cursor:help; margin-left: auto;" title="Incomplet : {% if not f.date_envoi %}Date envoi manquante{% endif %}{% if not f.date_envoi and not f.lien_drive %} & {% endif %}{% if not f.lien_drive %}Justificatif Drive manquant{% endif %}">
+                <div style="cursor:pointer; margin-left: auto;" title="Incomplet : {% if not f.date_envoi %}Date envoi manquante{% endif %}{% if not f.date_envoi and not f.lien_drive %} & {% endif %}{% if not f.lien_drive %}Justificatif Drive manquant{% endif %}">
                    <i data-lucide="alert-triangle" width="18" height="18" style="color: #f97316 !important; stroke: #f97316 !important;"></i>
                 </div>
               {% endif %}
