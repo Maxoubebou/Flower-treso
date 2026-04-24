@@ -34,12 +34,52 @@ def dashboard(request):
     from operations.models import Operation
     ops_pending = Operation.objects.filter(statut='pending').count()
 
-    # Déclaration TVA du mois
-    periode = f"{annee_courante}{mois_courant:02d}"
-    decl_courante = DeclarationTVA.objects.filter(periode=periode).first()
+    # --- Gestion TVA Dashboard ---
+    # On affiche les 3 dernières périodes (M-1, M-2, M-3 par rapport à aujourd'hui)
+    tva_history = []
+    
+    # On commence par le mois précédent (période à déclarer ce mois-ci)
+    for i in range(1, 4):
+        # Calcul de la période (ex: si aujourd'hui est Avril, i=1 -> Mars, i=2 -> Février...)
+        d = aujourd_hui
+        target_month = (d.month - i - 1) % 12 + 1
+        target_year = d.year + (d.month - i - 1) // 12
+        
+        period_str = f"{target_year}{target_month:02d}"
+        deadline_date = date(target_year + (target_month // 12), (target_month % 12) + 1, 24)
+        
+        decl = DeclarationTVA.objects.filter(periode=period_str).first()
+        status = 'not_started'
+        status_label = "En attente"
+        days_left = (deadline_date - aujourd_hui).days
+        
+        if decl and decl.finalisee:
+            status = 'done'
+            status_label = "Déclaration faite"
+        elif aujourd_hui > deadline_date:
+            status = 'late'
+            status_label = "En retard"
+        elif days_left <= 10:
+            status = 'urgent'
+            status_label = f"Plus que {days_left} jours"
+        
+        # Libellé du mois à déclarer (ex: "Mars 2026")
+        months_fr = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+        period_label = f"{months_fr[target_month-1]} {target_year}"
 
-    # Dernières déclarations
-    declarations_recentes = DeclarationTVA.objects.order_by('-periode')[:6]
+        tva_history.append({
+            'period': period_str,
+            'label': period_label,
+            'month': target_month,
+            'year': target_year,
+            'deadline': deadline_date,
+            'decl': decl,
+            'status': status,
+            'status_label': status_label,
+            # Résumé financier
+            'amount': decl.ligne_27 if decl and decl.ligne_27 > 0 else (decl.ligne_32 if decl else 0),
+            'is_credit': decl and decl.ligne_27 > 0,
+        })
 
     ca_mois = sum(v.montant_ttc for v in ventes_mois) or 0
     depenses_mois = sum(a.montant_ttc for a in achats_mois) or 0
@@ -58,8 +98,7 @@ def dashboard(request):
         'ops_pending': ops_pending,
         'mois_courant': mois_courant,
         'annee_courante': annee_courante,
-        'decl_courante': decl_courante,
-        'declarations_recentes': declarations_recentes,
+        'tva_history': tva_history,
         'aujourd_hui': aujourd_hui,
     })
 
