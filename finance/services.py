@@ -54,17 +54,23 @@ def generate_numero_facture_vente(type_facture, annee: int, mois: int, suffixe: 
 def generate_numero_facture_achat(type_achat, annee: int, mois: int) -> str:
     """
     Génère le numéro de facture d'achat.
-    Format : FA_[AAAA][MM][NNN][F|NF]
+    Nomenclature : A (fournisseur) ou NF (ndf) + AA + MM + NN (partagé)
     """
     from .models import FactureAchat
 
-    suffixe = type_achat.suffixe  # 'F' ou 'NF'
+    # Compteur partagé sur le mois/année (Factures Fournisseur + NDF partagent le même chrono)
     count = FactureAchat.objects.filter(
         date_operation__year=annee,
         date_operation__month=mois,
     ).count()
     chrono = count + 1
-    return f"FA_{annee}{mois:02d}{chrono:03d}{suffixe}"
+    
+    aa = str(annee)[-2:]
+    mm = f"{mois:02d}"
+    nn = f"{chrono:02d}"
+    
+    prefix = 'NF' if type_achat.suffixe == 'NF' else 'A'
+    return f"{prefix}{aa}{mm}{nn}"
 
 
 def generate_numero_bv(annee: int) -> str:
