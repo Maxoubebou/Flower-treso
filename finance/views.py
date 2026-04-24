@@ -721,9 +721,9 @@ def achat_export_csv(request):
             if date_mode == 'facture':
                 # Si mode facture : filtrer sur date_reception avec fallback sur date_operation
                 qs = qs.annotate(effective_date=Coalesce('date_reception', 'date_operation'))
-                qs = qs.filter(effective_date__range=(start_date, end_date))
+                qs = qs.filter(effective_date__range=(start_date, end_date)).order_by('effective_date')
             else:
-                qs = qs.filter(date_operation__range=(start_date, end_date))
+                qs = qs.filter(date_operation__range=(start_date, end_date)).order_by('date_operation')
         except ValueError:
             pass # Invalid dates, return unfiltered or handle as needed
 
@@ -773,6 +773,68 @@ def achat_export_csv(request):
             f"{fa.montant_ttc:.2f}".replace('.', ','),
             fa.ligne_budgetaire.nom if fa.ligne_budgetaire else "",
             fa.date_operation.strftime('%d/%m/%Y') if fa.date_operation else ""
+        ])
+        
+    return response
+
+
+def vente_export_csv(request):
+    """Exporte les factures de vente en CSV selon une période et un mode de date."""
+    from datetime import datetime
+    from django.db.models.functions import Coalesce
+    
+    start_date_raw = request.GET.get('start_date')
+    end_date_raw = request.GET.get('end_date')
+    date_mode = request.GET.get('date_mode', 'operation')  # 'operation' or 'facture'
+    
+    qs = FactureVente.objects.select_related('type_facture', 'etude', 'ligne_budgetaire', 'operation')
+    
+    if start_date_raw and end_date_raw:
+        try:
+            start_date = datetime.strptime(start_date_raw, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_raw, '%Y-%m-%d').date()
+            
+            if date_mode == 'facture':
+                # Si mode facture : filtrer sur date_envoi avec fallback sur date_operation
+                qs = qs.annotate(effective_date=Coalesce('date_envoi', 'date_operation'))
+                qs = qs.filter(effective_date__range=(start_date, end_date)).order_by('effective_date')
+            else:
+                qs = qs.filter(date_operation__range=(start_date, end_date)).order_by('date_operation')
+        except ValueError:
+            pass
+
+    response = HttpResponse(content_type='text/csv')
+    response.write('\ufeff'.encode('utf8'))
+    
+    filename = f"export_ventes_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    writer = csv.writer(response, delimiter=';')
+    # Headers : Référence, Tier, Type, Étude, Libellé, Lien Drive, Date Envoi, Date échéance, HT, [Vide], HT, Taux TVA, TVA, TTC, Date Opération, Ligne Budget
+    writer.writerow([
+        'Référence', 'Tier', 'Type', 'Référence Étude', 'Libellé', 
+        'Lien Drive', 'Date Envoi', 'Date d\'échéance', 'HT', '[Vide]', 
+        'HT', 'Taux TVA', 'TVA', 'TTC', 'Date Opération', 'Ligne Budget'
+    ])
+    
+    for fv in qs:
+        writer.writerow([
+            fv.numero or "",
+            "", # Tier (vide)
+            fv.type_facture.nom if fv.type_facture else "",
+            fv.etude.reference if fv.etude else "",
+            fv.libelle or "",
+            fv.lien_drive or "",
+            fv.date_envoi.strftime('%d/%m/%Y') if fv.date_envoi else "",
+            "", # Date d'échéance (vide)
+            f"{fv.montant_ht:.2f}".replace('.', ','),
+            "", # [Vide] (vide)
+            f"{fv.montant_ht:.2f}".replace('.', ','),
+            f"{fv.taux_tva:.2f}".replace('.', ','),
+            f"{fv.montant_tva:.2f}".replace('.', ','),
+            f"{fv.montant_ttc:.2f}".replace('.', ','),
+            fv.date_operation.strftime('%d/%m/%Y') if fv.date_operation else "",
+            fv.ligne_budgetaire.nom if fv.ligne_budgetaire else ""
         ])
         
     return response

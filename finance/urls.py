@@ -6,6 +6,7 @@ app_name = 'finance'
 urlpatterns = [
     # Ventes
     path('ventes/', views.ventes_list, name='ventes_list'),
+    path('ventes/export/', views.vente_export_csv, name='vente_export_csv'),
     path('ventes/<int:pk>/', views.vente_detail, name='vente_detail'),
     path('ventes/<int:pk>/edit/', views.vente_edit, name='vente_edit'),
     # Bulletins de versement

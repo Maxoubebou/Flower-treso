@@ -508,10 +508,9 @@ function openExportModal() {
   // Pré-remplir avec le mois actuel par défaut
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   
   document.getElementById('export-start-date').value = firstDay.toISOString().split('T')[0];
-  document.getElementById('export-end-date').value = lastDay.toISOString().split('T')[0];
+  document.getElementById('export-end-date').value = now.toISOString().split('T')[0];
 }
 
 function closeExportModal() {
