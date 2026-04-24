@@ -871,6 +871,8 @@ def update_invoice_field(request):
                 obj.fournisseur = new_value
         elif field == 'libelle':
             obj.libelle = new_value
+        elif field == 'commentaire':
+            obj.commentaire = new_value
             
         obj.save()
 
@@ -890,6 +892,9 @@ def update_invoice_field(request):
                 <div class="text-xs text-muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" onclick="enableQuickEdit(this, \'{obj_type}\', \'{obj.id}\', \'libelle\')">{libelle_val}</div>
                 {study_html}
             ''')
+        elif field == 'commentaire':
+            val = obj.commentaire or '—'
+            return HttpResponse(f'<div class="text-xs text-muted" style="cursor:pointer; white-space:pre-wrap; word-break:break-word; width: 100%" onclick="enableQuickEdit(this, \'{obj_type}\', \'{obj.id}\', \'commentaire\')">{val}</div>')
 
     except IntegrityError:
         return HttpResponse(f'<span class="text-danger" style="font-size:0.7rem">Déjà utilisé</span>', status=200)
