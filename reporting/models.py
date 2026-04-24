@@ -37,47 +37,47 @@ class DeclarationTVA(models.Model):
     # B — Opérations diverses
     ligne_B2 = models.DecimalField(
         max_digits=14, decimal_places=2, default=0,
-        help_text="B2 — Acquisitions intracommunautaires HT"
+        help_text="Acquisitions intracommunautaires HT"
     )
 
     # E — Opérations non imposables
     ligne_E2 = models.DecimalField(
         max_digits=14, decimal_places=2, default=0,
-        help_text="E2 — Autres opérations non imposables (cotisations)"
+        help_text="Autres opérations non imposables (cotisations)"
     )
 
     # ─── Section B : TVA brute ───────────────────────────────────────────────
     ligne_08_base = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                        help_text="08 — Base imposable taux normal 20%")
+                                        help_text="Base imposable taux normal 20%")
     ligne_08_taxe = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                        help_text="08 — TVA due taux normal 20%")
+                                        help_text="TVA due taux normal 20%")
     ligne_16 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                   help_text="16 — Total TVA brute due")
+                                   help_text="Total TVA brute due")
 
     ligne_17 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                   help_text="17 — Dont TVA sur acquisitions intracommunautaires")
+                                   help_text="Dont TVA sur acquisitions intracommunautaires")
 
     # ─── TVA déductible ──────────────────────────────────────────────────────
     ligne_20 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                   help_text="20 — Autres biens et services (TVA factures achats)")
+                                   help_text="Autres biens et services (TVA factures achats)")
     ligne_21 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                   help_text="21 — Autre TVA à déduire")
+                                   help_text="Autre TVA à déduire")
     ligne_22 = models.DecimalField(
         max_digits=14, decimal_places=2, default=0,
-        help_text="22 — Report du crédit (ligne 27 du mois précédent)"
+        help_text="Report du crédit (ligne 27 du mois précédent)"
     )
     ligne_23 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                   help_text="23 — Total TVA déductible (19+20+21+22)")
+                                   help_text="Total TVA déductible (19+20+21+22)")
 
     # ─── Crédits ou taxe à payer ─────────────────────────────────────────────
     ligne_25 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                   help_text="25 — Crédit de TVA (23-16)")
+                                   help_text="Crédit de TVA (23-16)")
     ligne_27 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                   help_text="27 — Crédit à reporter")
+                                   help_text="Crédit à reporter")
     ligne_28 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                   help_text="28 — TVA nette due (16-23)")
+                                   help_text="TVA nette due (16-23)")
     ligne_32 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
-                                   help_text="32 — Total à payer")
+                                   help_text="Total à payer")
 
     # ─── Validation et Justificatifs ────────────────────────────────────────
     lien_declaration = models.URLField(max_length=500, blank=True, null=True, help_text="Lien vers la déclaration de TVA")

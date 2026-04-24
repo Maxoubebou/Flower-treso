@@ -99,7 +99,7 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
         'extra_value': _round0(l08_taxe),
         'details': get_details(v_20_qs),
         'logic': "Taux normal 20% : Base HT et Taxe due.",
-        'label': "08 — Taux normal 20%"
+        'label': "Taux normal 20%"
     }
     results['ligne_08_base'] = {'value': _round0(l08_base), 'hidden': True}
     results['ligne_08_taxe'] = {'value': _round0(l08_taxe), 'hidden': True}
@@ -117,9 +117,9 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
     l16_val = l08_taxe # On pourrait sommer d'autres taux si besoin
     results['ligne_16'] = {
         'value': _round0(l16_val),
-        'details': get_details(v_20_qs),
-        'logic': "Total de la TVA brute due.",
-        'label': "16 — Total TVA brute due"
+        'details': [],
+        'logic': "Somme des TVA des ventes (taux normal 20%, réduit 10% et 5,5%).",
+        'label': "Total TVA brute due"
     }
 
     # Ligne 20
@@ -128,7 +128,7 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
         'value': _round0(l20_val),
         'details': get_details(achats_qs),
         'logic': "Somme de la TVA déductible sur achats.",
-        'label': "20 — Autres biens et services (TVA déductible)"
+        'label': "Autres biens et services (TVA déductible)"
     }
 
     # Metadonnées
