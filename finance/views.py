@@ -971,3 +971,25 @@ def operation_reset(request, pk):
     operation.save()
     messages.success(request, f"L'opération '{operation.libelle}' a été remise en attente de traitement.")
     return redirect('finance:ignored_operations_list')
+
+
+def check_reference_exists(request):
+    """Vérifie l'existence d'un numéro de facture (Ajax/HTMX)."""
+    numero = request.GET.get('numero', '').strip()
+    model_name = request.GET.get('model', 'achat')
+    
+    if not numero:
+        return HttpResponse("")
+        
+    exists = False
+    if model_name == 'achat':
+        exists = FactureAchat.objects.filter(numero=numero).exists()
+    elif model_name == 'vente':
+        exists = FactureVente.objects.filter(numero=numero).exists()
+    elif model_name == 'bv':
+        exists = BulletinVersement.objects.filter(numero=numero).exists()
+        
+    if exists:
+        return HttpResponse('<div class="flex items-center gap-1 text-danger font-bold" style="font-size:0.7rem"><i data-lucide="alert-triangle" width="12" height="12"></i> Déjà utilisé</div><script>lucide.createIcons();</script>')
+    else:
+        return HttpResponse('<div class="flex items-center gap-1 text-success font-bold" style="font-size:0.7rem"><i data-lucide="check-circle" width="12" height="12"></i> Disponible</div><script>lucide.createIcons();</script>')

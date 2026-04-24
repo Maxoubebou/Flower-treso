@@ -52,7 +52,7 @@
     {% else %}
       <c-tab name="FA" group_name="basic" icon="shopping-bag" checked="true">Facture d'achat</c-tab>
       <c-tab name="BV" group_name="basic" icon="users">Bulletin de versement</c-tab>
-      <c-tab name="VI" group_name="basic" icon="eye-off">Ignorer</c-tab>
+      <c-tab name="VI" group_name="basic" icon="eye-off">Virement interne / Ignorer</c-tab>
     {% endif %}
   </c-tabs>
 
@@ -111,9 +111,23 @@
                   </datalist>
                 </div>
 
-                <div class="form-group">
-                  <label class="form-label">Preuve comptable (lien Drive)</label>
-                  <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Preuve comptable (lien Drive)</label>
+                    <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label flex justify-between" style="display: flex; justify-content: space-between; align-items: center;">
+                      <span>Référence</span>
+                      <span id="ref-status-vente"></span>
+                    </label>
+                    <input type="text" name="numero" id="ref-numero-vente" class="form-control font-mono" 
+                           value="{{ suggested_fv }}"
+                           hx-get="{% url 'finance:check_reference_exists' %}?model=vente"
+                           hx-trigger="keyup changed delay:500ms"
+                           hx-target="#ref-status-vente"
+                           onkeydown="if(event.key === 'Enter' && document.querySelector('#ref-status-vente .text-danger')) { event.preventDefault(); return false; }">
+                  </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Ligne budgétaire</label>
@@ -279,9 +293,23 @@
                     {% endfor %}
                   </datalist>
                 </div>
-                <div class="form-group">
-                  <label class="form-label">Preuve comptable (lien Drive)</label>
-                  <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Preuve comptable (lien Drive)</label>
+                    <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label flex justify-between" style="display: flex; justify-content: space-between; align-items: center;">
+                      <span>Référence</span>
+                      <span id="ref-status-achat"></span>
+                    </label>
+                    <input type="text" name="numero" id="ref-numero-achat" class="form-control font-mono" 
+                           value="{{ suggested_fa }}"
+                           hx-get="{% url 'finance:check_reference_exists' %}?model=achat"
+                           hx-trigger="keyup changed delay:500ms"
+                           hx-target="#ref-status-achat"
+                           onkeydown="if(event.key === 'Enter' && document.querySelector('#ref-status-achat .text-danger')) { event.preventDefault(); return false; }">
+                  </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Ligne budgétaire</label>

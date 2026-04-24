@@ -31,4 +31,5 @@ urlpatterns = [
     path('set-etude/', views.set_etude, name='set_etude'),
     path('operations-ignorees/', views.ignored_operations_list, name='ignored_operations_list'),
     path('operations-ignorees/reset/<int:pk>/', views.operation_reset, name='operation_reset'),
+    path('check-reference/', views.check_reference_exists, name='check_reference_exists'),
 ]

@@ -72,9 +72,28 @@ def process_operation(request, operation_id):
                 break
     # ========================================================
 
+    from finance.services import generate_numero_facture_vente, generate_numero_facture_achat, generate_numero_bv
+    
+    # Numéros suggérés par défaut (basé sur le premier type actif)
+    first_type_vente = TypeFactureVente.objects.filter(active=True).order_by('ordre').first()
+    first_type_achat = TypeAchat.objects.filter(active=True).order_by('ordre').first()
+    
+    suggested_fv = ""
+    if first_type_vente:
+        suggested_fv = generate_numero_facture_vente(first_type_vente, operation.date_operation.year, operation.date_operation.month)
+        
+    suggested_fa = ""
+    if first_type_achat:
+        suggested_fa = generate_numero_facture_achat(first_type_achat, operation.date_operation.year, operation.date_operation.month)
+
+    suggested_bv = generate_numero_bv(operation.date_operation.year)
+
     context = {
         'operation': operation,
         'autofill_rule': autofill_rule,
+        'suggested_fv': suggested_fv,
+        'suggested_fa': suggested_fa,
+        'suggested_bv': suggested_bv,
         'all_autofill_rules': AutofillRule.objects.all().order_by('ordre', 'nom'),
         'types_facture_vente': TypeFactureVente.objects.filter(active=True).order_by('ordre'),
         'types_achat': TypeAchat.objects.filter(active=True).order_by('ordre'),
@@ -169,7 +188,7 @@ def _process_vente(request, operation):
         date_envoi_raw = request.POST.get('date_envoi', '')
         date_envoi = datetime.strptime(date_envoi_raw, '%Y-%m-%d').date() if date_envoi_raw else None
 
-        numero = generate_numero_facture_vente(
+        numero = request.POST.get('numero') or generate_numero_facture_vente(
             type_facture,
             operation.date_operation.year,
             operation.date_operation.month,
@@ -320,7 +339,7 @@ def _process_achat(request, operation):
         date_reception_raw = request.POST.get('date_reception', '')
         date_reception = datetime.strptime(date_reception_raw, '%Y-%m-%d').date() if date_reception_raw else None
 
-        numero = generate_numero_facture_achat(
+        numero = request.POST.get('numero') or generate_numero_facture_achat(
             type_achat,
             operation.date_operation.year,
             operation.date_operation.month,

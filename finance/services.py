@@ -70,8 +70,8 @@ def generate_numero_facture_achat(type_achat, annee: int, mois: int) -> str:
     max_nn = 0
     for num in existing:
         try:
-            # On cherche les 2 chiffres après le préfixe temporel (index 3-5 pour A2404XX ou 4-6 pour NF2404XX)
-            p_len = 3 if num.startswith('A') else 4
+            # On cherche les 2 chiffres après le préfixe temporel (index 5-7 pour A2404XX ou 6-8 pour NF2404XX)
+            p_len = 5 if num.startswith('A') else 6
             nn_str = num[p_len:p_len+2]
             nn = int(nn_str)
             if nn > max_nn: max_nn = nn
