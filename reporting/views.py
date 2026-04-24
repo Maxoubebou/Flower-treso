@@ -137,11 +137,22 @@ def tva_synthese(request):
     order = [
         'ligne_A1', 'ligne_A2', 'ligne_A3', 'ligne_B2', 'ligne_E2',
         'ligne_08', 'ligne_16', 'ligne_17', 'ligne_20', 'ligne_21', 'ligne_22', 'ligne_23',
-        'ligne_25', 'ligne_27', 'ligne_28', 'ligne_32'
+        'ligne_TD'
     ]
+
+
     
     for key in order:
-        if key in computed_data:
+        if key == 'ligne_TD':
+            val_16 = getattr(decl, 'ligne_16', 0)
+            val_23 = getattr(decl, 'ligne_23', 0)
+            line_data = {
+                'value': val_16 - val_23,
+                'details': [],
+                'logic': "Calcul : Total TVA brute due (16) - Total TVA à déduire (23).",
+                'label': "TVA due"
+            }
+        elif key in computed_data:
             line_data = computed_data[key]
         else:
             # Pour les lignes de report/total qui ne sont pas dans compute_declaration_tva
@@ -155,7 +166,9 @@ def tva_synthese(request):
             if key == 'ligne_22':
                 line_data['logic'] = "Valeur issue de la précédente déclaration (ou 536€ si Janvier 2026)."
 
-        if line_data.get('value') != 0 or key in ['ligne_16', 'ligne_23', 'ligne_32', 'ligne_27']:
+
+        if line_data.get('value') != 0 or key in ['ligne_16', 'ligne_23', 'ligne_TD']:
+
             display_lines.append({
                 'id': key,
                 'label': line_data['label'],

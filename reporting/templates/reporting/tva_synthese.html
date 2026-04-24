@@ -202,7 +202,18 @@
             <div class="tva-line-card" id="card-{{ line.id }}">
                 <div class="tva-line-header" onclick="toggleDetails('{{ line.id }}')">
                     <div class="flex items-center gap-4">
-                        <span class="tva-badge-num">{% if line.id == 'ligne_08' %}08{% elif line.id == 'ligne_16' %}16{% elif line.id == 'ligne_17' %}17{% elif line.id == 'ligne_20' %}20{% elif line.id == 'ligne_21' %}21{% elif line.id == 'ligne_22' %}22{% elif line.id == 'ligne_23' %}23{% elif line.id == 'ligne_25' %}25{% elif line.id == 'ligne_27' %}27{% elif line.id == 'ligne_28' %}28{% elif line.id == 'ligne_32' %}32{% else %}{{ line.id|slice:"7:" }}{% endif %}</span>
+                        <span class="tva-badge-num">
+                            {% if line.id == 'ligne_TD' %}TD
+                            {% elif line.id|slice:"6:7"|lower != line.id|slice:"6:7"|upper %}
+                                {{ line.id|slice:"6:" }}
+                            {% else %}
+                                B{{ line.id|slice:"6:" }}
+                            {% endif %}
+                        </span>
+
+
+
+
                         <span class="tva-line-label">{{ line.label }}</span>
                     </div>
                     <div class="flex items-center gap-6">
