@@ -786,7 +786,7 @@ def achat_export_csv(request):
 
 def vente_export_csv(request):
     """Exporte les factures de vente en CSV selon une période et un mode de date."""
-    from datetime import datetime
+    from datetime import datetime, timedelta
     from django.db.models.functions import Coalesce
     
     start_date_raw = request.GET.get('start_date')
@@ -816,30 +816,48 @@ def vente_export_csv(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
     writer = csv.writer(response, delimiter=';')
-    # Headers : Référence, Tier, Type, Étude, Libellé, Lien Drive, Date Envoi, Date échéance, HT, [Vide], HT, Taux TVA, TVA, TTC, Date Opération, Ligne Budget
+    # Headers : Référence, Tiers, Type, Étude, Libellé, TVA client, TVA, Lien Drive, Date Émission, Date Émission+30j, HT, [Vide], HT, Taux TVA, TVA, TTC, Date Op, Mois Décl, Ligne Budget
     writer.writerow([
-        'Référence', 'Tier', 'Type', 'Référence Étude', 'Libellé', 
-        'Lien Drive', 'Date Envoi', 'Date d\'échéance', 'HT', '[Vide]', 
-        'HT', 'Taux TVA', 'TVA', 'TTC', 'Date Opération', 'Ligne Budget'
+        'Référence', 'Tiers', 'Type de facture', 'Réf Étude', 'Libellé', 
+        'TVA client', 'TVA', 'Lien drive', 'Date d\'émission', 'Date d\'émission+30j', 
+        'Valeur HT', '', 'Valeur HT (bis)', 'Taux TVA', 'TVA collectée', 
+        'Valeur TTC', 'Date de l\'opération', 'Mois Déclaratif', 'Ligne de budget'
     ])
     
+    MONTHS_FR = {
+        1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril', 5: 'Mai', 6: 'Juin',
+        7: 'Juillet', 8: 'Août', 9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
+    }
+
     for fv in qs:
+        # Calculs dates
+        date_emiss_str = fv.date_envoi.strftime('%d/%m/%Y') if fv.date_envoi else ""
+        date_30j_str = (fv.date_envoi + timedelta(days=30)).strftime('%d/%m/%Y') if fv.date_envoi else ""
+        
+        # Mois déclaratif (basé sur date d'opération)
+        mois_decl = ""
+        if fv.date_operation:
+            mois_decl = f"{MONTHS_FR[fv.date_operation.month]} {fv.date_operation.year}"
+
         writer.writerow([
             fv.numero or "",
-            "", # Tier (vide)
+            fv.tiers or "",
             fv.type_facture.nom if fv.type_facture else "",
             fv.etude.reference if fv.etude else "",
             fv.libelle or "",
+            "", # TVA client (vide)
+            "", # TVA (vide)
             fv.lien_drive or "",
-            fv.date_envoi.strftime('%d/%m/%Y') if fv.date_envoi else "",
-            "", # Date d'échéance (vide)
+            date_emiss_str,
+            date_30j_str,
             f"{fv.montant_ht:.2f}".replace('.', ','),
-            "", # [Vide] (vide)
+            "", # Colonne vide
             f"{fv.montant_ht:.2f}".replace('.', ','),
             f"{fv.taux_tva:.2f}".replace('.', ','),
             f"{fv.montant_tva:.2f}".replace('.', ','),
             f"{fv.montant_ttc:.2f}".replace('.', ','),
             fv.date_operation.strftime('%d/%m/%Y') if fv.date_operation else "",
+            mois_decl,
             fv.ligne_budgetaire.nom if fv.ligne_budgetaire else ""
         ])
         
