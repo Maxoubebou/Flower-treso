@@ -65,29 +65,35 @@ def dashboard(request):
 
 
 def tva_synthese(request):
-    """Page de synthèse TVA (formulaire CA3) avec rafraîchissement automatique."""
+    """Page de synthèse TVA (formulaire CA3) avec verrouillage séquentiel."""
     from datetime import date
     aujourd_hui = date.today()
 
-    # Période sélectionnée
-    mois_param = request.GET.get('mois') or request.session.get('filtre_mois')
-    if isinstance(mois_param, list):
-        mois = int(mois_param[0]) if mois_param else aujourd_hui.month
+    # Logique de période forcée : on commence en Janvier 2026
+    # On cherche la dernière déclaration validée
+    derniere_validee = DeclarationTVA.objects.filter(finalisee=True).order_by('-periode').first()
+    
+    if not derniere_validee:
+        # Si aucune n'est validée, on commence en Janvier 2026
+        annee = 2026
+        mois = 1
     else:
-        mois = int(mois_param or aujourd_hui.month)
-
-    annee_param = request.GET.get('annee') or request.session.get('filtre_annee')
-    if isinstance(annee_param, list):
-        annee = int(annee_param[0]) if annee_param else aujourd_hui.year
-    else:
-        annee = int(annee_param or aujourd_hui.year)
-
+        # On passe au mois suivant la dernière validée
+        an_v = int(derniere_validee.periode[:4])
+        mo_v = int(derniere_validee.periode[4:])
+        if mo_v == 12:
+            annee = an_v + 1
+            mois = 1
+        else:
+            annee = an_v
+            mois = mo_v + 1
+            
     periode = f"{annee}{mois:02d}"
 
-
-    # Sauvegarde en session
+    # Sauvegarde en session (pour info)
     request.session['filtre_mois'] = str(mois)
     request.session['filtre_annee'] = str(annee)
+
 
     # Récupérer ou créer la déclaration
     decl, created = DeclarationTVA.objects.get_or_create(
