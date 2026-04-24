@@ -47,8 +47,13 @@ class DeclarationTVA(models.Model):
     )
 
     # ─── Section B : TVA brute ───────────────────────────────────────────────
+    ligne_08_base = models.DecimalField(max_digits=14, decimal_places=2, default=0,
+                                        help_text="08 — Base imposable taux normal 20%")
+    ligne_08_taxe = models.DecimalField(max_digits=14, decimal_places=2, default=0,
+                                        help_text="08 — TVA due taux normal 20%")
     ligne_16 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
                                    help_text="16 — Total TVA brute due")
+
     ligne_17 = models.DecimalField(max_digits=14, decimal_places=2, default=0,
                                    help_text="17 — Dont TVA sur acquisitions intracommunautaires")
 

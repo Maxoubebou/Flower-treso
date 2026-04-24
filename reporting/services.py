@@ -64,9 +64,10 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
     # --- Définition des filtres pour les lignes ---
     
     # A1 : Ventes imposables (hors cotisations et hors exportations extra-UE)
+    # AJOUT : Uniquement ventes avec TVA non nulle
     v_imposables_qs = ventes_qs.exclude(
         type_facture__est_cotisation=True
-    ).exclude(pays_tva='extracom')
+    ).exclude(pays_tva='extracom').exclude(montant_tva=0)
     
     # E2 : Cotisations
     v_cotisations_qs = ventes_qs.filter(type_facture__est_cotisation=True)
@@ -74,9 +75,12 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
     # B2 : Acquisitions intracommunautaires (Achats UE)
     a_intracom_qs = achats_qs.filter(pays_tva='intracom')
 
+    # 08 : Taux normal 20%
+    v_20_qs = v_imposables_qs.filter(taux_tva=20)
+
     # --- Calcul des lignes et récupération des détails ---
 
-    def get_details(qs, type_doc='vente'):
+    def get_details(qs):
         return [{
             'id': obj.id,
             'date': obj.date_operation,
@@ -94,11 +98,26 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
     results['ligne_A1'] = {
         'value': a1_val,
         'details': get_details(v_imposables_qs),
-        'logic': "Somme des montants Hors Taxe (HT) des ventes et prestations imposables en France ou en UE.",
+        'logic': "Somme des montants Hors Taxe (HT) des ventes (avec TVA > 0) imposables en France ou en UE.",
         'label': "Ventes et prestations de services HT"
     }
 
+    # Ligne 08
+    l08_base = _round2(sum(v.montant_ht for v in v_20_qs))
+    l08_taxe = _round2(sum(v.montant_tva for v in v_20_qs))
+    results['ligne_08'] = {
+        'value': l08_base, # Montant principal affiché
+        'extra_value': l08_taxe, # Deuxième valeur demandée
+        'details': get_details(v_20_qs),
+        'logic': "Taux normal 20% : Affiche la Base HT (gauche) et la Taxe due (droite).",
+        'label': "08 — Taux normal 20%"
+    }
+    # Ces champs sont aussi persistés
+    results['ligne_08_base'] = {'value': l08_base, 'hidden': True}
+    results['ligne_08_taxe'] = {'value': l08_taxe, 'hidden': True}
+
     # Ligne A2 (Autres - 0 pour l'instant)
+
     results['ligne_A2'] = {
         'value': Decimal('0.00'),
         'details': [],
@@ -118,7 +137,7 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
     b2_val = _round2(sum(a.montant_ht for a in a_intracom_qs))
     results['ligne_B2'] = {
         'value': b2_val,
-        'details': get_details(a_intracom_qs, 'achat'),
+        'details': get_details(a_intracom_qs),
         'logic': "Somme des montants Hors Taxe (HT) des achats réalisés auprès de fournisseurs situés dans l'UE.",
         'label': "Acquisitions intracommunautaires HT"
     }
@@ -154,7 +173,7 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
     l20_val = _round2(sum(a.montant_tva for a in achats_qs))
     results['ligne_20'] = {
         'value': l20_val,
-        'details': get_details(achats_qs, 'achat'),
+        'details': get_details(achats_qs),
         'logic': "Somme de la TVA déductible sur toutes les factures d'achat reçues sur la période.",
         'label': "Autres biens et services (TVA déductible)"
     }

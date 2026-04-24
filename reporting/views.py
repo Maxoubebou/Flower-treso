@@ -130,7 +130,7 @@ def tva_synthese(request):
     # Ordre des lignes à afficher
     order = [
         'ligne_A1', 'ligne_A2', 'ligne_A3', 'ligne_B2', 'ligne_E2',
-        'ligne_16', 'ligne_17', 'ligne_20', 'ligne_21', 'ligne_22', 'ligne_23',
+        'ligne_08', 'ligne_16', 'ligne_17', 'ligne_20', 'ligne_21', 'ligne_22', 'ligne_23',
         'ligne_25', 'ligne_27', 'ligne_28', 'ligne_32'
     ]
     
@@ -149,14 +149,16 @@ def tva_synthese(request):
             if key == 'ligne_22':
                 line_data['logic'] = "Valeur issue de la précédente déclaration (ou 536€ si Janvier 2026)."
 
-        if line_data['value'] != 0 or key in ['ligne_16', 'ligne_23', 'ligne_32', 'ligne_27']:
+        if line_data.get('value') != 0 or key in ['ligne_16', 'ligne_23', 'ligne_32', 'ligne_27']:
             display_lines.append({
                 'id': key,
                 'label': line_data['label'],
                 'value': line_data['value'],
+                'extra_value': line_data.get('extra_value'), # Added this
                 'details': line_data['details'],
                 'logic': line_data['logic']
             })
+
 
     MOIS_NOMS = [
         '', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
