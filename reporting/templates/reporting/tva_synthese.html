@@ -148,30 +148,54 @@
                 <h1 style="font-size: 2.2rem; font-weight: 900; color: #0f172a; margin: 0;">
                     {{ mois_nom }} {{ annee }}
                 </h1>
-                
-                {% if decl.finalisee %}
-                <div class="validation-status status-finalized">
-                    <i data-lucide="check-circle" width="16" height="16"></i>
-                    Déclaration validée
-                </div>
-                {% else %}
-                <div class="validation-status status-pending">
-                    <i data-lucide="clock" width="16" height="16"></i>
-                    Période en cours
-                </div>
-                {% endif %}
             </div>
         </div>
 
+                
         {% if meta.achats_manquants_count > 0 and not decl.finalisee %}
-        <div style="background:#fff1f2; border:1px solid #fecdd3; border-radius:16px; padding:16px 24px; margin-bottom:24px; display:flex; gap:16px; align-items:flex-start;">
-            <i data-lucide="alert-circle" style="color:var(--tva-danger); flex-shrink:0;"></i>
-            <div>
-                <h4 style="margin:0 0 4px 0; color:#9f1239;">Attention : {{ meta.achats_manquants_count }} achat{{ meta.achats_manquants_count|pluralize }} sans date de facture</h4>
-                <p style="margin:0; font-size:0.85rem; color:#be123c;">Leurs montants de TVA ne seront déductibles que lorsqu'une date de facture sera renseignée.</p>
+        <div style="background:#fff1f2; border:1px solid #fecdd3; border-radius:16px; padding:24px; margin-bottom:24px;">
+            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:16px;">
+                <i data-lucide="alert-circle" style="color:var(--tva-danger); flex-shrink:0;"></i>
+                <div>
+                    <h4 style="margin:0 0 4px 0; color:#9f1239;">Attention : {{ meta.achats_manquants_count }} achat{{ meta.achats_manquants_count|pluralize }} sans date de facture</h4>
+                    <p style="margin:0; font-size:0.85rem; color:#be123c;">Ces montants ne sont pas inclus dans cette déclaration car la TVA n'est déductible qu'à la réception de la facture.</p>
+                </div>
+            </div>
+            
+            <div style="overflow-x:auto;">
+                <table class="tva-details-table" style="background:rgba(255,255,255,0.5); border-radius:12px;">
+                    <thead>
+                        <tr style="background:rgba(159,18,57,0.05)">
+                            <th>Date Op.</th>
+                            <th>Fournisseur</th>
+                            <th>Libellé</th>
+                            <th class="text-right">HT</th>
+                            <th class="text-right">TVA</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in meta.achats_manquants %}
+                        <tr>
+                            <td>{{ item.date|date:"d/m/y" }}</td>
+                            <td><strong>{{ item.tiers|truncatechars:20 }}</strong></td>
+                            <td>{{ item.libelle|truncatechars:25 }}</td>
+                            <td class="text-right font-mono">{{ item.ht|floatformat:2 }}</td>
+                            <td class="text-right font-mono" style="color:var(--tva-primary)">{{ item.tva|floatformat:2 }}</td>
+                            <td class="text-center">
+                                <a href="{% url 'finance:achat_edit' item.id %}" style="color:var(--tva-primary); text-decoration:none;" title="Modifier l'achat">
+                                    <i data-lucide="external-link" width="14" height="14"></i>
+                                </a>
+                            </td>
+
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
         {% endif %}
+
 
         <div class="flex flex-col gap-4">
             {% for line in display_lines %}

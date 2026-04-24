@@ -188,14 +188,10 @@ def compute_declaration_tva(periode: str, switch: str = 'operation') -> dict:
 
     # Metadonnées additionnelles pour le dashboard
     results['meta'] = {
-        'achats_manquants': [{
-            'id': a.id,
-            'nom': a.fournisseur or f"Facture {a.numero}",
-            'date_op': a.date_operation,
-            'ttc': a.montant_ttc
-        } for a in achats_manquants],
+        'achats_manquants': get_details(achats_manquants),
         'achats_manquants_count': achats_manquants.count()
     }
+
 
     return results
 
