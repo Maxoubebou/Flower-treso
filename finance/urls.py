@@ -13,6 +13,7 @@ urlpatterns = [
     path('bv/<int:pk>/edit/', views.bv_edit, name='bv_edit'),
     # Achats
     path('achats/', views.achats_list, name='achats_list'),
+    path('achats/export/', views.achat_export_csv, name='achat_export_csv'),
     path('achats/<int:pk>/edit/', views.achat_edit, name='achat_edit'),
     # Études
     path('etudes/', views.etudes_list, name='etudes_list'),

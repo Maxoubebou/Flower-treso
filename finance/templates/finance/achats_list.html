@@ -311,6 +311,71 @@
   </div>
 </div>
 
+<!-- Floating Export Button -->
+<div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
+    <button onclick="openExportModal()" class="btn btn-primary btn-lg shadow-xl" style="border-radius: 50px; padding: 12px 24px; display: flex; align-items: center; gap: 8px; border:none; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);">
+        <i data-lucide="download" width="20" height="20"></i>
+        <span style="font-weight: 700;">Télécharger CSV</span>
+    </button>
+</div>
+
+<!-- Export Modal -->
+<div id="export-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; align-items: center; justify-content: center;">
+    <div class="modal-backdrop" onclick="closeExportModal()" style="backdrop-filter: blur(8px); background: rgba(15, 23, 42, 0.4);"></div>
+    <div class="modal-content" style="max-width: 400px; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-2">
+                <i data-lucide="file-spreadsheet" width="20" height="20" style="color: var(--color-primary);"></i>
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--color-primary);">Exporter en CSV</h3>
+            </div>
+            <button onclick="closeExportModal()" style="background: none; border: none; cursor: pointer; color: #9ca3af;">
+                <i data-lucide="x" width="20" height="20"></i>
+            </button>
+        </div>
+
+        <form action="{% url 'finance:achat_export_csv' %}" method="get" id="export-form" onsubmit="closeExportModal()">
+            <div class="mb-4">
+                <label class="form-label text-xs uppercase tracking-wider font-bold text-muted mb-2 block">Période d'export</label>
+                <div class="grid grid-cols-2 gap-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label class="text-[0.7rem] text-muted block mb-1">Date début</label>
+                        <input type="date" name="start_date" id="export-start-date" class="form-control" required style="width: 100%;">
+                    </div>
+                    <div>
+                        <label class="text-[0.7rem] text-muted block mb-1">Date fin</label>
+                        <input type="date" name="end_date" id="export-end-date" class="form-control" required style="width: 100%;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="form-label text-xs uppercase tracking-wider font-bold text-muted mb-2 block">Basé sur quel type de date ?</label>
+                <div class="flex flex-col gap-2" style="display: flex; flex-direction: column; gap: 8px;">
+                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--color-gray-200); border-radius: 8px; cursor: pointer;">
+                        <input type="radio" name="date_mode" value="operation" checked style="width: 18px; height: 18px; cursor: pointer;">
+                        <div>
+                            <span class="text-sm font-semibold block" style="display: block; font-size: 0.875rem; font-weight: 600;">Date d'opération</span>
+                            <span class="text-xs text-muted" style="font-size: 0.75rem;">Date du virement bancaire</span>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--color-gray-200); border-radius: 8px; cursor: pointer;">
+                        <input type="radio" name="date_mode" value="facture" style="width: 18px; height: 18px; cursor: pointer;">
+                        <div>
+                            <span class="text-sm font-semibold block" style="display: block; font-size: 0.875rem; font-weight: 600;">Date de facture</span>
+                            <span class="text-xs text-muted" style="font-size: 0.75rem;">Utilise la date d'opération en secours</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-8" style="display: flex; gap: 12px; margin-top: 32px;">
+                <button type="button" onclick="closeExportModal()" class="btn btn-gray flex-1" style="flex: 1;">Annuler</button>
+                <button type="submit" class="btn btn-primary flex-1" style="flex: 1;">Générer le CSV</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -433,5 +498,25 @@ function toggleRowCheckbox(cb) {
 }
 
 document.addEventListener('DOMContentLoaded', loadCheckedRows);
+
+// ─── Export Modal ────────────────────────────────────────────────────────
+function openExportModal() {
+  const modal = document.getElementById('export-modal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  
+  // Pré-remplir avec le mois actuel par défaut
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+  document.getElementById('export-start-date').value = firstDay.toISOString().split('T')[0];
+  document.getElementById('export-end-date').value = lastDay.toISOString().split('T')[0];
+}
+
+function closeExportModal() {
+  document.getElementById('export-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
 </script>
 {% endblock %}

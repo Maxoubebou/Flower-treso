@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+import csv
 from django.contrib import messages
 from django.db.models import Q, Sum, F
 from django.http import HttpResponse
@@ -699,3 +700,79 @@ def set_etude(request):
     obj.save()
     
     return HttpResponse(etude.reference if etude else "—")
+
+
+def achat_export_csv(request):
+    """Exporte les factures d'achat en CSV selon une période et un mode de date."""
+    from datetime import datetime
+    from django.db.models.functions import Coalesce
+    
+    start_date_raw = request.GET.get('start_date')
+    end_date_raw = request.GET.get('end_date')
+    date_mode = request.GET.get('date_mode', 'operation')  # 'operation' or 'facture'
+    
+    qs = FactureAchat.objects.select_related('type_achat', 'ligne_budgetaire', 'operation')
+    
+    if start_date_raw and end_date_raw:
+        try:
+            start_date = datetime.strptime(start_date_raw, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_raw, '%Y-%m-%d').date()
+            
+            if date_mode == 'facture':
+                # Si mode facture : filtrer sur date_reception avec fallback sur date_operation
+                qs = qs.annotate(effective_date=Coalesce('date_reception', 'date_operation'))
+                qs = qs.filter(effective_date__range=(start_date, end_date))
+            else:
+                qs = qs.filter(date_operation__range=(start_date, end_date))
+        except ValueError:
+            pass # Invalid dates, return unfiltered or handle as needed
+
+    response = HttpResponse(content_type='text/csv')
+    # Force UTF-8 BOM for Excel compatibility with French characters
+    response.write('\ufeff'.encode('utf8'))
+    
+    filename = f"export_achats_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    writer = csv.writer(response, delimiter=';')
+    # Headers
+    writer.writerow([
+        'Référence', 'Lien Drive', 'Fournisseur', 'Type', 'Libellé', 
+        'Bien/Service', 'Pays TVA', 'Date Facture', '[Vide]', 'HT', 
+        'Taux TVA', 'TVA', 'TTC', 'Ligne Budget', 'Date Opération'
+    ])
+    
+    for fa in qs:
+        # Type : "Facture Fournisseur" ou "NDF"
+        # On se base sur le nom du type ou le suffixe
+        type_label = "Facture Fournisseur"
+        if fa.type_achat and fa.type_achat.suffixe == 'NF':
+            type_label = "NDF"
+        elif fa.type_achat and "frais" in fa.type_achat.nom.lower():
+            type_label = "NDF"
+            
+        # Pays TVA : TVA [XX]
+        tva_country = f"TVA {fa.pays_tva.upper()}" if fa.pays_tva else ""
+        
+        # Bien/Service (Display name)
+        cat_label = fa.get_categorisation_display() if fa.categorisation else ""
+        
+        writer.writerow([
+            fa.numero or "",
+            fa.lien_drive or "",
+            fa.fournisseur or "",
+            type_label,
+            fa.libelle or "",
+            cat_label,
+            tva_country,
+            fa.date_reception.strftime('%d/%m/%Y') if fa.date_reception else "",
+            "", # Colonne vide
+            f"{fa.montant_ht:.2f}".replace('.', ','),
+            f"{fa.taux_tva:.2f}".replace('.', ','),
+            f"{fa.montant_tva:.2f}".replace('.', ','),
+            f"{fa.montant_ttc:.2f}".replace('.', ','),
+            fa.ligne_budgetaire.nom if fa.ligne_budgetaire else "",
+            fa.date_operation.strftime('%d/%m/%Y') if fa.date_operation else ""
+        ])
+        
+    return response
