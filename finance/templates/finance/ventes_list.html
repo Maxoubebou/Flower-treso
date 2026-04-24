@@ -87,8 +87,8 @@
               Taux tva {% if current_sort == 'taux_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th class="text-right" style="padding:8px 6px">
-            <a href="?sort=montant_ttc&order={% if current_sort == 'montant_ttc' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
+          <th style="padding:8px 6px">
+            <a href="?sort=montant_ttc&order={% if current_sort == 'montant_ttc' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-start gap-1">
               Montants (€) {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
@@ -172,8 +172,8 @@
             <br><span class="text-xs {% if f.pays_tva == 'FR' %}text-muted{% else %}text-warning{% endif %}">{{ f.get_pays_tva_display }}</span>
           </td>
 
-          <td class="text-right font-mono" style="padding:7px 6px">
-            <div class="flex flex-col items-end">
+          <td class="font-mono" style="padding:7px 6px">
+            <div class="flex flex-col items-start">
               <span class="font-bold" style="font-size:0.9rem">{{ f.montant_ttc|floatformat:2 }}</span>
               <span class="text-muted" style="font-size:0.68rem">
                 <span id="vente-ht-{{ f.id }}"
