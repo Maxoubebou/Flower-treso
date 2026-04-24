@@ -2,6 +2,9 @@
 {% load static %}
 
 {% block title %}Bulletins de versement — Flower-Tréso{% endblock %}
+{% block extra_head %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
 {% block page_title %}Bulletins de versement{% endblock %}
 
 {% block content %}
@@ -108,17 +111,19 @@
           </th>
           <th style="padding:8px 10px; width: 140px;">Étude</th>
           <th style="padding:8px 10px">Intervenant</th>
-          <th class="text-right" style="padding:8px 10px">
-            <a href="?sort=retribution_brute_par_jeh&order={% if current_sort == 'retribution_brute_par_jeh' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
+          <th style="padding:8px 10px">
+
+            <a href="?sort=retribution_brute_par_jeh&order={% if current_sort == 'retribution_brute_par_jeh' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
               Net à payer {% if current_sort == 'retribution_brute_par_jeh' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
           <th style="padding:8px 10px">Réf. Opération</th>
-          <th style="padding:8px 10px">Envoyé le</th>
+          <th style="padding:8px 10px">ENVOYÉ LE</th>
           <th style="padding:8px 10px">Commentaire</th>
           <th style="padding:8px 10px; width: 150px;"></th>
         </tr>
       </thead>
+
 
       <tbody>
         {% for bv in bulletins %}
@@ -141,15 +146,20 @@
           <!-- Intervenant -->
           <td style="padding:7px 10px">
             <div class="font-semibold">{{ bv.intervenant_prenom }} {{ bv.intervenant_nom }}</div>
-            <div class="text-muted" style="font-size:0.65rem">{{ bv.nb_jeh|floatformat:0 }} JEH</div>
+            <div class="flex items-center gap-2 text-muted" style="font-size:0.65rem">
+              <span>{{ bv.nb_jeh|floatformat:0 }} JEH</span>
+              <span style="opacity:0.5">•</span>
+              <span>{{ bv.retribution_brute_par_jeh|floatformat:2 }} € / JEH</span>
+            </div>
           </td>
 
           <!-- Net à payer -->
-          <td class="text-right font-mono font-bold text-primary" style="padding:7px 10px">
+          <td class="font-mono font-bold text-primary" style="padding:7px 10px">
             {{ bv.net_a_payer|floatformat:2 }} €
           </td>
 
           <!-- Réf. Opération -->
+
           <td style="padding:7px 10px">
             {% if bv.operation %}
               <span class="text-muted" style="font-size:0.75rem" title="{{ bv.operation.libelle }}">
@@ -166,17 +176,18 @@
 
           <!-- Envoyé le (Date Envoi) -->
           <td style="padding:7px 10px">
-            <input type="date" 
-                   class="form-control" 
-                   style="font-size:0.75rem; padding:2px 4px; border-radius:4px; border:1px solid #e2e8f0; width:115px"
-                   value="{{ bv.date_envoi|date:'Y-m-d' }}"
-                   hx-post="{% url 'finance:update_bv_field' %}"
-                   hx-trigger="change"
-                   hx-vals='{"pk": "{{ bv.id }}", "field": "date_envoi"}'
-                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                   name="value"
-                   onhtmx:after-request="if(event.detail.successful) { this.classList.add('success-flash'); setTimeout(() => this.classList.remove('success-flash'), 1000); }">
+            <input type="text" 
+                   class="bv-date-picker"
+                   placeholder="JJ/MM/AAAA"
+                   style="border:none; background:transparent; font-size:0.85rem; font-weight:400; width:90px; padding:0; outline:none; color:var(--color-gray-700)"
+                   value="{{ bv.date_envoi|date:'d/m/Y' }}"
+                   data-pk="{{ bv.id }}"
+                   oninput="smartDateMask(this)">
+
           </td>
+
+
+
 
           <!-- Commentaire -->
           <td style="padding:7px 10px">
@@ -274,6 +285,8 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
 <script>
 // Ajustement initial des textareas
 document.querySelectorAll('.comment-textarea').forEach(el => {
@@ -336,6 +349,65 @@ function toggleRowCheckbox(cb) {
 document.addEventListener('DOMContentLoaded', () => {
     loadCheckedRows();
     lucide.createIcons();
+
+    // Flatpickr initialization for BV dates
+    if (typeof flatpickr !== 'undefined') {
+      flatpickr(".bv-date-picker", {
+        dateFormat: "d/m/Y",
+        locale: "fr",
+        allowInput: true,
+        onOpen: function(selectedDates, dateStr, instance) {
+          // ensure mask works even with flatpickr
+          instance.input.addEventListener('input', () => smartDateMask(instance.input));
+        },
+        onChange: function(selectedDates, dateStr, instance) {
+          const pk = instance.element.dataset.pk;
+          const isoDate = instance.formatDate(selectedDates[0], "Y-m-d");
+          
+          htmx.ajax('POST', '{% url "finance:update_bv_field" %}', {
+            values: { pk: pk, field: 'date_envoi', value: isoDate },
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            handler: function(target, xhr) {
+              if (xhr.status === 200) {
+                instance.element.classList.add('success-flash');
+                setTimeout(() => instance.element.classList.remove('success-flash'), 1000);
+              }
+            }
+          });
+        }
+      });
+    }
 });
+
+function smartDateMask(el) {
+  let v = el.value.replace(/\D/g, ''); // Uniquement chiffres
+  let result = '';
+
+  if (v.length > 0) {
+    // Logique JOUR : si commence par 4-9 => 0X
+    if (v.length === 1 && parseInt(v[0]) > 3) {
+      v = '0' + v;
+    }
+    result = v.slice(0, 2);
+    if (v.length >= 2) result += '/';
+
+    // Logique MOIS : si 3ème chiffre est 2-9 => 0X
+    if (v.length > 2) {
+      let monthPart = v.slice(2);
+      if (monthPart.length === 1 && parseInt(monthPart[0]) > 1) {
+        v = v.slice(0, 2) + '0' + monthPart;
+      }
+      result = v.slice(0, 2) + '/' + v.slice(2, 4);
+      if (v.length >= 4) result += '/';
+    }
+
+    // ANNEE
+    if (v.length > 4) {
+      result = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4, 8);
+    }
+  }
+  el.value = result;
+}
+
 </script>
 {% endblock %}
