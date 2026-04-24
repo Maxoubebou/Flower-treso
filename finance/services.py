@@ -193,3 +193,100 @@ def calculate_cotisations_urssaf(nb_jeh: Decimal) -> dict:
         
         'total_global': total_j + total_e
     }
+
+
+def generate_bv_pdf_from_template(data_dict: dict) -> bytes:
+    """
+    Remplit un template Excel avec des tags {{TAG}} et le convertit en PDF via LibreOffice.
+    """
+    import os
+    import openpyxl
+    import subprocess
+    import tempfile
+    import shutil
+    from django.conf import settings
+
+    template_path = os.path.join(settings.BASE_DIR, 'Ressource_gemini', 'doctype BV janvier 2026.xlsx')
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(f"Modèle Excel introuvable à l'emplacement : {template_path}")
+
+    # Création d'un répertoire temporaire pour le travail
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_excel = os.path.join(tmp_dir, 'bulletin.xlsx')
+        shutil.copy(template_path, tmp_excel)
+
+        # Remplissage de l'Excel
+        wb = openpyxl.load_workbook(tmp_excel)
+        for sheet in wb.worksheets:
+            for row in sheet.iter_rows():
+                for cell in row:
+                    if isinstance(cell.value, str):
+                        for tag, value in data_dict.items():
+                            if not isinstance(cell.value, str):
+                                break
+                            tag_str = f"{{{{{tag}}}}}"
+                            if tag_str in cell.value:
+
+                                # Remplacement du tag
+                                if cell.value.strip() == tag_str:
+                                    # On conserve le type (float/int) pour que les formules Excel fonctionnent
+                                    cell.value = value
+                                else:
+                                    # Pour les remplacements partiels, on convertit en string
+                                    cell.value = cell.value.replace(tag_str, str(value))
+
+        # Réglages Impression / Zoom
+        if 'Fiche BV' in wb.sheetnames:
+            # On supprime tous les autres onglets pour ne garder que la Fiche BV
+            for sn in wb.sheetnames:
+                if sn != 'Fiche BV':
+                    del wb[sn]
+            
+            ws_bv = wb['Fiche BV']
+            
+            # Supprimer ce qui dépasse de K60 pour être vraiment propre
+            if ws_bv.max_column > 11:
+                ws_bv.delete_cols(12, ws_bv.max_column - 11)
+            if ws_bv.max_row > 60:
+                ws_bv.delete_rows(61, ws_bv.max_row - 60)
+
+            # Zone d'impression
+            ws_bv.print_area = 'A1:K60'
+            
+            # Marges à zéro pour maximiser l'espace (Zoom)
+            ws_bv.page_margins.left = 0
+            ws_bv.page_margins.right = 0
+            ws_bv.page_margins.top = 0
+            ws_bv.page_margins.bottom = 0
+
+            # Ajustement à la page
+            ws_bv.page_setup.fitToPage = True
+            ws_bv.page_setup.fitToHeight = 1
+            ws_bv.page_setup.fitToWidth = 1
+            ws_bv.page_setup.orientation = ws_bv.ORIENTATION_PORTRAIT
+            ws_bv.page_setup.paperSize = ws_bv.PAPERSIZE_A4
+        
+        wb.save(tmp_excel)
+        wb.close()
+
+
+
+        # Conversion PDF via LibreOffice
+        try:
+            subprocess.run([
+                'libreoffice', '--headless', '--convert-to', 'pdf',
+                '--outdir', tmp_dir, tmp_excel
+            ], check=True, capture_output=True, timeout=30)
+            
+            tmp_pdf = os.path.join(tmp_dir, 'bulletin.pdf')
+            if not os.path.exists(tmp_pdf):
+                raise Exception("Le fichier PDF n'a pas été généré (LibreOffice).")
+            
+            with open(tmp_pdf, 'rb') as f:
+                return f.read()
+                
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"Erreur LibreOffice : {e.stderr.decode()}")
+        except subprocess.TimeoutExpired:
+            raise Exception("Le processus LibreOffice a expiré.")
+

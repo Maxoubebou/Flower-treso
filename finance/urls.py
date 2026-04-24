@@ -14,7 +14,9 @@ urlpatterns = [
     path('ventes/<int:pk>/edit/', views.vente_edit, name='vente_edit'),
     # Bulletins de versement
     path('bv/', views.bv_list, name='bv_list'),
+    path('bv/generation/', views.bv_generation, name='bv_generation'),
     path('bv/<int:pk>/edit/', views.bv_edit, name='bv_edit'),
+
     # Achats
     path('achats/', views.achats_list, name='achats_list'),
     path('achats/export/', views.achat_export_csv, name='achat_export_csv'),

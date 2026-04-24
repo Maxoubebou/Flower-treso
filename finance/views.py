@@ -1016,3 +1016,96 @@ def check_reference_exists(request):
         return HttpResponse('<div class="flex items-center gap-1 text-danger font-bold" style="font-size:0.7rem"><i data-lucide="alert-triangle" width="12" height="12"></i> Déjà utilisé</div><script>lucide.createIcons();</script>')
     else:
         return HttpResponse('<div class="flex items-center gap-1 text-success font-bold" style="font-size:0.7rem"><i data-lucide="check-circle" width="12" height="12"></i> Disponible</div><script>lucide.createIcons();</script>')
+
+
+def bv_generation(request):
+    """
+    Vue pour la génération d'un Bulletin de Versement (BV) PDF à partir d'un modèle Excel.
+    """
+    from datetime import date
+    if request.method == 'POST':
+        try:
+            from finance.services import calculate_cotisations_urssaf, generate_bv_pdf_from_template
+            
+            # Récupération des données du formulaire
+            nb_jeh = to_decimal(request.POST.get('nb_jeh', '0'))
+            retrib_par_jeh = to_decimal(request.POST.get('retribution_brute_par_jeh', '0'))
+            
+            # Calcul des cotisations
+            cotis = calculate_cotisations_urssaf(nb_jeh)
+            brut_total = nb_jeh * retrib_par_jeh
+            net_a_payer = brut_total - cotis['total_e']
+            
+            # Formatage spécifique REF_AVRM
+            ref_avrm_raw = request.POST.get('ref_avrm', '')
+            ref_avrm_final = f", modifié par : {ref_avrm_raw}" if ref_avrm_raw else ""
+
+            # Préparation du dictionnaire de tags
+            data = {
+                'NOM': request.POST.get('intervenant_nom', '').upper(),
+                'PRENOM': request.POST.get('intervenant_prenom', ''),
+                'ADRESSE': request.POST.get('adresse', ''),
+                'CP': request.POST.get('code_postal', ''),
+                'VILLE': request.POST.get('ville', ''),
+                'NUM_SECU': request.POST.get('num_secu', ''),
+                'MISSION': request.POST.get('nom_mission', ''),
+                'REF_RM': request.POST.get('ref_rm', ''),
+                'REF_AVRM': ref_avrm_final,
+                'REF_BV': request.POST.get('ref_bv', ''),
+                'ETUDE': request.POST.get('etude_ref', ''),
+                'DATE_EMISSION': request.POST.get('date_emission', date.today().strftime('%d/%m/%Y')),
+                
+                # Valeurs numériques envoyées en float pour que Excel puisse faire ses calculs
+                'NB_JEH': float(nb_jeh),
+                'RETRIB_JEH': float(retrib_par_jeh),
+                'BRUT_TOTAL': float(brut_total),
+                'ASSIETTE': float(cotis['assiette']),
+                
+                # Part Junior
+                'J_MALADIE': float(cotis['j_maladie']),
+                'J_AT': float(cotis['j_at']),
+                'J_VP': float(cotis['j_vp']),
+                'J_VD': float(cotis['j_vd']),
+                'J_AF': float(cotis['j_af']),
+                'J_CSGD': float(cotis['j_csgd']),
+                'J_CSGND': float(cotis['j_csgnd']),
+                'TOTAL_J': float(cotis['total_j']),
+                
+                # Part Étudiant
+                'E_MALADIE': float(cotis['e_maladie']),
+                'E_AT': float(cotis['e_at']),
+                'E_VP': float(cotis['e_vp']),
+                'E_VD': float(cotis['e_vd']),
+                'E_AF': float(cotis['e_af']),
+                'E_CSGD': float(cotis['e_csgd']),
+                'E_CSGND': float(cotis['e_csgnd']),
+                'TOTAL_E': float(cotis['total_e']),
+                
+                'TOTAL_GLOBAL': float(cotis['total_global']),
+                'NET_A_PAYER': float(net_a_payer),
+                'REF_VIREMENT': request.POST.get('reference_virement', ''),
+                'COMMENTAIRE': request.POST.get('commentaire', ''),
+            }
+
+            
+            # Génération du PDF
+            pdf_content = generate_bv_pdf_from_template(data)
+            
+            response = HttpResponse(pdf_content, content_type='application/pdf')
+            filename = f"BV_{data['NOM']}_{date.today().strftime('%Y-%m')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f"Erreur lors de la génération : {e}")
+            return redirect('finance:bv_generation')
+
+    return render(request, 'finance/bv_generation.html', {
+        'etudes': Etude.objects.filter(active=True).order_by('reference'),
+        'lignes_budgetaires': LigneBudgetaire.objects.filter(active=True, budget_items__isnull=False).distinct(),
+        'param_j': ParametreCotisation.objects.filter(type_cotisant='junior').first(),
+        'param_e': ParametreCotisation.objects.filter(type_cotisant='etudiant').first(),
+    })
+
