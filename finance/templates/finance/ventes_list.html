@@ -84,20 +84,20 @@
           </th>
           <th style="padding:8px 10px">
             <a href="?sort=taux_tva&order={% if current_sort == 'taux_tva' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
-              TVA {% if current_sort == 'taux_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
+              Taux tva {% if current_sort == 'taux_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
           <th class="text-right" style="padding:8px 10px">
             <a href="?sort=montant_ht&order={% if current_sort == 'montant_ht' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              HT {% if current_sort == 'montant_ht' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
+              HT (€) {% if current_sort == 'montant_ht' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
           <th class="text-right" style="padding:8px 10px">
             <a href="?sort=montant_ttc&order={% if current_sort == 'montant_ttc' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              TTC {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
+              TVA (€) {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th class="text-right" style="padding:8px 10px">TVA</th>
+          <th class="text-right" style="padding:8px 10px">TTC (€)</th>
           <th style="padding:8px 10px;min-width:120px">Ligne Budg.</th>
           <th style="padding:8px 10px"></th>
         </tr>
@@ -239,7 +239,8 @@
         <tr>
           <td colspan="5" style="padding:8px 10px"><strong>Totaux</strong></td>
           <td class="text-right font-mono" style="padding:8px 10px"><strong>{{ total_ht|floatformat:2 }}</strong></td>
-          <td class="text-right font-mono" style="padding:8px 10px"><strong>{{ total_ttc|floatformat:2 }}</strong></td>
+          <td class="text-right font-mono text-muted" style="padding:8px 10px"><strong>{{ total_tva|floatformat:2 }}</strong></td>
+          <td class="text-right font-mono font-bold" style="padding:8px 10px"><strong>{{ total_ttc|floatformat:2 }}</strong></td>
           <td colspan="2"></td>
         </tr>
       </tfoot>
