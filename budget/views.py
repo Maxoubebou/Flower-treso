@@ -34,7 +34,7 @@ def budget_dashboard(request):
                 res_achats = FactureAchat.objects.filter(ligne_budgetaire=lb).aggregate(total=Sum('montant_ht'))
                 realise_achats = res_achats['total'] or 0
                 if "cotisation" in lb.nom.lower() and "urssaf" in lb.nom.lower():
-                    res_bv = BulletinVersement.objects.filter(ligne_budgetaire=lb).aggregate(total=Sum('total_cotisations_junior'))
+                    res_bv = BulletinVersement.objects.filter(ligne_budgetaire=lb).aggregate(total=Sum('total_junior'))
                 else:
                     res_bv = BulletinVersement.objects.filter(ligne_budgetaire=lb).aggregate(
                         total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh'))
@@ -116,7 +116,7 @@ def budget_dashboard(request):
         achats_data = achats_qs.annotate(month=TruncMonth('date_operation')) \
             .values('month').annotate(total=Sum('montant_ht')).order_by('month')
         bv_data = bv_qs.annotate(month=TruncMonth('date_operation')) \
-            .values('month').annotate(total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh') + F('total_cotisations_junior'))) \
+            .values('month').annotate(total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh') + F('total_junior'))) \
             .order_by('month')
             
         cumul_i = 0
@@ -141,7 +141,7 @@ def budget_dashboard(request):
         achats_data = achats_qs.annotate(week=TruncWeek('date_operation')) \
             .values('week').annotate(total=Sum('montant_ht')).order_by('week')
         bv_data = bv_qs.annotate(week=TruncWeek('date_operation')) \
-            .values('week').annotate(total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh') + F('total_cotisations_junior'))) \
+            .values('week').annotate(total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh') + F('total_junior'))) \
             .order_by('week')
 
         # Trouver les bornes
@@ -282,7 +282,7 @@ def _compute_realise(item):
         res_achats = FactureAchat.objects.filter(ligne_budgetaire=lb).aggregate(total=Sum('montant_ht'))
         realise_achats = res_achats['total'] or 0
         if "cotisation" in lb.nom.lower() and "urssaf" in lb.nom.lower():
-            res_bv = BulletinVersement.objects.filter(ligne_budgetaire=lb).aggregate(total=Sum('total_cotisations_junior'))
+            res_bv = BulletinVersement.objects.filter(ligne_budgetaire=lb).aggregate(total=Sum('total_junior'))
         else:
             res_bv = BulletinVersement.objects.filter(ligne_budgetaire=lb).aggregate(
                 total=Sum(F('nb_jeh') * F('retribution_brute_par_jeh'))
