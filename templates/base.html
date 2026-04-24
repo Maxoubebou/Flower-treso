@@ -55,6 +55,10 @@
         <span class="nav-badge">{{ pending_count }}</span>
         {% endif %}
       </a>
+      <a href="{% url 'finance:etudes_list' %}" class="nav-item {% if 'etudes' in request.path %}active{% endif %}">
+        <i data-lucide="folder-open" width="17" height="17"></i>
+        <span>Études</span>
+      </a>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-section-title"><span>Comptabilité</span></div>
@@ -72,10 +76,6 @@
          class="nav-item {% if '/bv/' in request.path %}active{% endif %}">
         <i data-lucide="users" width="17" height="17"></i>
         <span>Bulletins de versement</span>
-      </a>
-      <a href="{% url 'finance:etudes_list' %}" class="nav-item {% if 'etudes' in request.path %}active{% endif %}">
-        <i data-lucide="folder-open" width="17" height="17"></i>
-        <span>Études</span>
       </a>
       <a href="{% url 'finance:ignored_operations_list' %}"
          class="nav-item {% if 'operations-ignorees' in request.path %}active{% endif %}">
