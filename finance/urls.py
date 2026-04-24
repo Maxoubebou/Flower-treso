@@ -17,6 +17,9 @@ urlpatterns = [
     path('bv/generation/', views.bv_generation, name='bv_generation'),
     path('bv/<int:pk>/edit/', views.bv_edit, name='bv_edit'),
     path('bv/<int:pk>/delete/', views.bv_delete, name='bv_delete'),
+    path('bv/<int:pk>/pdf/', views.bv_pdf_export, name='bv_pdf_export'),
+    path('bv/update-field/', views.update_bv_field, name='update_bv_field'),
+
 
 
     # Achats

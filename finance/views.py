@@ -48,6 +48,21 @@ def _get_filtres(request):
 
     return mois, annee
 
+import hashlib
+
+
+def _generate_pastel_color(name):
+    if not name:
+        return {'bg': '#f3f4f6', 'border': '#d1d5db', 'text': '#374151'}
+    h = hashlib.md5(name.encode()).hexdigest()
+    hue = int(h[:2], 16) * 360 // 256
+    return {
+        'bg': f"hsla({hue}, 70%, 93%, 0.6)",
+        'border': f"hsla({hue}, 50%, 45%, 0.7)",
+        'text': f"hsla({hue}, 70%, 20%, 1)"
+    }
+
+
 
 def _appliquer_filtres(qs, mois, annee, champ_date='date_operation', fallback_champ_date=None):
     from django.db.models.functions import Coalesce
@@ -195,12 +210,19 @@ def vente_edit(request, pk):
 def bv_list(request):
     mois, annee = _get_filtres(request)
     qs = _appliquer_filtres(
-        BulletinVersement.objects.select_related('etude', 'ligne_budgetaire'),
+        BulletinVersement.objects.select_related('etude', 'ligne_budgetaire', 'operation'),
         mois, annee
     )
     # Sorting
     allowed_fields = ['date_operation', 'nb_jeh', 'assiette', 'total_cotisations_junior', 'total_cotisations_etudiant']
     qs = _ordonner_qs(qs, request, allowed_fields)
+
+    # Couleurs dynamiques pour les études
+    for bv in qs:
+        if bv.etude:
+            bv.study_colors = _generate_pastel_color(bv.etude.reference)
+        else:
+            bv.study_colors = _generate_pastel_color(None)
 
     return render(request, 'finance/bv_list.html', {
         'bulletins': qs,
@@ -211,6 +233,7 @@ def bv_list(request):
         'current_sort': request.GET.get('sort'),
         'current_order': request.GET.get('order', 'asc'),
     })
+
 
 
 def bv_edit(request, pk):
@@ -1099,6 +1122,90 @@ def bv_delete(request, pk):
     bv.delete()
     messages.success(request, f"Le Bulletin de Versement {num} a été supprimé.")
     return redirect('finance:bv_list')
+
+def bv_pdf_export(request, pk):
+    """Génère le PDF d'un BV existant à partir de la BDD."""
+    from .services import generate_bv_pdf_from_template
+    
+    bv = get_object_or_404(BulletinVersement, pk=pk)
+    
+    # Formatage spécial REF_AVRM (harmonisé avec bv_generation)
+    ref_avrm_final = f", modifié par : {bv.ref_avrm}" if bv.ref_avrm else ""
+    
+    data = {
+        'NOM': bv.intervenant_nom.upper(),
+        'PRENOM': bv.intervenant_prenom,
+        'ADRESSE': bv.adresse,
+        'CP': bv.code_postal,
+        'VILLE': bv.ville,
+        'NUM_SECU': bv.num_secu,
+        'MISSION': bv.nom_mission,
+        'REF_RM': bv.ref_rm,
+        'REF_AVRM': ref_avrm_final,
+        'REF_BV': bv.numero,
+        'ETUDE': bv.etude.reference if bv.etude else '',
+        'DATE_EMISSION': bv.date_emission.strftime('%d/%m/%Y') if bv.date_emission else bv.date_operation.strftime('%d/%m/%Y'),
+        
+        'NB_JEH': float(bv.nb_jeh),
+        'RETRIB_JEH': float(bv.retribution_brute_par_jeh),
+        'BRUT_TOTAL': float(bv.retribution_brute_totale),
+        'ASSIETTE': float(bv.assiette),
+        
+        # Junior
+        'J_MALADIE': float(bv.j_assurance_maladie),
+        'J_AT': float(bv.j_accident_travail),
+        'J_VP': float(bv.j_vieillesse_plafonnee),
+        'J_VD': float(bv.j_vieillesse_deplafonnee),
+        'J_AF': float(bv.j_allocations_familiales),
+        'J_CSGD': float(bv.j_csg_deductible),
+        'J_CSGND': float(bv.j_csg_non_deductible),
+        'TOTAL_J': float(bv.total_junior),
+        
+        # Étudiant
+        'E_MALADIE': float(bv.e_assurance_maladie),
+        'E_AT': float(bv.e_accident_travail),
+        'E_VP': float(bv.e_vieillesse_plafonnee),
+        'E_VD': float(bv.e_vieillesse_deplafonnee),
+        'E_AF': float(bv.e_allocations_familiales),
+        'E_CSGD': float(bv.e_csg_deductible),
+        'E_CSGND': float(bv.e_csg_non_deductible),
+        'TOTAL_E': float(bv.total_etudiant),
+        
+        'TOTAL_GLOBAL': float(bv.total_global),
+        'NET_A_PAYER': float(bv.net_a_payer),
+    }
+    
+    try:
+        pdf_content = generate_bv_pdf_from_template(data)
+        filename = f"BV_{bv.intervenant_nom}_{bv.numero}.pdf"
+        response = HttpResponse(pdf_content, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except Exception as e:
+        messages.error(request, f"Erreur génération PDF : {str(e)}")
+        return redirect('finance:bv_list')
+
+@require_POST
+def update_bv_field(request):
+    """Met à jour un champ d'un BV en AJAX/HTMX."""
+    pk = request.POST.get('pk')
+    field = request.POST.get('field')
+    value = request.POST.get('value')
+    
+    bv = get_object_or_404(BulletinVersement, pk=pk)
+    
+    if field == 'commentaire':
+        bv.commentaire = value
+    elif field == 'date_envoi':
+        from datetime import datetime
+        try:
+            bv.date_envoi = datetime.strptime(value, '%Y-%m-%d').date() if value else None
+        except ValueError:
+            pass
+        
+    bv.save()
+    return HttpResponse(status=200)
+
 
 
 

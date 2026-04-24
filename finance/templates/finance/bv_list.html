@@ -38,6 +38,54 @@
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     z-index: 10000;
   }
+
+  .bv-study-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border: 1px solid;
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .comment-textarea {
+    width: 100%;
+    min-height: 32px;
+    height: 32px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 0.75rem;
+    padding: 4px;
+    resize: none;
+    overflow: hidden;
+    transition: all 0.2s;
+    line-height: 1.4;
+    border-radius: 4px;
+  }
+  .comment-textarea:hover {
+    background: rgba(0,0,0,0.02);
+    border-color: #e2e8f0;
+  }
+  .comment-textarea:focus {
+    background: #fff;
+    border-color: var(--color-primary);
+    outline: none;
+    height: auto;
+    min-height: 60px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .success-flash {
+    animation: flashGreen 1s ease-out;
+  }
+  @keyframes flashGreen {
+    0% { background-color: rgba(22, 163, 74, 0.2); }
+    100% { background-color: transparent; }
+  }
 </style>
 
 <div class="card mb-6">
@@ -53,90 +101,104 @@
     <table class="data-table" style="font-size:.8rem">
       <thead>
         <tr>
-          <th style="padding:8px 10px">N° BV</th>
-          <th style="padding:8px 10px">Intervenant</th>
-          <th style="padding:8px 10px;min-width:120px">Étude</th>
           <th style="padding:8px 10px">
             <a href="?sort=date_operation&order={% if current_sort == 'date_operation' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
-              Date op. {% if current_sort == 'date_operation' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
+              N° BV {% if current_sort == 'date_operation' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
+          <th style="padding:8px 10px; width: 140px;">Étude</th>
+          <th style="padding:8px 10px">Intervenant</th>
           <th class="text-right" style="padding:8px 10px">
-            <a href="?sort=nb_jeh&order={% if current_sort == 'nb_jeh' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              JEH {% if current_sort == 'nb_jeh' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
+            <a href="?sort=retribution_brute_par_jeh&order={% if current_sort == 'retribution_brute_par_jeh' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
+              Net à payer {% if current_sort == 'retribution_brute_par_jeh' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th class="text-right" style="padding:8px 10px">
-            <a href="?sort=total_cotisations_junior&order={% if current_sort == 'total_cotisations_junior' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              Cotis. Junior {% if current_sort == 'total_cotisations_junior' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
-            </a>
-          </th>
-          <th class="text-right" style="padding:8px 10px">
-            <a href="?sort=total_cotisations_etudiant&order={% if current_sort == 'total_cotisations_etudiant' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1">
-              Cotis. Étudiant {% if current_sort == 'total_cotisations_etudiant' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
-            </a>
-          </th>
-          <th style="padding:8px 10px;min-width:120px">Ligne Budg.</th>
-          <th style="padding:8px 10px"></th>
+          <th style="padding:8px 10px">Réf. Opération</th>
+          <th style="padding:8px 10px">Envoyé le</th>
+          <th style="padding:8px 10px">Commentaire</th>
+          <th style="padding:8px 10px; width: 150px;"></th>
         </tr>
       </thead>
+
       <tbody>
         {% for bv in bulletins %}
         <tr>
           <!-- N° BV -->
           <td style="padding:7px 10px">
             <span class="font-mono font-bold" style="color:var(--color-primary);font-size:.75rem">{{ bv.numero }}</span>
+            <div class="text-muted" style="font-size:0.65rem">{{ bv.date_operation|date:"d/m/Y" }}</div>
+          </td>
+
+          <!-- Étude -->
+          <td style="padding:7px 10px">
+            <span class="bv-study-badge" 
+                  style="background-color: {{ bv.study_colors.bg }}; border-color: {{ bv.study_colors.border }}; color: {{ bv.study_colors.text }};"
+                  title="{{ bv.etude.nom|default:'Standalone' }}">
+              {{ bv.etude.reference|default:'Standalone' }}
+            </span>
           </td>
 
           <!-- Intervenant -->
           <td style="padding:7px 10px">
             <div class="font-semibold">{{ bv.intervenant_prenom }} {{ bv.intervenant_nom }}</div>
+            <div class="text-muted" style="font-size:0.65rem">{{ bv.nb_jeh|floatformat:0 }} JEH</div>
           </td>
 
-          <!-- Étude (Inline Picker) -->
+          <!-- Net à payer -->
+          <td class="text-right font-mono font-bold text-primary" style="padding:7px 10px">
+            {{ bv.net_a_payer|floatformat:2 }} €
+          </td>
+
+          <!-- Réf. Opération -->
           <td style="padding:7px 10px">
-            <input list="etudes-list"
-                   class="form-control"
-                   style="font-size:.7rem;padding:4px 8px;border-radius:6px;width:100%"
-                   placeholder="Étude..."
-                   value="{{ bv.etude.reference|default:'' }}"
-                   hx-post="{% url 'finance:set_etude' %}"
+            {% if bv.operation %}
+              <span class="text-muted" style="font-size:0.75rem" title="{{ bv.operation.libelle }}">
+                {{ bv.operation.reference|default:bv.operation.libelle|truncatechars:20 }}
+              </span>
+            {% else %}
+              <a href="{% url 'operations:process_list' %}?type=debit" class="btn btn-ghost btn-sm" style="color:var(--color-warning); font-size:0.7rem; padding:2px 6px">
+                <i data-lucide="alert-circle" width="12" height="12"></i>
+                À traiter
+              </a>
+            {% endif %}
+          </td>
+
+
+          <!-- Envoyé le (Date Envoi) -->
+          <td style="padding:7px 10px">
+            <input type="date" 
+                   class="form-control" 
+                   style="font-size:0.75rem; padding:2px 4px; border-radius:4px; border:1px solid #e2e8f0; width:115px"
+                   value="{{ bv.date_envoi|date:'Y-m-d' }}"
+                   hx-post="{% url 'finance:update_bv_field' %}"
                    hx-trigger="change"
-                   hx-swap="none"
+                   hx-vals='{"pk": "{{ bv.id }}", "field": "date_envoi"}'
                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                   hx-vals='js:{"type": "bv", "id": "{{ bv.id }}", "etude_ref": event.target.value, "etude_id": (Array.from(document.getElementById("etudes-list").options).find(o => o.value.trim() === event.target.value.trim()))?.dataset.id || ""}'
+                   name="value"
                    onhtmx:after-request="if(event.detail.successful) { this.classList.add('success-flash'); setTimeout(() => this.classList.remove('success-flash'), 1000); }">
           </td>
 
-          <!-- Date -->
-          <td style="padding:7px 10px;font-size:.78rem;white-space:nowrap">{{ bv.date_operation|date:"d/m/Y" }}</td>
-
-          <!-- JEH (Integer) -->
-          <td class="text-right font-mono" style="padding:7px 10px">{{ bv.nb_jeh|floatformat:0 }}</td>
-
-          <!-- Cotisations -->
-          <td class="text-right font-mono text-danger" style="padding:7px 10px">{{ bv.total_cotisations_junior|floatformat:2 }}</td>
-          <td class="text-right font-mono text-warning" style="padding:7px 10px">{{ bv.total_cotisations_etudiant|floatformat:2 }}</td>
-
-          <!-- Ligne Budgétaire -->
+          <!-- Commentaire -->
           <td style="padding:7px 10px">
-            <input list="budget-lines-list"
-                   class="form-control"
-                   style="font-size:.7rem;padding:4px 8px;border-radius:6px;width:100%"
-                   placeholder="Ligne..."
-                   value="{{ bv.ligne_budgetaire.nom|default:'' }}"
-                   hx-post="{% url 'finance:set_budget_line' %}"
-                   hx-trigger="change"
-                   hx-swap="none"
-                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                   hx-vals='js:{"type": "bv", "id": "{{ bv.id }}", "lb_name": event.target.value, "lb_id": (Array.from(document.getElementById("budget-lines-list").options).find(o => o.value.trim() === event.target.value.trim()))?.dataset.id || ""}'
-                   onhtmx:after-request="if(event.detail.successful) { this.classList.add('success-flash'); setTimeout(() => this.classList.remove('success-flash'), 1000); }">
+            <textarea class="comment-textarea"
+                      placeholder="Ajouter un commentaire..."
+                      hx-post="{% url 'finance:update_bv_field' %}"
+                      hx-trigger="keyup changed delay:1s"
+                      hx-vals='{"pk": "{{ bv.id }}", "field": "commentaire"}'
+                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      name="value"
+                      oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">{{ bv.commentaire }}</textarea>
           </td>
 
           <!-- Actions -->
           <td style="padding:7px 10px">
             <div class="flex gap-1 justify-end items-center">
-              <!-- Drive button -->
+              <!-- Export PDF -->
+              <a href="{% url 'finance:bv_pdf_export' bv.pk %}" class="btn btn-ghost btn-icon text-primary" title="Générer le PDF">
+                <i data-lucide="file-text" width="16" height="16"></i>
+              </a>
+
+              <!-- Drive -->
               <button onclick="openDriveModal('bv', '{{ bv.id }}', '{{ bv.lien_drive }}')" 
                 class="btn btn-ghost btn-icon {% if bv.lien_drive %}text-success{% endif %}" 
                 title="Lien Drive">
@@ -156,21 +218,20 @@
               </a>
 
               {% if bv.operation %}
-              <a href="{% url 'operations:operation_delete' bv.operation.pk %}?next={{ request.get_full_path|urlencode }}"
-                 class="btn btn-ghost btn-sm text-danger" style="padding:4px 6px"
-                 onclick="return confirm('Attention : cela supprimera l\'opération bancaire et le bulletin.')"
-                 title="Supprimer">
-                <i data-lucide="trash-2" width="14" height="14"></i>
-              </a>
+                <a href="{% url 'operations:operation_delete' bv.operation.pk %}?next={{ request.get_full_path|urlencode }}"
+                   class="btn btn-ghost btn-sm text-danger" style="padding:4px 6px"
+                   onclick="return confirm('Attention : cela supprimera l\'opération bancaire et le bulletin.')"
+                   title="Supprimer">
+                  <i data-lucide="trash-2" width="14" height="14"></i>
+                </a>
               {% else %}
-              <a href="{% url 'finance:bv_delete' bv.pk %}"
-                 class="btn btn-ghost btn-sm text-danger" style="padding:4px 6px"
-                 onclick="return confirm('Attention : cela supprimera définitivement le bulletin.')"
-                 title="Supprimer">
-                <i data-lucide="trash-2" width="14" height="14"></i>
-              </a>
+                <a href="{% url 'finance:bv_delete' bv.pk %}"
+                   class="btn btn-ghost btn-sm text-danger" style="padding:4px 6px"
+                   onclick="return confirm('Attention : cela supprimera définitivement le bulletin.')"
+                   title="Supprimer">
+                  <i data-lucide="trash-2" width="14" height="14"></i>
+                </a>
               {% endif %}
-
             </div>
           </td>
         </tr>
@@ -182,29 +243,14 @@
   <div class="card-body" style="text-align:center;padding:64px">
     <i data-lucide="users" width="48" height="48" style="display:block;margin:0 auto 16px;opacity:.3;color:var(--color-gray-400)"></i>
     <h3 style="color:var(--color-gray-600);margin-bottom:8px">Aucun bulletin de versement</h3>
-    <p class="text-muted text-sm">Traitez les opérations de débit pour créer des bulletins de versement.</p>
+    <p class="text-muted text-sm">Créez des bulletins depuis la page de génération ou traitez des opérations de débit.</p>
   </div>
   {% endif %}
 </div>
 
-<!-- Datalist Lignes budgétaires -->
-<datalist id="budget-lines-list">
-  {% for lb in all_budget_lines %}
-  <option value="{{ lb.nom }}" data-id="{{ lb.id }}"></option>
-  {% endfor %}
-</datalist>
-
-<!-- Datalist Études -->
-<datalist id="etudes-list">
-  {% for etude in all_etudes %}
-  <option value="{{ etude.reference }}" data-id="{{ etude.id }}">{{ etude.nom }}</option>
-  {% endfor %}
-</datalist>
-
-<!-- ─── Modale Drive ──────────────────────────────────────────────── -->
+<!-- ─── Modales ──────────────────────────────────────────────── -->
 <div id="drive-modal">
   <div class="modal-backdrop" onclick="closeDriveModal()"></div>
-  
   <div class="modal-content">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
       <h3 style="margin: 0; font-size: 1.25rem;">Lien Google Drive</h3>
@@ -212,22 +258,15 @@
         <i data-lucide="x" width="20" height="20"></i>
       </button>
     </div>
-    
     <input type="hidden" id="modal-obj-type">
     <input type="hidden" id="modal-obj-id">
-    
     <div style="margin-bottom: 20px;">
       <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 8px;">URL du document</label>
-      <input type="url" id="modal-drive-url" 
-             placeholder="Collez le lien ici..."
-             style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 0.5rem; outline: none;">
+      <input type="url" id="modal-drive-url" placeholder="Collez le lien ici..." style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 0.5rem; outline: none;">
     </div>
-    
     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <button onclick="closeDriveModal()" class="btn btn-gray">Annuler</button>
-      <button onclick="saveDriveLink()" class="btn btn-primary" style="background: var(--color-primary); color: white; padding: 10px 20px; border-radius: 0.5rem; border: none; cursor: pointer;">
-        Enregistrer le lien
-      </button>
+      <button onclick="closeDriveModal()" class="btn btn-outline btn-sm">Annuler</button>
+      <button onclick="saveDriveLink()" class="btn btn-primary btn-sm">Enregistrer le lien</button>
     </div>
   </div>
 </div>
@@ -236,29 +275,25 @@
 
 {% block extra_js %}
 <script>
-// ─── Drive Modal ─────────────────────────────────────────────────────────
+// Ajustement initial des textareas
+document.querySelectorAll('.comment-textarea').forEach(el => {
+  el.style.height = el.scrollHeight + 'px';
+});
+
+// Drive Modal
 function openDriveModal(type, id, currentUrl) {
   document.getElementById('modal-obj-type').value = type;
   document.getElementById('modal-obj-id').value = id;
   document.getElementById('modal-drive-url').value = (currentUrl === 'None' || !currentUrl) ? '' : currentUrl;
-  
-  const modal = document.getElementById('drive-modal');
-  modal.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  
-  setTimeout(() => document.getElementById('modal-drive-url').focus(), 50);
+  document.getElementById('drive-modal').style.display = 'flex';
 }
-
 function closeDriveModal() {
   document.getElementById('drive-modal').style.display = 'none';
-  document.body.style.overflow = '';
 }
-
 function saveDriveLink() {
   const type = document.getElementById('modal-obj-type').value;
   const id = document.getElementById('modal-obj-id').value;
   const url = document.getElementById('modal-drive-url').value;
-
   const formData = new FormData();
   formData.append('type', type);
   formData.append('id', id);
@@ -268,30 +303,21 @@ function saveDriveLink() {
     method: 'POST',
     headers: {'X-CSRFToken': '{{ csrf_token }}'},
     body: formData,
-  })
-  .then(response => {
-    if (response.ok) {
-      closeDriveModal();
-      location.reload();
-    }
-  });
+  }).then(r => { if(r.ok) { location.reload(); } });
 }
 
-// ─── Checkbox persistante ────────────────────────────────────────────────
+// Checkbox persistante
 const STORAGE_KEY = 'bv-checked-rows';
-
 function loadCheckedRows() {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   document.querySelectorAll('.row-checkbox').forEach(cb => {
-    const rowId = cb.dataset.rowId;
-    if (saved.includes(rowId)) {
+    if (saved.includes(cb.dataset.rowId)) {
       cb.checked = true;
       cb.style.backgroundColor = 'var(--color-primary)';
       cb.style.borderColor = 'var(--color-primary)';
     }
   });
 }
-
 function toggleRowCheckbox(cb) {
   const rowId = cb.dataset.rowId;
   let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -307,6 +333,9 @@ function toggleRowCheckbox(cb) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
 }
 
-document.addEventListener('DOMContentLoaded', loadCheckedRows);
+document.addEventListener('DOMContentLoaded', () => {
+    loadCheckedRows();
+    lucide.createIcons();
+});
 </script>
 {% endblock %}

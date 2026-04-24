@@ -95,7 +95,9 @@ class BulletinVersement(models.Model):
     )
     date_operation = models.DateField()
     date_emission = models.DateField(null=True, blank=True)
+    date_envoi = models.DateField(null=True, blank=True)
     reference_virement = models.CharField(max_length=100, blank=True)
+
 
     # Informations Personnelles et Mission
     intervenant_nom = models.CharField(max_length=100)
@@ -164,6 +166,11 @@ class BulletinVersement(models.Model):
     @property
     def total_cotisations(self):
         return self.total_junior + self.total_etudiant
+
+    @property
+    def net_a_payer(self):
+        return self.retribution_brute_totale - self.total_etudiant
+
 
 
 class FactureAchat(models.Model):
