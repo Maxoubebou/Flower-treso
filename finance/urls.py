@@ -34,6 +34,7 @@ urlpatterns = [
     path('ndf/<int:pk>/valider/', views.ndf_validate, name='ndf_validate'),
     path('ndf/<int:pk>/rejeter/', views.ndf_reject, name='ndf_reject'),
     path('ndf/<int:pk>/pdf/', views.ndf_download_pdf, name='ndf_download_pdf'),
+    path('ndf/<int:pk>/supprimer/', views.ndf_delete, name='ndf_delete'),
     # Études
     path('etudes/', views.etudes_list, name='etudes_list'),
     path('etudes/nouvelle/', views.etude_create, name='etude_create'),

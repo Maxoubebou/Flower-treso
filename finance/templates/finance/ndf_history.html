@@ -8,7 +8,7 @@
 <div class="flex flex-col gap-6">
     <!-- Filtres -->
     <div class="card p-4">
-        <form method="get" class="flex gap-4 items-end">
+        <form method="get" class="flex gap-4 items-end pb-1">
             <div class="form-group mb-0 flex-1">
                 <label class="form-label">Rechercher</label>
                 <div class="relative">
@@ -18,8 +18,8 @@
                            class="form-control pl-10">
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary">Filtrer</button>
-            <a href="{% url 'finance:ndf_history' %}" class="btn btn-ghost">Réinitialiser</a>
+            <button type="submit" class="btn btn-primary h-[42px]">Filtrer</button>
+            <a href="{% url 'finance:ndf_history' %}" class="btn btn-ghost h-[42px] flex items-center">Réinitialiser</a>
         </form>
     </div>
 
@@ -79,6 +79,11 @@
                                     <i data-lucide="external-link" width="16" height="16"></i>
                                 </a>
                                 {% endif %}
+                                <a href="{% url 'finance:ndf_delete' ndf.pk %}" class="btn btn-ghost btn-sm text-danger" 
+                                   onclick="return confirm('Êtes-vous sûr de vouloir supprimer définitivement cette note de frais ?')"
+                                   title="Supprimer">
+                                    <i data-lucide="trash-2" width="16" height="16"></i>
+                                </a>
                             </div>
                         </td>
                     </tr>

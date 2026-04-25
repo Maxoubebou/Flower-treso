@@ -1499,3 +1499,9 @@ def ndf_reject(request, pk):
 
 
 
+def ndf_delete(request, pk):
+    """Supprime une demande de NDF de l'historique."""
+    ndf = get_object_or_404(DemandeNDF, pk=pk)
+    ndf.delete()
+    messages.success(request, "Note de frais supprimée avec succès.")
+    return redirect('finance:ndf_history')
