@@ -11,19 +11,19 @@
 <div class="card mb-4">
   <div class="card-body">
     <div class="flex items-center gap-4">
-      <div style="width:52px;height:52px;border-radius:var(--radius-lg);background:var(--color-success-light);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <i data-lucide="arrow-down-circle" width="26" height="26" style="color:var(--color-success)"></i>
+      <div class="w-[52px] h-[52px] rounded-lg bg-success-light flex items-center justify-center shrink-0">
+        <i data-lucide="arrow-down-circle" width="26" height="26" class="text-success"></i>
       </div>
       <div class="flex-1">
-        <div style="font-size:1.05rem;font-weight:700;color:var(--color-gray-900)">{{ facture.libelle|default:facture.numero }}</div>
+        <div class="text-[1.05rem] font-bold text-gray-900">{{ facture.libelle|default:facture.numero }}</div>
         <div class="text-sm text-muted">N° <span class="font-mono">{{ facture.numero }}</span> · {{ facture.date_operation|date:"d/m/Y" }}</div>
         {% if facture.etude %}
         <div class="text-sm text-muted">Étude : {{ facture.etude }}</div>
         {% endif %}
       </div>
-      <div style="text-align:right">
-        <div class="op-amount credit" style="font-size:1.6rem;line-height:1">+{{ facture.montant_ttc|floatformat:2 }} €</div>
-        <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--color-success);margin-top:6px">Crédit TTC</div>
+      <div class="text-right">
+        <div class="op-amount credit text-[1.6rem] leading-none">+{{ facture.montant_ttc|floatformat:2 }} €</div>
+        <div class="text-[0.8rem] font-semibold uppercase tracking-wider text-success mt-1.5">Crédit TTC</div>
       </div>
       <div>
         <a href="{% url 'finance:ventes_list' %}" class="btn btn-outline">
@@ -38,10 +38,10 @@
   {% csrf_token %}
   <div class="grid-2">
     <!-- Colonne gauche : Identification -->
-    <div class="flex flex-col" style="display:flex;flex-direction:column;flex:1">
-      <div class="card" style="display:flex;flex-direction:column;flex:1">
+    <div class="flex flex-col flex-1">
+      <div class="card flex-1 flex flex-col">
         <div class="card-header"><div class="card-title">Identification</div></div>
-        <div class="card-body" style="display:flex;flex-direction:column;flex:1">
+        <div class="card-body flex-1 flex flex-col">
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label">Type de facture <span class="required">*</span></label>
@@ -89,9 +89,9 @@
               {% endfor %}
             </select>
           </div>
-          <div class="form-group" style="display:flex;flex-direction:column;flex:1">
+          <div class="form-group flex-1 flex flex-col">
             <label class="form-label">Commentaire</label>
-            <textarea name="commentaire" class="form-control" rows="3" style="flex:1">{{ facture.commentaire }}</textarea>
+            <textarea name="commentaire" class="form-control flex-1" rows="3">{{ facture.commentaire }}</textarea>
           </div>
         </div>
       </div>
@@ -104,7 +104,7 @@
         <div class="card-body">
           <div class="flex gap-3 items-center w-full">
             <div class="form-group flex-1">
-              <label class="form-label">Date d'opération <span class="badge badge-warning" style="font-size:.65rem">modifiable</span></label>
+              <label class="form-label">Date d'opération <span class="badge badge-warning text-[0.65rem]">modifiable</span></label>
               <input type="date" name="date_operation" class="form-control" value="{{ facture.date_operation|date:'Y-m-d' }}">
             </div>
             <div class="form-group flex-1">
@@ -145,8 +145,8 @@
               </select>
             </div>
           </div>
-          <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px;margin-top:4px">
-            <div class="flex justify-between text-sm" style="margin-bottom:8px">
+          <div class="bg-gray-50 rounded p-4 mt-1">
+            <div class="flex justify-between text-sm mb-2">
               <span class="text-muted">Montant TTC (fixe)</span>
               <span class="font-bold font-mono">{{ facture.montant_ttc|floatformat:2 }} €</span>
             </div>
@@ -154,19 +154,19 @@
               <div>
                 <label class="form-label text-xs">HT (€)</label>
                 <input type="number" step="0.01" name="montant_ht" id="edit-ht" class="form-control font-mono"
-                       value="{{ facture.montant_ht }}" {% if not facture.taux_mixte %}readonly style="background:var(--color-gray-100)"{% endif %}>
+                       value="{{ facture.montant_ht }}" {% if not facture.taux_mixte %}readonly class="bg-gray-100"{% endif %}>
               </div>
               <div>
                 <label class="form-label text-xs">TVA (€)</label>
                 <input type="number" step="0.01" name="montant_tva" id="edit-tva" class="form-control font-mono"
-                       value="{{ facture.montant_tva }}" {% if not facture.taux_mixte %}readonly style="background:var(--color-gray-100)"{% endif %}>
+                       value="{{ facture.montant_tva }}" {% if not facture.taux_mixte %}readonly class="bg-gray-100"{% endif %}>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="flex gap-3 items-center w-full" style="margin-top:auto">
+      <div class="flex gap-3 items-center w-full mt-auto">
         <a href="{% url 'finance:ventes_list' %}" class="btn btn-outline flex-1 justify-center">
           <i data-lucide="arrow-left" width="15" height="15"></i> Annuler
         </a>
@@ -181,6 +181,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{% load l10n %}
 <script>
 const TTC_EDIT = {{ facture.montant_ttc|default:0|unlocalize }};
 
@@ -204,8 +205,8 @@ function toggleEditMixte(cb) {
   const tva = document.getElementById('edit-tva');
   ht.readOnly = !cb.checked;
   tva.readOnly = !cb.checked;
-  ht.style.background = cb.checked ? '#fff' : 'var(--color-gray-100)';
-  tva.style.background = cb.checked ? '#fff' : 'var(--color-gray-100)';
+  ht.style.backgroundColor = cb.checked ? '#fff' : 'var(--color-gray-100)';
+  tva.style.backgroundColor = cb.checked ? '#fff' : 'var(--color-gray-100)';
 }
 
 function updateEtudeStatus() {

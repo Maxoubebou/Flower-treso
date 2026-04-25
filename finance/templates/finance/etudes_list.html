@@ -14,35 +14,40 @@
       </div>
     </div>
     {% if etudes %}
-    <div class="table-wrapper" style="border:none;border-radius:0">
-      <table class="data-table">
+    <div class="table-wrapper">
+      <table class="data-table table-compact">
         <thead>
-          <tr><th>Référence</th><th>Nom</th><th>Statut</th><th>Créée le</th></tr>
+          <tr>
+            <th class="th-tight">Référence</th>
+            <th class="th-tight">Nom</th>
+            <th class="th-tight">Statut</th>
+            <th class="th-tight">Créée le</th>
+          </tr>
         </thead>
         <tbody>
           {% for e in etudes %}
           <tr>
-            <td><span class="font-mono font-bold" style="color:var(--color-primary)">{{ e.reference }}</span></td>
-            <td>{{ e.nom }}</td>
-            <td>
+            <td class="td-reference"><span>{{ e.reference }}</span></td>
+            <td class="td-tight">{{ e.nom }}</td>
+            <td class="td-tight">
               <span class="badge {% if e.active %}badge-success{% else %}badge-gray{% endif %}">
                 {% if e.active %}Active{% else %}Inactive{% endif %}
               </span>
             </td>
-            <td class="text-sm text-muted">{{ e.created_at|date:"d/m/Y" }}</td>
+            <td class="td-tight text-sm text-muted">{{ e.created_at|date:"d/m/Y" }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-    <div class="card-body" style="text-align:center;padding:40px;color:var(--color-gray-400)">
+    <div class="card-body py-10 text-center text-gray-400">
       Aucune étude enregistrée.
     </div>
     {% endif %}
   </div>
 
-  <div class="card" style="align-self:flex-start">
+  <div class="card self-start">
     <div class="card-header">
       <div class="card-title">
         <i data-lucide="plus-circle" width="18" height="18" style="color:var(--color-primary)"></i>
@@ -54,8 +59,8 @@
         {% csrf_token %}
         <div class="form-group">
           <label class="form-label">Référence <span class="required">*</span></label>
-          <input type="text" name="reference" class="form-control font-mono" required
-                 placeholder="EX2024001" style="text-transform:uppercase">
+          <input type="text" name="reference" class="form-control font-mono uppercase" required
+                 placeholder="EX2024001">
           <div class="form-hint">Identifiant unique de l'étude (ex: INS2024001)</div>
         </div>
         <div class="form-group">

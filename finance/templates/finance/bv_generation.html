@@ -141,18 +141,18 @@
             <i data-lucide="calculator" width="18" height="18" class="text-primary"></i>
             <div class="card-title text-primary">Aperçu des Cotisations</div>
           </div>
-          <div class="card-title" style="font-size: .85rem; font-weight: 600;">
+          <div class="card-title text-[0.85rem] font-semibold">
             Total : <span id="c-total-header" class="text-danger">0.00</span> €
-            <span class="text-muted" style="font-weight: 400; font-size: .75rem; margin-left:8px;">(Assiette : <span id="c-assiette">0.00</span> €)</span>
+            <span class="text-muted font-normal text-[0.75rem] ml-2">(Assiette : <span id="c-assiette">0.00</span> €)</span>
           </div>
         </div>
-        <div class="card-body" style="padding:0">
-          <table class="data-table" id="cotis-table" style="font-size: .8rem;">
+        <div class="card-body p-0">
+          <table class="data-table text-[0.8rem]" id="cotis-table">
             <thead>
               <tr>
-                <th style="padding:8px 10px">Poste</th>
-                <th class="text-right" style="padding:8px 10px">Junior (€)</th>
-                <th class="text-right" style="padding:8px 10px">Étudiant (€)</th>
+                <th class="p-[8px_10px]">Poste</th>
+                <th class="text-right p-[8px_10px]">Junior (€)</th>
+                <th class="text-right p-[8px_10px]">Étudiant (€)</th>
               </tr>
             </thead>
             <tbody>
@@ -166,12 +166,12 @@
             </tbody>
             <tfoot>
               <tr>
-                <td style="padding:10px"><strong>Total cotisations</strong></td>
+                <td class="p-2.5"><strong>Total cotisations</strong></td>
                 <td class="text-right font-mono" id="c-total-j"><strong>0.00</strong></td>
                 <td class="text-right font-mono" id="c-total-e"><strong>0.00</strong></td>
               </tr>
               <tr>
-                <td style="padding:10px"><strong>Net à payer</strong></td>
+                <td class="p-2.5"><strong>Net à payer</strong></td>
                 <td></td>
                 <td class="text-right font-mono text-primary" id="net-header"><strong>0.00</strong></td>
               </tr>

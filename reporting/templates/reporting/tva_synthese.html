@@ -5,134 +5,6 @@
 {% block page_title %}Synthèse TVA — {{ mois_nom }} {{ annee }}{% endblock %}
 
 {% block extra_head %}
-<style>
-    :root {
-        --tva-primary: #2563eb;
-        --tva-success: #10b981;
-        --tva-danger: #ef4444;
-        --tva-warning: #f59e0b;
-        --tva-bg-accent: #f8fafc;
-    }
-
-    .grid-tva {
-        display: grid;
-        grid-template-columns: 1fr 340px;
-        gap: 32px;
-        align-items: start;
-        margin: 0 auto;
-        max-width: 1200px;
-        animation: fadeIn 0.4s ease-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .tva-line-card {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        overflow: hidden;
-        transition: all 0.2s ease;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .tva-line-card:hover {
-        border-color: var(--tva-primary);
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
-    }
-
-    .tva-line-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 24px;
-        cursor: pointer;
-        user-select: none;
-    }
-
-    .tva-badge-num {
-        background: var(--tva-bg-accent);
-        color: #475569;
-        font-weight: 700;
-        font-size: 0.75rem;
-        padding: 4px 8px;
-        border-radius: 8px;
-        min-width: 32px;
-        text-align: center;
-    }
-
-    .tva-line-label {
-        font-weight: 600;
-        color: #1e293b;
-        font-size: 0.95rem;
-    }
-
-    .tva-line-value {
-        font-family: 'JetBrains Mono', monospace;
-        font-weight: 700;
-        font-size: 1.1rem;
-        color: #0f172a;
-    }
-
-    .tva-line-details {
-        display: none;
-        padding: 0 24px 24px 24px;
-        border-top: 1px solid #f1f5f9;
-        background: #fafafa;
-    }
-
-    .tva-line-card.open .tva-line-details {
-        display: block;
-    }
-
-    .tva-logic-box {
-        background: #eff6ff;
-        border-left: 4px solid #3b82f6;
-        padding: 12px 16px;
-        margin: 16px 0;
-        border-radius: 0 8px 8px 0;
-        font-size: 0.85rem;
-        color: #1e40af;
-    }
-
-    .tva-details-table {
-        width: 100%;
-        font-size: 0.85rem;
-        border-collapse: collapse;
-    }
-
-    .tva-details-table th {
-        text-align: left; padding: 8px; color: #64748b; font-weight: 600;
-        text-transform: uppercase; font-size: 0.7rem; border-bottom: 1px solid #e2e8f0;
-    }
-
-    .tva-details-table td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; color: #334155; }
-
-    .tva-final-card {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        color: white; padding: 24px; border-radius: 20px;
-        display: flex; justify-content: space-between; align-items: center;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    }
-
-    .tva-final-amount { font-size: 2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-
-    .validation-status {
-        display: flex; align-items: center; gap: 8px; padding: 6px 14px;
-        border-radius: 999px; font-size: 0.85rem; font-weight: 600;
-    }
-    .status-pending { background: #fffbeb; color: #92400e; }
-    .status-finalized { background: #ecfdf5; color: #065f46; }
-
-    .btn-validate {
-        background: var(--tva-primary); color: white; padding: 12px 24px;
-        border-radius: 12px; font-weight: 700; border: none; cursor: pointer;
-        transition: all 0.2s; display: flex; align-items: center; gap: 8px;
-    }
-    .btn-validate:hover { background: #1e40af; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
-</style>
 {% endblock %}
 
 {% block date_filters %}{% endblock %}
@@ -144,28 +16,26 @@
     <!-- Colonne Gauche : Lignes de déclaration -->
     <div class="tva-main">
         <div class="flex items-center justify-between mb-8">
-            <div class="flex items-center gap-6">
-                <h1 style="font-size: 2.2rem; font-weight: 900; color: #0f172a; margin: 0;">
-                    {{ mois_nom }} {{ annee }}
-                </h1>
-            </div>
+            <h1 class="text-4xl font-black text-gray-900 m-0">
+                {{ mois_nom }} {{ annee }}
+            </h1>
         </div>
 
                 
         {% if meta.achats_manquants_count > 0 and not decl.finalisee %}
-        <div style="background:#fff1f2; border:1px solid #fecdd3; border-radius:16px; padding:24px; margin-bottom:24px;">
-            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:16px;">
-                <i data-lucide="alert-circle" style="color:var(--tva-danger); flex-shrink:0;"></i>
+        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-6 mb-6">
+            <div class="flex gap-4 items-start mb-4">
+                <i data-lucide="alert-circle" class="text-danger shrink-0"></i>
                 <div>
-                    <h4 style="margin:0 0 4px 0; color:#9f1239;">Attention : {{ meta.achats_manquants_count }} achat{{ meta.achats_manquants_count|pluralize }} sans date de facture</h4>
-                    <p style="margin:0; font-size:0.85rem; color:#be123c;">Ces montants ne sont pas inclus dans cette déclaration car la TVA n'est déductible qu'à la réception de la facture.</p>
+                    <h4 class="m-0 mb-1 text-rose-800">Attention : {{ meta.achats_manquants_count }} achat{{ meta.achats_manquants_count|pluralize }} sans date de facture</h4>
+                    <p class="m-0 text-sm text-rose-600">Ces montants ne sont pas inclus dans cette déclaration car la TVA n'est déductible qu'à la réception de la facture.</p>
                 </div>
             </div>
             
-            <div style="overflow-x:auto;">
-                <table class="tva-details-table" style="background:rgba(255,255,255,0.5); border-radius:12px;">
+            <div class="overflow-x-auto">
+                <table class="tva-details-table bg-white/50 rounded-xl">
                     <thead>
-                        <tr style="background:rgba(159,18,57,0.05)">
+                        <tr class="bg-rose-900/5">
                             <th>Date Op.</th>
                             <th>Fournisseur</th>
                             <th>Libellé</th>
@@ -183,7 +53,7 @@
                             <td class="text-right font-mono">{{ item.ht|floatformat:2 }}</td>
                             <td class="text-right font-mono" style="color:var(--tva-primary)">{{ item.tva|floatformat:2 }}</td>
                             <td class="text-center">
-                                <a href="{% url 'finance:achat_edit' item.id %}" style="color:var(--tva-primary); text-decoration:none;" title="Modifier l'achat">
+                                <a href="{% url 'finance:achat_edit' item.id %}" class="text-primary hover:opacity-80" title="Modifier l'achat">
                                     <i data-lucide="external-link" width="14" height="14"></i>
                                 </a>
                             </td>
@@ -218,22 +88,16 @@
                     </div>
                     <div class="flex items-center gap-6">
                         <div class="flex items-center gap-6">
-                            <span class="tva-line-value" 
-                                  {% if line.id == 'ligne_16' or line.id == 'ligne_22' or line.id == 'ligne_23' or line.id == 'ligne_TD' %}style="color:#94a3b8;"
-                                  {% elif line.id == 'ligne_A1' or line.id == 'ligne_08' or line.id == 'ligne_20' %}style="color:var(--tva-primary);"
-                                  {% endif %}>
-
-
+                            <span class="tva-line-value {% if line.id == 'ligne_16' or line.id == 'ligne_22' or line.id == 'ligne_23' or line.id == 'ligne_TD' %}text-gray-400{% elif line.id == 'ligne_A1' or line.id == 'ligne_08' or line.id == 'ligne_20' %}text-primary{% endif %}">
                                 {{ line.value|floatformat:"0" }} €
                             </span>
                             {% if line.extra_value is not None %}
-                            <span class="tva-line-value"
-                                  {% if line.id == 'ligne_08' %}style="color:var(--tva-primary);"{% endif %}>
+                            <span class="tva-line-value {% if line.id == 'ligne_08' %}text-primary{% endif %}">
                                 {{ line.extra_value|floatformat:"0" }} €
                             </span>
                             {% endif %}
                         </div>
-                        <i data-lucide="chevron-down" width="18" height="18" style="color:#94a3b8; transition: transform 0.2s;"></i>
+                        <i data-lucide="chevron-down" width="18" height="18" class="text-gray-400 transition-transform"></i>
                     </div>
 
 
@@ -247,7 +111,7 @@
                     </div>
 
                     {% if line.id == 'ligne_22' %}
-                        <p style="color:#475569; font-size:0.9rem; margin-left:8px;">
+                        <p class="text-gray-600 text-sm ml-2">
                             Report de crédit du mois précédent. (Janvier 2026 : fixé à 536 €).
                         </p>
                     {% elif line.details %}
@@ -274,19 +138,19 @@
                             </tbody>
                         </table>
                     {% else %}
-                        <p style="color:#94a3b8; font-style:italic; font-size:0.85rem; padding-left:8px;">Aucune opération.</p>
+                        <p class="text-gray-400 italic text-sm pl-2">Aucune opération.</p>
                     {% endif %}
                 </div>
             </div>
             {% endfor %}
         </div>
 
-        <div class="tva-final-card" style="margin-top: 32px;">
+        <div class="tva-final-card mt-8">
             <div>
-                <div style="font-size: 1rem; opacity: 0.8; font-weight: 500;">
+                <div class="text-base opacity-80 font-medium">
                     {% if decl.ligne_32 > 0 %}Solde de TVA à payer{% else %}Crédit de TVA (Ligne 27){% endif %}
                 </div>
-                <div style="font-size: 0.8rem; opacity: 0.6;">Résultat final {{ mois_nom }} {{ annee }}</div>
+                <div class="text-xs opacity-60">Résultat final {{ mois_nom }} {{ annee }}</div>
             </div>
             <div class="tva-final-amount">
                 {% if decl.ligne_32 > 0 %}{{ decl.ligne_32|floatformat:"0" }}{% else %}{{ decl.ligne_27|floatformat:"0" }}{% endif %} €
@@ -296,9 +160,9 @@
 
     <!-- Sidebar de Validation -->
     <aside>
-        <div style="position: sticky; top: 24px; background: white; border-radius: 24px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.04);">
-            <h3 style="margin: 0 0 24px 0; font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 12px;">
-                <i data-lucide="shield-check" style="color: var(--tva-primary);"></i>
+        <div class="sticky top-6 bg-white rounded-3xl p-6 border border-gray-200 shadow-sm">
+            <h3 class="m-0 mb-6 text-xl font-extrabold flex items-center gap-3">
+                <i data-lucide="shield-check" class="text-primary"></i>
                 Validation
             </h3>
 
@@ -307,43 +171,42 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="valider">
                     
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 8px;">
-                            Lien Déclaration TVA <span style="color:var(--tva-danger)">*</span>
+                    <div class="mb-5">
+                        <label class="form-label-sm">
+                            Lien Déclaration TVA <span class="text-danger">*</span>
                         </label>
-                        <input type="url" name="lien_declaration" class="form-control" placeholder="https://..." required style="border-radius: 12px; font-size: 0.85rem;">
+                        <input type="url" name="lien_declaration" class="form-control text-sm" placeholder="https://..." required>
                     </div>
 
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 8px;">
-                            Lien Accusé Réception <span style="color:var(--tva-danger)">*</span>
+                    <div class="mb-5">
+                        <label class="form-label-sm">
+                            Lien Accusé Réception <span class="text-danger">*</span>
                         </label>
-                        <input type="url" name="lien_accuse_reception" class="form-control" placeholder="https://..." required style="border-radius: 12px; font-size: 0.85rem;">
+                        <input type="url" name="lien_accuse_reception" class="form-control text-sm" placeholder="https://..." required>
                     </div>
 
-                    <div style="margin-bottom: 24px;">
-                        <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 8px; {% if decl.ligne_32 == 0 %}opacity: 0.5;{% endif %}">
-                            Lien Ordre de Paiement {% if decl.ligne_32 > 0 %}<span style="color:var(--tva-danger)">*</span>{% endif %}
+                    <div class="mb-6">
+                        <label class="form-label-sm {% if decl.ligne_32 == 0 %}opacity-50{% endif %}">
+                            Lien Ordre de Paiement {% if decl.ligne_32 > 0 %}<span class="text-danger">*</span>{% endif %}
                         </label>
-                        <input type="url" name="lien_ordre_paiement" class="form-control" placeholder="{% if decl.ligne_32 == 0 %}Non applicable (crédit){% else %}https://...{% endif %}" 
-                               {% if decl.ligne_32 > 0 %}required{% else %}disabled style="background: #f1f5f9; cursor: not-allowed; opacity: 0.6;"{% endif %} 
-                               style="border-radius: 12px; font-size: 0.85rem;">
+                        <input type="url" name="lien_ordre_paiement" class="form-control text-sm" placeholder="{% if decl.ligne_32 == 0 %}Non applicable (crédit){% else %}https://...{% endif %}" 
+                               {% if decl.ligne_32 > 0 %}required{% else %}readonly style="background: var(--color-gray-50); cursor: not-allowed; opacity: 0.6;"{% endif %}>
                     </div>
 
 
-                <button type="submit" class="btn-validate" style="width: 100%; justify-content: center;">
+                <button type="submit" class="btn-validate w-full justify-center">
                     <i data-lucide="lock" width="18" height="18"></i>
                     Valider le mois
                 </button>
                 
-                <p style="margin-top: 16px; font-size: 0.75rem; color: #94a3b8; text-align: center; line-height: 1.5;">
-                    <i data-lucide="info" width="12" height="12" style="display: inline; vertical-align: middle;"></i>
+                <p class="mt-4 text-xs text-gray-400 text-center leading-relaxed">
+                    <i data-lucide="info" width="12" height="12" class="inline align-middle"></i>
                     Action irréversible. Fige les données et permet de passer au mois suivant.
                 </p>
             </form>
             {% else %}
-            <div style="text-align: center;">
-                <div style="background: #ecfdf5; color: #065f46; padding: 12px; border-radius: 12px; font-weight: 700; margin-bottom: 24px;">
+            <div class="text-center">
+                <div class="bg-emerald-50 text-emerald-700 p-3 rounded-xl font-bold mb-6">
                     DÉCLARATION FIGÉE
                 </div>
                 <div class="flex flex-col gap-3">

@@ -101,21 +101,16 @@
         <i data-lucide="file-text" width="17" height="17"></i>
         <span>Synthèse TVA</span>
       </a>
-      <a href="{% url 'reporting:brc_synthese' %}"
-         class="nav-item {% if 'brc' in request.path %}active{% endif %}">
-        <i data-lucide="clipboard-list" width="17" height="17"></i>
-        <span>Synthèse BRC</span>
-      </a>
     </div>
 
     <div class="sidebar-footer">
       <div style="display:flex; flex-direction:column; gap:8px; width:100%; padding:0 4px">
           {% if request.user.is_authenticated %}
-          <div class="user-info-sidebar" style="padding:8px 12px; display:flex; align-items:center; gap:10px; margin-bottom:4px; background:var(--color-gray-50); border-radius:12px">
+          <div class="user-info-sidebar">
               <img src="{% if request.user.socialaccount_set.all.0 %}{{ request.user.socialaccount_set.all.0.get_avatar_url }}{% else %}https://ui-avatars.com/api/?name={{ request.user.email }}{% endif %}" 
-                   style="width:28px; height:28px; border-radius:50%; border:2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1)">
+                   class="user-avatar-sm">
               <div style="display:flex; flex-direction:column; overflow:hidden">
-                  <span style="font-size:0.8rem; font-weight:700; color:var(--color-gray-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                  <span class="user-name-sidebar">
                       {{ request.user.first_name|default:request.user.email|truncatechars:18 }}
                   </span>
               </div>
@@ -211,7 +206,7 @@
         </div>
 
         {% if request.resolver_match.view_name == 'finance:ventes_list' or request.resolver_match.view_name == 'finance:achats_list' %}
-        <select name="date_filter_type" class="form-control" style="width:auto;padding:5px 12px;border-radius:999px;font-size:.82rem;font-weight:600;color:var(--color-primary);cursor:pointer;background:var(--color-gray-100);border:none;text-align:center;text-align-last:center;" onchange="this.form.submit()">
+        <select name="date_filter_type" class="topbar-select" onchange="this.form.submit()">
           <option value="operation" {% if date_filter_type != 'facture' %}selected{% endif %}>Date d'opération</option>
           <option value="facture" {% if date_filter_type == 'facture' %}selected{% endif %}>Date de facture</option>
         </select>
@@ -338,6 +333,20 @@
 
   // Init Lucide icons
   lucide.createIcons();
+
+  function updateBadgeTypeClass(select) {
+      const text = select.options[select.selectedIndex].text.toLowerCase();
+      // Remove all badge-type-* classes
+      select.classList.remove('badge-type-acompte', 'badge-type-solde', 'badge-type-avoir', 'badge-type-subvention', 'badge-type-cotisation', 'badge-type-refacturation', 'badge-type-frais');
+      
+      if (text.includes('acompte')) select.classList.add('badge-type-acompte');
+      else if (text.includes('solde')) select.classList.add('badge-type-solde');
+      else if (text.includes('avoir')) select.classList.add('badge-type-avoir');
+      else if (text.includes('subvention')) select.classList.add('badge-type-subvention');
+      else if (text.includes('cotisation')) select.classList.add('badge-type-cotisation');
+      else if (text.includes('refacturation')) select.classList.add('badge-type-refacturation');
+      else if (text.includes('frais')) select.classList.add('badge-type-frais');
+  }
 
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.querySelector('.main-content');

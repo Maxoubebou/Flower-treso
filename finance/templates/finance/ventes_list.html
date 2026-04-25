@@ -8,42 +8,7 @@
 {% block topbar_actions %}{% endblock %}
 
 {% block content %}
-<style>
-  #drive-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .modal-backdrop {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
-  }
-
-  .modal-content {
-    position: relative;
-    background: #fff;
-    padding: 24px;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 450px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    z-index: 10000;
-  }
-</style>
-
-<div class="stats-grid mb-6" style="grid-template-columns:repeat(3,1fr)">
+<div class="stats-grid mb-6">
   <div class="stat-card success">
     <div class="stat-icon success"><i data-lucide="trending-up" width="20" height="20"></i></div>
     <div class="stat-value">{{ total_ttc|floatformat:2 }} €</div>
@@ -70,68 +35,50 @@
   </div>
 
   {% if factures %}
-  <div class="table-wrapper" style="border:none;border-radius:0">
-    <table class="data-table" style="font-size:.8rem">
+  <div class="table-wrapper">
+    <table class="data-table table-compact">
       <thead>
         <tr>
-          <th style="padding:8px 10px 8px 12px">Référence</th>
-          <th style="padding:8px 6px">Type de vente</th>
-          <th style="padding:8px 10px">Tiers / Libellé</th>
-          <th style="padding:8px 10px">
+          <th class="th-tight">Référence</th>
+          <th class="th-tight text-center">Type de vente</th>
+          <th class="th-tight">Tiers / Libellé</th>
+          <th class="th-tight">
             <a href="?sort=date_operation&order={% if current_sort == 'date_operation' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
               Date {% if current_sort == 'date_operation' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th style="padding:8px 10px">
+          <th class="th-tight">
             <a href="?sort=taux_tva&order={% if current_sort == 'taux_tva' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
               Taux tva {% if current_sort == 'taux_tva' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th style="padding:8px 6px">
+          <th class="th-tight">
             <a href="?sort=montant_ttc&order={% if current_sort == 'montant_ttc' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-start gap-1">
               Montants (€) {% if current_sort == 'montant_ttc' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
-          <th style="padding:8px 6px;min-width:80px">Ligne Budg.</th>
-          <th style="padding:8px 10px">Commentaire</th>
-          <th style="padding:8px 12px"></th>
+          <th class="th-tight">Ligne Budg.</th>
+          <th class="th-tight">Commentaire</th>
+          <th class="th-tight"></th>
         </tr>
       </thead>
       <tbody>
         {% for f in factures %}
         <tr>
           <!-- Référence -->
-          <td style="padding:7px 6px 7px 12px">
-            <span class="font-mono font-bold" style="color:var(--color-primary);font-size:.75rem;cursor:pointer" onclick="enableQuickEdit(this, 'vente', '{{ f.id }}', 'numero')">{{ f.numero }}</span>
+          <td class="td-reference">
+            <span class="cursor-pointer" onclick="enableQuickEdit(this, 'vente', '{{ f.id }}', 'numero')">{{ f.numero }}</span>
           </td>
 
           <!-- Type de vente -->
-          <td class="text-center" style="padding: 7px 6px;">
+          <td class="text-center td-tight">
             <select name="type_vente"
-                    style="font-size: .7rem; padding: 2px 12px; border-radius: 12px; cursor: pointer; font-weight: 700; appearance: none; -webkit-appearance: none; text-align: center; transition: all 0.2s;
-                          {% if 'acompte' in f.type_facture.nom|lower %} border: 1px solid #a855f7; color: #7e22ce; background-color: rgba(168, 85, 247, 0.15);
-                          {% elif 'solde' in f.type_facture.nom|lower %} border: 1px solid #06b6d4; color: #0e7490; background-color: rgba(6, 182, 212, 0.15);
-                          {% elif 'avoir' in f.type_facture.nom|lower %} border: 1px solid #f43f5e; color: #be123c; background-color: rgba(244, 63, 94, 0.15);
-                          {% elif 'subvention' in f.type_facture.nom|lower %} border: 1px solid #22c55e; color: #15803d; background-color: rgba(34, 197, 94, 0.15);
-                          {% elif 'cotisation' in f.type_facture.nom|lower %} border: 1px solid #f97316; color: #c2410c; background-color: rgba(249, 115, 22, 0.15);
-                          {% elif 'refacturation' in f.type_facture.nom|lower %} border: 1px solid #f59e0b; color: #b45309; background-color: rgba(245, 158, 11, 0.15);
-                          {% else %} border: 1px solid #94a3b8; color: #475569; background-color: rgba(148, 163, 184, 0.15); {% endif %}"
+                    class="badge-type-custom {% if 'acompte' in f.type_facture.nom|lower %}badge-type-acompte{% elif 'solde' in f.type_facture.nom|lower %}badge-type-solde{% elif 'avoir' in f.type_facture.nom|lower %}badge-type-avoir{% elif 'subvention' in f.type_facture.nom|lower %}badge-type-subvention{% elif 'cotisation' in f.type_facture.nom|lower %}badge-type-cotisation{% elif 'refacturation' in f.type_facture.nom|lower %}badge-type-refacturation{% endif %}"
                     hx-post="{% url 'finance:set_type_vente' %}"
                     hx-vals='{"id": "{{ f.id }}"}'
                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-swap="outerHTML"
-                    onchange="
-                      const val = this.options[this.selectedIndex].text.toLowerCase();
-                      let c = '#475569', b = '#94a3b8', bg = 'rgba(148, 163, 184, 0.15)';
-                      if (val.includes('acompte')) { c = '#7e22ce'; b = '#a855f7'; bg = 'rgba(168, 85, 247, 0.15)'; }
-                      else if (val.includes('solde')) { c = '#0e7490'; b = '#06b6d4'; bg = 'rgba(6, 182, 212, 0.15)'; }
-                      else if (val.includes('avoir')) { c = '#be123c'; b = '#f43f5e'; bg = 'rgba(244, 63, 94, 0.15)'; }
-                      else if (val.includes('subvention')) { c = '#15803d'; b = '#22c55e'; bg = 'rgba(34, 197, 94, 0.15)'; }
-                      else if (val.includes('cotisation')) { c = '#c2410c'; b = '#f97316'; bg = 'rgba(249, 115, 22, 0.15)'; }
-                      else if (val.includes('refacturation')) { c = '#b45309'; b = '#f59e0b'; bg = 'rgba(245, 158, 11, 0.15)'; }
-                      this.style.color = c; 
-                      this.style.borderColor = b; 
-                      this.style.backgroundColor = bg;">
+                    onchange="updateBadgeTypeClass(this)">
               {% for tv in all_types_vente %}
                 <option value="{{ tv.id }}" style="background-color: white; color: #333;" {% if f.type_facture_id == tv.id %}selected{% endif %}>
                   {{ tv.nom }}
@@ -254,9 +201,9 @@
     </table>
   </div>
   {% else %}
-  <div class="card-body" style="text-align:center;padding:64px">
-    <i data-lucide="receipt" width="48" height="48" style="display:block;margin:0 auto 16px;opacity:.3;color:var(--color-gray-400)"></i>
-    <h3 style="color:var(--color-gray-600);margin-bottom:8px">Aucune facture de vente</h3>
+  <div class="card-body py-16 text-center">
+    <i data-lucide="receipt" width="48" height="48" class="mx-auto mb-4 opacity-30 text-gray-400"></i>
+    <h3 class="text-gray-600 mb-2">Aucune facture de vente</h3>
     <p class="text-muted text-sm">Traitez les crédits de votre relevé bancaire pour générer des factures.</p>
   </div>
   {% endif %}
@@ -270,13 +217,12 @@
 </datalist>
 
 <!-- ─── Modale Drive ──────────────────────────────────────────────── -->
-<div id="drive-modal">
+<div id="drive-modal" class="modal-wrapper">
   <div class="modal-backdrop" onclick="closeDriveModal()"></div>
-  
   <div class="modal-content">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-      <h3 style="margin: 0; font-size: 1.25rem;">Lien Google Drive</h3>
-      <button onclick="closeDriveModal()" style="background: none; border: none; cursor: pointer; color: #9ca3af;">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="m-0 text-xl font-bold">Lien Google Drive</h3>
+      <button onclick="closeDriveModal()" class="btn btn-ghost btn-sm p-1 text-gray-400">
         <i data-lucide="x" width="20" height="20"></i>
       </button>
     </div>
@@ -284,82 +230,82 @@
     <input type="hidden" id="modal-obj-type">
     <input type="hidden" id="modal-obj-id">
     
-    <div style="margin-bottom: 20px;">
-      <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 8px;">URL du document</label>
+    <div class="mb-5">
+      <label class="form-label">URL du document</label>
       <input type="url" id="modal-drive-url" 
              placeholder="Collez le lien ici..."
-             style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 0.5rem; outline: none;">
+             class="form-control">
     </div>
     
-    <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <button onclick="closeDriveModal()" class="btn btn-gray">Annuler</button>
-      <button onclick="saveDriveLink()" class="btn btn-primary" style="background: var(--color-primary); color: white; padding: 10px 20px; border-radius: 0.5rem; border: none; cursor: pointer;">
+    <div class="flex justify-end gap-3">
+      <button onclick="closeDriveModal()" class="btn btn-outline btn-sm">Annuler</button>
+      <button onclick="saveDriveLink()" class="btn btn-primary btn-sm">
         Enregistrer le lien
       </button>
     </div>
   </div>
 </div>
 
-<!-- Floating Export Button -->
-<div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
-    <button onclick="openExportModal()" class="btn btn-primary btn-lg shadow-xl" style="border-radius: 50px; padding: 12px 24px; display: flex; align-items: center; gap: 8px; border:none; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);">
+<!-- Export Button -->
+<div class="flex justify-end mt-8 mb-8">
+    <button onclick="openExportModal()" class="btn btn-primary btn-lg shadow-lg px-6 flex items-center gap-2">
         <i data-lucide="download" width="20" height="20"></i>
-        <span style="font-weight: 700;">Télécharger CSV</span>
+        <span>Télécharger CSV</span>
     </button>
 </div>
 
 <!-- Export Modal -->
-<div id="export-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; align-items: center; justify-content: center;">
-    <div class="modal-backdrop" onclick="closeExportModal()" style="backdrop-filter: blur(8px); background: rgba(15, 23, 42, 0.4);"></div>
-    <div class="modal-content" style="max-width: 400px; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+<div id="export-modal" class="modal-wrapper">
+    <div class="modal-backdrop" onclick="closeExportModal()"></div>
+    <div class="modal-content max-w-md">
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-2">
-                <i data-lucide="file-spreadsheet" width="20" height="20" style="color: var(--color-primary);"></i>
-                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--color-primary);">Exporter en CSV</h3>
+                <i data-lucide="file-spreadsheet" width="20" height="20" class="text-primary"></i>
+                <h3 class="m-0 text-xl font-bold text-primary">Exporter en CSV</h3>
             </div>
-            <button onclick="closeExportModal()" style="background: none; border: none; cursor: pointer; color: #9ca3af;">
+            <button onclick="closeExportModal()" class="btn btn-ghost btn-sm p-1 text-gray-400">
                 <i data-lucide="x" width="20" height="20"></i>
             </button>
         </div>
 
         <form action="{% url 'finance:vente_export_csv' %}" method="get" id="export-form" onsubmit="closeExportModal()">
             <div class="mb-4">
-                <label class="form-label text-xs uppercase tracking-wider font-bold text-muted mb-2 block">Période d'export</label>
-                <div class="grid grid-cols-2 gap-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <label class="form-label text-xs uppercase tracking-wider font-bold text-muted mb-2">Période d'export</label>
+                <div class="form-grid-2">
                     <div>
                         <label class="text-[0.7rem] text-muted block mb-1">Date début</label>
-                        <input type="date" name="start_date" id="export-start-date" class="form-control" required style="width: 100%;">
+                        <input type="date" name="start_date" id="export-start-date" class="form-control" required>
                     </div>
                     <div>
                         <label class="text-[0.7rem] text-muted block mb-1">Date fin</label>
-                        <input type="date" name="end_date" id="export-end-date" class="form-control" required style="width: 100%;">
+                        <input type="date" name="end_date" id="export-end-date" class="form-control" required>
                     </div>
                 </div>
             </div>
 
             <div class="mb-6">
-                <label class="form-label text-xs uppercase tracking-wider font-bold text-muted mb-2 block">Basé sur quel type de date ?</label>
-                <div class="flex flex-col gap-2" style="display: flex; flex-direction: column; gap: 8px;">
-                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--color-gray-200); border-radius: 8px; cursor: pointer;">
-                        <input type="radio" name="date_mode" value="operation" checked style="width: 18px; height: 18px; cursor: pointer;">
+                <label class="form-label text-xs uppercase tracking-wider font-bold text-muted mb-2">Basé sur quel type de date ?</label>
+                <div class="flex flex-col gap-2">
+                    <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input type="radio" name="date_mode" value="operation" checked class="w-4 h-4 cursor-pointer">
                         <div>
-                            <span class="text-sm font-semibold block" style="display: block; font-size: 0.875rem; font-weight: 600;">Date d'opération</span>
-                            <span class="text-xs text-muted" style="font-size: 0.75rem;">Date du virement bancaire</span>
+                            <span class="text-sm font-semibold block">Date d'opération</span>
+                            <span class="text-xs text-muted">Date du virement bancaire</span>
                         </div>
                     </label>
-                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--color-gray-200); border-radius: 8px; cursor: pointer;">
-                        <input type="radio" name="date_mode" value="facture" style="width: 18px; height: 18px; cursor: pointer;">
+                    <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input type="radio" name="date_mode" value="facture" class="w-4 h-4 cursor-pointer">
                         <div>
-                            <span class="text-sm font-semibold block" style="display: block; font-size: 0.875rem; font-weight: 600;">Date d'envoi</span>
-                            <span class="text-xs text-muted" style="font-size: 0.75rem;">Utilise la date d'opération en secours</span>
+                            <span class="text-sm font-semibold block">Date d'envoi</span>
+                            <span class="text-xs text-muted">Utilise la date d'opération en secours</span>
                         </div>
                     </label>
                 </div>
             </div>
 
-            <div class="flex gap-3 mt-8" style="display: flex; gap: 12px; margin-top: 32px;">
-                <button type="button" onclick="closeExportModal()" class="btn btn-gray flex-1" style="flex: 1;">Annuler</button>
-                <button type="submit" class="btn btn-primary flex-1" style="flex: 1;">Générer le CSV</button>
+            <div class="flex gap-3 mt-8">
+                <button type="button" onclick="closeExportModal()" class="btn btn-outline flex-1">Annuler</button>
+                <button type="submit" class="btn btn-primary flex-1">Générer le CSV</button>
             </div>
         </form>
     </div>

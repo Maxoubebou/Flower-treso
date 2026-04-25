@@ -9,15 +9,13 @@
 <div class="card mb-4">
   <div class="card-body">
     <div class="flex items-center gap-4">
-      <div style="width:52px;height:52px;border-radius:var(--radius-lg);
-           background:{% if operation.est_credit %}var(--color-success-light){% else %}var(--color-danger-light){% endif %};
-           display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <div class="w-[52px] h-[52px] rounded-lg {% if operation.est_credit %}bg-success-light{% else %}bg-danger-light{% endif %} flex items-center justify-center shrink-0">
         <i data-lucide="{% if operation.est_credit %}arrow-down-circle{% else %}arrow-up-circle{% endif %}"
            width="26" height="26"
-           style="color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %}"></i>
+           class="{% if operation.est_credit %}text-success{% else %}text-danger{% endif %}"></i>
       </div>
       <div class="flex-1">
-        <div style="font-size:1.05rem;font-weight:700;color:var(--color-gray-900)">{{ operation.libelle }}</div>
+        <div class="text-[1.05rem] font-bold text-gray-900">{{ operation.libelle }}</div>
         {% if operation.info_complementaire %}
         <div class="text-sm text-muted">{{ operation.info_complementaire }}</div>
         {% endif %}
@@ -25,16 +23,16 @@
         <div class="text-sm text-muted">Réf. : <span class="font-mono">{{ operation.reference }}</span></div>
         {% endif %}
       </div>
-      <div style="display:flex; align-items:stretch; gap:24px; padding-left:24px;">
-        <button type="button" class="btn btn-outline" onclick="document.getElementById('autofill-bottom-sheet').classList.add('open')" style="display:flex; align-items:center; gap:16px;">
+      <div class="flex items-stretch gap-6 pl-6">
+        <button type="button" class="btn btn-outline flex items-center gap-4" onclick="document.getElementById('autofill-bottom-sheet').classList.add('open')">
           <i data-lucide="wand-2" width="14" height="14"></i>
           Ajout de règle
         </button>
-        <div style="text-align:right; display:flex; flex-direction:column; justify-content:center; align-items:flex-end;">
-          <div class="op-amount {% if operation.est_credit %}credit{% else %}debit{% endif %}" style="font-size:1.6rem; line-height:1;">
+        <div class="text-right flex flex-col justify-center items-end">
+          <div class="op-amount {% if operation.est_credit %}credit{% else %}debit{% endif %} text-[1.6rem] leading-none">
             {% if operation.est_credit %}+{{ operation.credit|floatformat:2 }}{% else %}{{ operation.debit|floatformat:2 }}{% endif %} €
           </div>
-          <div style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px; color:{% if operation.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-top:6px;">
+          <div class="text-[0.8rem] font-semibold uppercase tracking-wider mt-1.5 {% if operation.est_credit %}text-success{% else %}text-danger{% endif %}">
             {% if operation.est_credit %}Crédit{% else %}Débit{% endif %} &bull; {{ operation.date_operation|date:"d/m/Y" }}
           </div>
         </div>
@@ -64,10 +62,10 @@
         <input type="hidden" name="action" value="vente">
 
         <div class="grid-2" >
-          <div class="flex flex-col" style="display: flex; flex-direction: column; flex: 1;">
-            <div class="card" style="display: flex; flex-direction: column; flex: 1;">
+          <div class="flex flex-col flex-1">
+            <div class="card flex-1 flex flex-col">
               <div class="card-header"><div class="card-title">Identification</div></div>
-              <div class="card-body" style="display: flex; flex-direction: column; flex: 1;">
+              <div class="card-body flex-1 flex flex-col">
                 <div class="form-grid-2">
                   <div class="form-group">
                     <label class="form-label">Type de facture <span class="required">*</span></label>
@@ -117,7 +115,7 @@
                     <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
                   </div>
                   <div class="form-group">
-                    <label class="form-label flex justify-between" style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="form-label flex justify-between items-center">
                       <span>Référence</span>
                       <span id="ref-status-vente"></span>
                     </label>
@@ -138,9 +136,9 @@
                     {% endfor %}
                   </select>
                 </div>
-                <div class="form-group" style="display: flex; flex-direction: column; flex: 1;">
+                <div class="form-group flex-1 flex flex-col">
                   <label class="form-label">Commentaire</label>
-                  <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..." style="flex: 1"></textarea>
+                  <textarea name="commentaire" class="form-control flex-1" rows="3" placeholder="Notes internes..."></textarea>
                 </div>
               </div>
             </div>
@@ -205,19 +203,19 @@
                     </select>
                   </div>
                 </div>
-                <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px;margin-top:8px">
-                  <div class="flex justify-between items-center mb-4" style="margin-bottom:8px">
+                <div class="bg-gray-50 rounded p-4 mt-2">
+                  <div class="flex justify-between items-center mb-2">
                     <span class="text-sm text-muted">Montant TTC (fixe)</span>
-                    <span class="font-bold font-mono" style="font-size:1.1rem">{{ operation.credit|floatformat:2 }} €</span>
+                    <span class="font-bold font-mono text-lg">{{ operation.credit|floatformat:2 }} €</span>
                   </div>
                   <div class="form-grid-2">
                     <div>
                       <label class="form-label text-xs">Montant HT</label>
-                      <input type="number" step="0.01" name="montant_ht" id="vente-montant-ht" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
+                      <input type="number" step="0.01" name="montant_ht" id="vente-montant-ht" class="form-control font-mono bg-gray-100" readonly>
                     </div>
                     <div>
                       <label class="form-label text-xs">Montant TVA</label>
-                      <input type="number" step="0.01" name="montant_tva" id="vente-montant-tva" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
+                      <input type="number" step="0.01" name="montant_tva" id="vente-montant-tva" class="form-control font-mono bg-gray-100" readonly>
                     </div>
                   </div>
                 </div>
@@ -252,13 +250,13 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="achat">
 
-        <div class="grid-2" >
-          <div class="flex flex-col gap-3" style="display: flex; flex-direction: column; flex: 1;">
-            <div class="card" style="display: flex; flex-direction: column; flex: 1;">
+        <div class="grid-2">
+          <div class="flex flex-col gap-3 flex-1">
+            <div class="card flex-1 flex flex-col">
               <div class="card-header">
                 <div class="card-title">Identification</div>
               </div>
-              <div class="card-body" style="display: flex; flex-direction: column; flex: 1;">
+              <div class="card-body flex-1 flex flex-col">
                 <div class="form-group">
                   <label class="form-label">Type d'achat <span class="required">*</span></label>
                   <select name="type_achat" class="form-control" required>
@@ -299,7 +297,7 @@
                     <input type="url" name="lien_drive" class="form-control" placeholder="https://drive.google.com/...">
                   </div>
                   <div class="form-group">
-                    <label class="form-label flex justify-between" style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="form-label flex justify-between items-center">
                       <span>Référence</span>
                       <span id="ref-status-achat"></span>
                     </label>
@@ -320,9 +318,9 @@
                     {% endfor %}
                   </select>
                 </div>
-                <div class="form-group" style="display: flex; flex-direction: column; flex: 1;">
+                <div class="form-group flex-1 flex flex-col">
                   <label class="form-label">Commentaire</label>
-                  <textarea name="commentaire" class="form-control" rows="3" placeholder="Notes internes..." style="flex: 1"></textarea>
+                  <textarea name="commentaire" class="form-control flex-1" rows="3" placeholder="Notes internes..."></textarea>
                 </div>
               </div>
             </div>
@@ -354,10 +352,10 @@
                     <option value="bien" {% if autofill_rule and autofill_rule.categorisation_achat == 'bien' %}selected{% endif %}>Bien</option>
                   </select>
                 </div>
-                <div id="immo-warning" style="display:none;padding:10px;background:var(--color-warning-light);border-radius:var(--radius);border-left:3px solid var(--color-warning)">
+                <div id="immo-warning" class="hidden p-3 bg-warning-light rounded border-l-[3px] border-warning">
                   <div class="flex gap-2 items-center">
-                    <i data-lucide="alert-triangle" width="15" height="15" style="color:var(--color-warning)"></i>
-                    <span class="text-sm font-semibold" style="color:var(--color-warning)">Passage automatique en Immobilisation (> 500€)</span>
+                    <i data-lucide="alert-triangle" width="15" height="15" class="text-warning"></i>
+                    <span class="text-sm font-semibold text-warning">Passage automatique en Immobilisation (> 500€)</span>
                   </div>
                 </div>
               </div>
@@ -402,19 +400,19 @@
                     </select>
                   </div>
                 </div>
-                <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px">
-                  <div class="flex justify-between items-center" style="margin-bottom:10px">
+                <div class="bg-gray-50 rounded p-4">
+                  <div class="flex justify-between items-center mb-2">
                     <span class="text-sm text-muted">Montant TTC (fixe)</span>
-                    <span class="font-bold font-mono" style="font-size:1.1rem">{{ operation.debit|floatformat:2 }} €</span>
+                    <span class="font-bold font-mono text-lg">{{ operation.debit|floatformat:2 }} €</span>
                   </div>
                   <div class="form-grid-2">
                     <div>
                       <label class="form-label text-xs">Montant HT</label>
-                      <input type="number" step="0.01" name="montant_ht" id="achat-montant-ht" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
+                      <input type="number" step="0.01" name="montant_ht" id="achat-montant-ht" class="form-control font-mono bg-gray-100" readonly>
                     </div>
                     <div>
                       <label class="form-label text-xs">Montant TVA</label>
-                      <input type="number" step="0.01" name="montant_tva" id="achat-montant-tva" class="form-control font-mono" readonly style="background:var(--color-gray-100)">
+                      <input type="number" step="0.01" name="montant_tva" id="achat-montant-tva" class="form-control font-mono bg-gray-100" readonly>
                     </div>
                   </div>
                 </div>
@@ -455,26 +453,25 @@
             </div>
             <div class="card-body">
                 {% if unlinked_bvs %}
-                    <div class="table-wrapper" style="border:1px solid var(--color-gray-200); border-radius:var(--radius-lg); overflow:hidden">
-                        <table class="data-table" style="font-size: 0.85rem;">
+                    <div class="table-wrapper border border-gray-200 rounded-lg overflow-hidden">
+                        <table class="data-table table-compact">
                             <thead>
                                 <tr>
-                                    <th style="width:40px"></th>
-                                    <th>Bulletin</th>
-                                    <th>Intervenant</th>
-                                    <th>Étude</th>
-                                    <th>Net à payer</th>
-                                    <th class="text-right">Action</th>
+                                    <th class="th-tight w-10"></th>
+                                    <th class="th-tight">Bulletin</th>
+                                    <th class="th-tight">Intervenant</th>
+                                    <th class="th-tight">Étude</th>
+                                    <th class="th-tight">Net à payer</th>
+                                    <th class="th-tight text-right text-left">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for bv in unlinked_bvs %}
-                                <tr class="bv-row {% if bv.matches_amount %}match{% endif %}" 
-                                    onclick="selectBvRow(this, '{{ bv.id }}')" 
-                                    style="cursor:pointer; transition: background 0.2s">
-                                    <td style="width:40px">
+                                <tr class="bv-row {% if bv.matches_amount %}match{% endif %} cursor-pointer transition-colors duration-200" 
+                                    onclick="selectBvRow(this, '{{ bv.id }}')">
+                                    <td class="td-tight w-10">
                                         <input type="radio" name="bv_selection" value="{{ bv.id }}" 
-                                               style="cursor:pointer"
+                                               class="cursor-pointer"
                                                {% if bv.matches_amount and forloop.first %}checked{% endif %}>
                                     </td>
                                     <td>
@@ -484,8 +481,8 @@
                                     <td>
                                         <div class="font-semibold">{{ bv.intervenant_prenom }} {{ bv.intervenant_nom }}</div>
                                     </td>
-                                    <td>
-                                        <span class="badge" style="background:var(--color-gray-100); font-size:0.7rem">
+                                    <td class="td-tight">
+                                        <span class="badge bg-gray-100 text-[0.7rem]">
                                             {{ bv.etude.reference|default:"Standalone" }}
                                         </span>
                                     </td>
@@ -494,18 +491,17 @@
                                             {{ bv.net_a_payer|floatformat:2 }} €
                                         </div>
                                     </td>
-                                    <td class="text-left">
+                                    <td class="td-tight text-left">
                                         {% if bv.matches_amount %}
                                             <button type="button" 
-                                                    class="btn btn-primary btn-sm flex items-center gap-2 ml-auto"
+                                                    class="btn btn-primary btn-xs flex items-center gap-2 ml-auto"
                                                     onclick="event.stopPropagation(); document.getElementById('selected_bv_link').value='{{ bv.id }}'; this.form.submit()">
                                                 <i data-lucide="link" width="14" height="14"></i>
                                                 Lier
                                             </button>
                                         {% else %}
                                             <a href="{% url 'finance:bv_list' %}?id={{ bv.id }}" 
-                                                class="btn btn-sm inline-flex items-center gap-2" 
-                                                style="background: transparent; color: var(--color-gray-600); border: 1px solid var(--color-gray-300); font-size: 0.75rem; font-weight: 600; padding: 4px 8px; border-radius: 6px;" 
+                                                class="btn btn-xs inline-flex items-center gap-2 bg-transparent text-gray-600 border border-gray-300 font-bold px-2 py-1 rounded-md" 
                                                 onclick="event.stopPropagation()">
                                                 <i data-lucide="edit-2" width="14" height="14"></i>
                                                 Modifier le BV
@@ -520,8 +516,8 @@
                     </div>
                 {% else %}
                     <div class="flex flex-col items-center py-8 text-center">
-                        <div style="background:var(--color-gray-100); width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:12px">
-                            <i data-lucide="search-x" style="color:var(--color-gray-400)"></i>
+                        <div class="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center mb-3">
+                            <i data-lucide="search-x" class="text-gray-400"></i>
                         </div>
                         <div class="font-bold">Aucun BV disponible</div>
                         <div class="text-sm text-muted">Veuillez d'abord générer un bulletin de versement pour cet intervenant.</div>
@@ -535,12 +531,12 @@
 
         <div class="card mb-4 mt-2">
             <div class="card-header"><div class="card-title">Commentaire</div></div>
-            <div class="card-body" style="padding: 10px;">
-                <textarea name="commentaire" class="form-control" rows="2" placeholder="Commentaires..." style="min-height: 80px;"></textarea>
+            <div class="card-body p-2.5">
+                <textarea name="commentaire" class="form-control min-h-[80px]" rows="2" placeholder="Commentaires..."></textarea>
             </div>
         </div>
 
-        <div class="flex gap-3 items-center w-full" style="margin-top: 20px;">
+        <div class="flex gap-3 items-center w-full mt-5">
             <a href="{% url 'operations:process_list' %}" class="btn btn-outline flex-1 justify-center">
                 <i data-lucide="arrow-left" width="15" height="15"></i>
                 Retour à la liste
@@ -603,7 +599,7 @@
           </div>
         </div>
         <div class="card-body">
-          <p class="text-muted text-sm" style="margin-bottom:16px">
+          <p class="text-muted text-sm mb-4">
             Cette opération sera marquée comme ignorée (virement interne, etc.). Elle ne sera pas prise en compte dans les calculs de TVA.
           </p>
           <form method="post">
@@ -636,32 +632,32 @@
 </c-tab.group>
 
 <!-- ─── Modal Fiche récapitulative TVA ─────────────────────────────────────────────────── -->
-<div id="modal-tva-recap" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; backdrop-filter: blur(2px);">
-  <div class="card" style="width: 95%; max-width: 1100px; max-height: 85vh; overflow-y: auto; background: #fff; padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-xl);">
+<div id="modal-tva-recap" class="hidden fixed top-0 left-0 w-full h-full bg-black/60 z-[1000] items-center justify-center backdrop-blur-[2px]">
+  <div class="card w-[95%] max-w-[1100px] max-h-[85vh] overflow-y-auto bg-white p-5 rounded-lg shadow-xl">
     
-    <div class="flex justify-between items-center" style="margin-bottom: 30px; border-bottom: 2px solid var(--color-gray-100); padding-bottom: 20px;">
-      <h2 style="margin:0; font-size: 1.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Référentiel des Taux de TVA</h2>
+    <div class="flex justify-between items-center mb-8 border-b-2 border-gray-100 pb-5">
+      <h2 class="m-0 text-3xl font-extrabold uppercase tracking-widest">Référentiel des Taux de TVA</h2>
       <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-tva-recap').style.display='none'">Fermer l'aide</button>
     </div>
 
-    <div class="grid-2" style="gap: 20px;">
+    <div class="grid-2 gap-5">
       <div class="flex flex-col gap-4">
-        <h3 style="font-weight: 800; color: var(--color-success); font-size: 1.3rem;">VENTES (Recettes)</h3>
+        <h3 class="font-extrabold text-success text-xl">VENTES (Recettes)</h3>
         
-        <div style="background: var(--color-gray-50); padding: 20px; border-radius: var(--radius); border-left: 5px solid var(--color-success);">
-          <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 8px;">TAUX 20.00% (Standard)</div>
-          <p style="margin-bottom: 10px;">Tous ce qu'on vend (excepté les cotisation et refacturation)</p>
-          <ul style="list-style-type: disc; padding-left: 20px; color: var(--color-gray-700);">
+        <div class="bg-gray-50 p-5 rounded border-l-[5px] border-success">
+          <div class="font-extrabold text-lg mb-2">TAUX 20.00% (Standard)</div>
+          <p class="mb-2.5">Tous ce qu'on vend (excepté les cotisation et refacturation)</p>
+          <ul class="list-disc pl-5 text-gray-700">
             <li>Honoraires d'études (JEH)</li>
             <li>Frais de dossier ou de gestion</li>
             <li>Frais de déplacement refacturés au client</li>
           </ul>
         </div>
 
-        <div style="background: var(--color-gray-50); padding: 20px; border-radius: var(--radius); border-left: 5px solid var(--color-gray-400);">
-          <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 8px;">TAUX 0.00% (Exonéré / Hors-champ)</div>
-          <p style="margin-bottom: 10px;">Opérations sans collecte de TVA.</p>
-          <ul style="list-style-type: disc; padding-left: 20px; color: var(--color-gray-700);">
+        <div class="bg-gray-50 p-5 rounded border-l-[5px] border-gray-400">
+          <div class="font-extrabold text-lg mb-2">TAUX 0.00% (Exonéré / Hors-champ)</div>
+          <p class="mb-2.5">Opérations sans collecte de TVA.</p>
+          <ul class="list-disc pl-5 text-gray-700">
             <li>Subventions de fonctionnement (École, Partenaires)</li>
             <li>Adhésions et cotisations des membres</li>
             <li>Prestations pour des clients hors Union Européenne</li>
@@ -670,12 +666,12 @@
       </div>
 
       <div class="flex flex-col gap-4">
-        <h3 style="font-weight: 800; color: var(--color-danger); font-size: 1.3rem;">ACHATS (Dépenses)</h3>
+        <h3 class="font-extrabold text-danger text-xl">ACHATS (Dépenses)</h3>
         
-        <div style="background: var(--color-gray-50); padding: 20px; border-radius: var(--radius); border-left: 5px solid var(--color-danger);">
-          <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 8px;">TAUX 20.00% (Standard)</div>
-          <p style="margin-bottom: 10px;">Prestations de services et biens de consommation courants.</p>
-          <ul style="list-style-type: disc; padding-left: 20px; color: var(--color-gray-700);">
+        <div class="bg-gray-50 p-5 rounded border-l-[5px] border-danger">
+          <div class="font-extrabold text-lg mb-2">TAUX 20.00% (Standard)</div>
+          <p class="mb-2.5">Prestations de services et biens de consommation courants.</p>
+          <ul class="list-disc pl-5 text-gray-700">
             <li>Logiciels (SAGE, Adobe, Microsoft)</li>
             <li>Abonnements (Serveurs, Gandi, Google Suite)</li>
             <li>Matériel informatique et mobilier de bureau</li>
@@ -684,18 +680,18 @@
           </ul>
         </div>
 
-        <div style="background: var(--color-gray-50); padding: 20px; border-radius: var(--radius); border-left: 5px solid var(--color-warning);">
-          <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 8px;">TAUX 10.00% ou 5.50% (Réduits)</div>
-          <p style="margin-bottom: 10px;">Services spécifiques et alimentation.</p>
-          <ul style="list-style-type: disc; padding-left: 20px; color: var(--color-gray-700);">
+        <div class="bg-gray-50 p-5 rounded border-l-[5px] border-warning">
+          <div class="font-extrabold text-lg mb-2">TAUX 10.00% ou 5.50% (Réduits)</div>
+          <p class="mb-2.5">Services spécifiques et alimentation.</p>
+          <ul class="list-disc pl-5 text-gray-700">
             <li><strong>10% :</strong> Restauration, Hôtels, Transports (SNCF)</li>
             <li><strong>5.5% :</strong> Alimentation de base (Courses local JE)</li>
           </ul>
         </div>
 
-        <div style="background: var(--color-gray-50); padding: 20px; border-radius: var(--radius); border-left: 5px solid var(--color-gray-400);">
-          <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 8px;">TAUX 0.00% (Sans TVA récupérable)</div>
-          <ul style="list-style-type: disc; padding-left: 20px; color: var(--color-gray-700);">
+        <div class="bg-gray-50 p-5 rounded border-l-[5px] border-gray-400">
+          <div class="font-extrabold text-lg mb-2">TAUX 0.00% (Sans TVA récupérable)</div>
+          <ul class="list-disc pl-5 text-gray-700">
             <li>Frais bancaires (Commissions, frais de compte)</li>
             <li>Cotisations CNJE</li>
             <li>Assurances professionnelles</li>
@@ -708,12 +704,11 @@
 </div>
 <!-- ─── Bottom Sheet : Nouvelle Règle Auto ─────────────────────────────────── -->
 <div id="autofill-bottom-sheet" class="bottom-sheet-overlay">
-  <div class="bottom-sheet" style="display: flex; flex-direction: row; overflow: hidden;">
+  <div class="bottom-sheet flex flex-row overflow-hidden">
     <!-- Sidebar : Règles existantes brutes -->
-    <div style="width: 280px; background: #fdfdfd; border-right: 1px solid var(--color-gray-200); overflow-y: auto; display: flex; flex-direction: column; flex-shrink: 0;">
+    <div class="w-[280px] bg-[#fdfdfd] border-r border-gray-200 overflow-y-auto flex flex-col shrink-0">
       {% for r in all_autofill_rules %}
-      <div class="autofill-rule-item" style="padding: 12px 16px; border-bottom: 1px solid var(--color-gray-200); display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; transition: background 0.2s;"
-           onmouseover="this.style.background='var(--color-gray-50)'" onmouseout="this.style.background='transparent'"
+      <div class="autofill-rule-item"
            data-nom="{{ r.nom }}"
            data-mots="{{ r.mots_cles }}"
            data-condition="{{ r.condition_type }}"
@@ -727,32 +722,32 @@
            data-etudeid="{{ r.etude_id|default:'' }}"
            data-ordre="{{ r.ordre }}"
            onclick="fillRuleForm(this.dataset.nom, this.dataset.mots, this.dataset.condition, this.dataset.typeop, this.dataset.fourn, this.dataset.lib, this.dataset.lbid, this.dataset.tva, this.dataset.pays, this.dataset.cat, this.dataset.etudeid, this.dataset.ordre)">
-        <div style="flex: 1;">
-          <div style="font-weight: 600; font-size: 0.95rem; color: var(--color-gray-900);">{{ r.nom }}</div>
-          <div style="font-size: 0.75rem; color: var(--color-gray-500); margin-top: 2px;">
+        <div class="flex-1">
+          <div class="font-semibold text-[0.95rem] text-gray-900">{{ r.nom }}</div>
+          <div class="text-xs text-gray-500 mt-0.5">
             {{ r.mots_cles|truncatechars:20 }}
           </div>
         </div>
-        <form method="post" action="{% url 'config:autofill_rule_delete' r.pk %}?next={{ request.path }}" style="margin: 0; display: inline;" onsubmit="return confirm('Supprimer cette règle ?')">
+        <form method="post" action="{% url 'config:autofill_rule_delete' r.pk %}?next={{ request.path }}" class="m-0 inline" onsubmit="return confirm('Supprimer cette règle ?')">
           {% csrf_token %}
-          <button type="submit" class="btn btn-ghost btn-sm text-danger" style="padding: 4px;" onclick="event.stopPropagation();">
+          <button type="submit" class="btn btn-ghost btn-sm text-danger p-1" onclick="event.stopPropagation();">
             <i data-lucide="trash-2" width="14" height="14"></i>
           </button>
         </form>
       </div>
       {% empty %}
-      <div style="padding: 20px; text-align: center; color: var(--color-gray-400); font-size: 0.9rem;">
+      <div class="p-5 text-center text-gray-400 text-sm">
         Aucune règle pour le moment.
       </div>
       {% endfor %}
     </div>
     
     <!-- Area Principale (Droite) -->
-    <div style="flex: 1; display: flex; flex-direction: column; background: #fff;">
+    <div class="flex-1 flex flex-col bg-white">
       <!-- Header Droite -->
-      <div style="padding: 24px 30px; border-bottom: 1px solid var(--color-gray-200); display: flex; justify-content: space-between; align-items: center;">
-        <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--color-gray-900); display: flex; align-items: center; gap: 8px;">
-          <i data-lucide="wand-2" width="22" height="22" style="color: var(--color-primary);"></i>
+      <div class="p-[24px_30px] border-b border-gray-200 flex justify-between items-center">
+        <h2 class="text-[1.4rem] font-extrabold text-gray-900 flex items-center gap-2">
+          <i data-lucide="wand-2" width="22" height="22" class="text-primary"></i>
           Nouvelle règle d'autocomplétion
         </h2>
         <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('autofill-bottom-sheet').classList.remove('open')">
@@ -761,15 +756,15 @@
       </div>
 
       <!-- Formulaire interne -->
-      <div style="flex: 1; padding: 30px; overflow-y: auto;">
+      <div class="flex-1 p-[30px] overflow-y-auto">
         <form id="autofill-form" method="post" action="{% url 'config:autofill_rule_create' %}">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.path }}">
         
-        <div class="grid-2" style="gap: 40px; align-items: start;">
+        <div class="grid-2 gap-10 items-start">
           <!-- Colonne Gauche : Conditions -->
-          <div style="background: var(--color-gray-50); padding: 24px; border-radius: var(--radius-lg); border: 1px solid var(--color-gray-200);">
-            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: var(--color-gray-800); border-bottom: 2px solid var(--color-gray-200); padding-bottom: 8px;">
+          <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+            <h3 class="text-lg font-bold mb-5 text-gray-800 border-b-2 border-gray-200 pb-2">
               1. Conditions de déclenchement
             </h3>
             
@@ -799,37 +794,37 @@
             <div class="form-group mb-2">
               <label class="form-label font-semibold">Mots clés (déclencheurs) <span class="text-danger">*</span></label>
               <input type="text" name="mots_cles" class="form-control" required placeholder="SAGE, banque, urssaf...">
-              <div class="text-xs text-muted" style="margin-top:6px">Séparés par des virgules. Insensible à la casse.</div>
+              <div class="text-xs text-muted mt-1.5">Séparés par des virgules. Insensible à la casse.</div>
             </div>
             
             <div class="form-group mt-4">
-              <label class="form-label font-semibold">Ordre de priorité</label>
-              <input type="number" name="ordre" class="form-control font-mono" value="0" style="width: 100px;">
-              <div class="text-xs text-muted" style="margin-top:6px">0 = Evaluée en premier</div>
+              <label class="form-label font-bold">Ordre de priorité</label>
+              <input type="number" name="ordre" class="form-control font-mono w-[100px]" value="0">
+              <div class="text-xs text-muted mt-1.5">0 = Evaluée en premier</div>
             </div>
           </div>
 
-          <!-- Colonne Droite : Règles appliquées -->
-          <div style="padding: 10px 10px;">
-            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: var(--color-primary); border-bottom: 2px solid var(--color-primary-light); padding-bottom: 8px;">
+          <!-- Colonne Droite : Valeurs suggérées -->
+          <div class="p-2.5">
+            <h3 class="text-lg font-bold mb-5 text-primary border-b-2 border-primary-light pb-2">
               2. Valeurs suggérées
             </h3>
             <div class="text-sm text-muted mb-4">Laissez les champs vides si vous ne souhaitez pas les écraser.</div>
 
             <div class="form-grid-2 mb-4">
               <div class="form-group">
-                <label class="form-label font-semibold">Tiers</label>
+                <label class="form-label font-bold">Tiers</label>
                 <input type="text" name="fournisseur" class="form-control" placeholder="ex: URSSAF">
               </div>
               <div class="form-group">
-                <label class="form-label font-semibold">Libellé</label>
+                <label class="form-label font-bold">Libellé</label>
                 <input type="text" name="libelle_defaut" class="form-control" placeholder="Cotisation mensuelle...">
               </div>
             </div>
 
             <div class="form-grid-2 mb-4">
               <div class="form-group">
-                <label class="form-label font-semibold">Ligne budgétaire</label>
+                <label class="form-label font-bold">Ligne budgétaire</label>
                 <select name="ligne_budgetaire" class="form-control">
                   <option value="">— Non définie —</option>
                   {% for lb in lignes_budgetaires %}
@@ -838,14 +833,14 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label font-semibold">Taux TVA (%)</label>
+                <label class="form-label font-bold">Taux TVA (%)</label>
                 <input type="number" step="0.01" name="taux_tva" class="form-control font-mono" placeholder="ex: 20">
               </div>
             </div>
 
             <div class="form-grid-2 mb-4">
               <div class="form-group">
-                <label class="form-label font-semibold">Pays TVA</label>
+                <label class="form-label font-bold">Pays TVA</label>
                 <select name="pays_tva" class="form-control">
                   <option value="">— Non défini —</option>
                   <option value="FR">France</option>
@@ -854,7 +849,7 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label font-semibold">Catégorisation (Achat)</label>
+                <label class="form-label font-bold">Catégorisation (Achat)</label>
                 <select name="categorisation_achat" class="form-control">
                   <option value="">— Non défini —</option>
                   <option value="service">Service</option>
@@ -865,7 +860,7 @@
             </div>
 
             <div class="form-group mb-6">
-              <label class="form-label font-semibold">Étude associée (Si applicable)</label>
+              <label class="form-label font-bold">Étude associée (Si applicable)</label>
               <select name="etude" class="form-control">
                 <option value="">— Sans étude —</option>
                 {% for e in etudes %}
@@ -874,31 +869,26 @@
               </select>
             </div>
 
-            <div style="text-align: right;">
-              <button type="submit" class="btn btn-primary" style="padding: 12px 24px; font-size: 1.05rem;">
+            <div class="text-right">
+              <button type="submit" class="btn btn-primary px-6 py-3 text-[1.05rem]">
                 <i data-lucide="check-circle" width="18" height="18"></i>
                 Valider et Créer la règle
               </button>
             </div>
           </div>
         </div>
-        </div>
-      </form>
+        </form>
       </div>
     </div>
   </div>
 </div>
 
 <style>
-/* CSS Bottom Sheet */
 .bottom-sheet-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.3);
   backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px); /* Safari support */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 110px, black 220px);
-  mask-image: linear-gradient(to bottom, transparent 110px, black 220px);
   z-index: 9999;
   opacity: 0;
   pointer-events: none;

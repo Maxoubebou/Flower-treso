@@ -10,56 +10,56 @@
 
 {% block content %}
 <div class="card">
-    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="card-header flex justify-between items-center">
         <h3 class="card-title">Opérations ignorées / Virements internes</h3>
         <span class="text-xs text-muted">{{ operations|length }} opération(s)</span>
     </div>
 
-    <div class="table-container">
-        <table class="table">
+    <div class="table-wrapper">
+        <table class="data-table table-compact">
             <thead>
                 <tr>
-                    <th style="padding-left: 20px; width:110px;">Date</th>
-                    <th style="width: 35%;">Libellé / Référence</th>
-                    <th style="text-align:right; width:120px;">Débit</th>
-                    <th style="text-align:right; width:120px; padding-right: 25px;">Crédit</th>
-                    <th style="padding-left: 25px;">Commentaire d'ignorance</th>
-                    <th style="width:100px; text-align:center;">Actions</th>
+                    <th class="th-tight">Date</th>
+                    <th class="th-tight" style="width: 35%;">Libellé / Référence</th>
+                    <th class="th-tight text-right">Débit</th>
+                    <th class="th-tight text-right">Crédit</th>
+                    <th class="th-tight">Commentaire d'ignorance</th>
+                    <th class="th-tight text-center">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for op in operations %}
                 <tr>
-                    <td style="padding-left: 20px;" class="text-xs">{{ op.date_operation|date:"d/m/Y" }}</td>
-                    <td>
+                    <td class="td-tight text-xs">{{ op.date_operation|date:"d/m/Y" }}</td>
+                    <td class="td-tight">
                         <div class="font-bold text-sm">{{ op.libelle }}</div>
                         {% if op.reference %}
-                        <div class="text-xs text-muted">{{ op.reference }}</div>
+                        <div class="text-[0.65rem] font-mono font-bold text-primary">{{ op.reference }}</div>
                         {% endif %}
                     </td>
-                    <td style="text-align:right;" class="font-bold text-danger">
+                    <td class="td-tight text-right font-bold text-danger">
                         {% if op.debit %}{{ op.debit|floatformat:2 }}€{% else %}—{% endif %}
                     </td>
-                    <td style="text-align:right; padding-right: 25px;" class="font-bold text-success">
+                    <td class="td-tight text-right font-bold text-success">
                         {% if op.credit %}{{ op.credit|floatformat:2 }}€{% else %}—{% endif %}
                     </td>
-                    <td style="padding-left: 25px;">
+                    <td class="td-tight">
                         <div class="text-xs italic text-muted" title="{{ op.info_complementaire }}">
                             {{ op.commentaire_ignoree|default:"Aucun commentaire" }}
                         </div>
                     </td>
-                    <td style="text-align:center;">
-                        <div style="display: flex; gap: 4px; justify-content: center;">
+                    <td class="td-tight text-center">
+                        <div class="flex gap-1 justify-center">
                             <form action="{% url 'finance:operation_reset' op.id %}" method="post" onsubmit="return confirm('Réintégrer cette opération dans la liste à traiter ?')">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-ghost btn-sm" title="Réintégrer l'opération" style="color:var(--color-primary); padding: 4px;">
+                                <button type="submit" class="btn btn-ghost btn-sm p-1 text-primary" title="Réintégrer l'opération">
                                     <i data-lucide="rotate-ccw" width="16" height="16"></i>
                                 </button>
                             </form>
                             
-                            <form action="{% url 'operations:operation_delete' op.id %}?next={% url 'finance:ignored_operations_list' %}" method="post" onsubmit="return confirm('Supprimer DEFINITIVEMENT cette opération ? Cette action est irréversible.')">
+                            <form action="{% url 'operations:operation_delete' op.id %}?next={% url 'finance:ignored_operations_list' %}" method="post" onsubmit="return confirm('Supprimer DEFINITIVEMENT cette opération ?')">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-ghost btn-sm" title="Supprimer l'opération" style="color:var(--color-danger); padding: 4px;">
+                                <button type="submit" class="btn btn-ghost btn-sm p-1 text-danger" title="Supprimer l'opération">
                                     <i data-lucide="trash-2" width="16" height="16"></i>
                                 </button>
                             </form>
@@ -68,8 +68,8 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" style="text-align:center; padding:40px;" class="text-muted">
-                        <i data-lucide="info" width="32" height="32" style="margin-bottom:10px; opacity:0.5;"></i>
+                    <td colspan="6" class="py-10 text-center text-muted">
+                        <i data-lucide="info" width="32" height="32" class="mx-auto mb-2 opacity-50"></i>
                         <p>Aucune opération ignorée pour cette période.</p>
                     </td>
                 </tr>
@@ -78,23 +78,4 @@
         </table>
     </div>
 </div>
-
-<style>
-    .stat-mini {
-        display: flex;
-        flex-direction: column;
-        line-height:1.2;
-    }
-    .stat-label {
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        font-weight: 700;
-        color: var(--color-gray-500);
-    }
-    .stat-value {
-        font-size: 0.9rem;
-        font-weight: 800;
-        font-family: var(--font-mono);
-    }
-</style>
 {% endblock %}

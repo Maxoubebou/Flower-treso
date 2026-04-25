@@ -8,9 +8,9 @@
 {% endblock %}
 
 {% block topbar_actions %}
-<div class="flex gap-2 items-center" style="margin-left:auto">
+<div class="flex gap-2 items-center ml-auto">
   <select name="statut" form="month-filter-form" onchange="document.getElementById('month-filter-form').submit()"
-          class="form-control" style="width:auto;padding:5px 10px;font-size:.8rem">
+          class="topbar-select">
     <option value="pending" {% if filtre_statut == 'pending' %}selected{% endif %}>En attente</option>
     <option value="processed" {% if filtre_statut == 'processed' %}selected{% endif %}>Traitées</option>
     <option value="ignored" {% if filtre_statut == 'ignored' %}selected{% endif %}>Ignorées</option>
@@ -33,11 +33,11 @@
         {% csrf_token %}
 
         <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-input').click()">
-          <div class="upload-text" style="display:flex; align-items:center; justify-content:center; gap: 16px">
+          <div class="upload-text flex items-center justify-center gap-4">
             <i data-lucide="file-up" width="20" height="20"></i>
             Cliquez ou déposez votre fichier CSV ici
           </div>
-          <div id="file-name" style="margin-top:12px;font-weight:600;color:var(--color-primary);display:none"></div>
+          <div id="file-name" class="mt-3 font-semibold text-primary hidden"></div>
         </div>
 
         <input type="file" id="csv-input" name="csv_file" accept=".csv" style="display:none"
@@ -54,18 +54,17 @@
 <div class="flex items-center gap-3">
   <a href="{% url 'operations:process_operation' op.pk %}" class="op-card flex-1">
     <div>
-      <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
-           color:{% if op.est_credit %}var(--color-success){% else %}var(--color-danger){% endif %};margin-bottom:3px">
+      <div class="text-[0.72rem] font-semibold uppercase tracking-wider mb-1 {% if op.est_credit %}text-success{% else %}text-danger{% endif %}">
         {% if op.est_credit %}Crédit{% else %}Débit{% endif %}
         &bull; {{ op.date_operation|date:"d/m/Y" }}
       </div>
-      <div style="font-weight:600;color:var(--color-gray-800);margin-bottom:2px">{{ op.libelle }}</div>
+      <div class="font-semibold text-gray-800 mb-0.5">{{ op.libelle }}</div>
       {% if op.info_complementaire %}
-      <div class="text-sm text-muted truncate" style="max-width:400px">{{ op.info_complementaire }}</div>
+      <div class="text-sm text-muted truncate max-w-[400px]">{{ op.info_complementaire }}</div>
       {% endif %}
     </div>
 
-    <div class="op-amount {% if op.est_credit %}credit{% else %}debit{% endif %}" style="margin-left:auto; margin-right: 16px">
+    <div class="op-amount {% if op.est_credit %}credit{% else %}debit{% endif %} ml-auto mr-4">
       {% if op.est_credit %}+{{ op.credit|floatformat:2 }}{% else %}{{ op.debit|floatformat:2 }}{% endif %} €
     </div>
   </a>
@@ -81,9 +80,9 @@
 
 {% else %}
 <div class="card">
-  <div class="card-body" style="text-align:center;padding:64px">
-    <i data-lucide="check-circle-2" width="56" height="56" style="color:var(--color-success);display:block;margin:0 auto 16px;opacity:.6"></i>
-    <h2 style="font-size:1.1rem;font-weight:700;color:var(--color-gray-700);margin-bottom:8px">
+  <div class="card-body text-center py-16">
+    <i data-lucide="check-circle-2" width="56" height="56" class="text-success block mx-auto mb-4 opacity-60"></i>
+    <h2 class="text-lg font-bold text-gray-700 mb-2">
       Aucune opération en attente
     </h2>
 

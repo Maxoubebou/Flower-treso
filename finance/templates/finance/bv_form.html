@@ -14,7 +14,7 @@
       <div class="card">
         <div class="card-header">
           <div class="card-title">
-            <i data-lucide="user" width="18" height="18" style="color:var(--color-primary)"></i>
+            <i data-lucide="user" width="18" height="18" class="text-primary"></i>
             Intervenant
           </div>
         </div>
@@ -101,7 +101,7 @@
       <div class="card">
         <div class="card-header">
           <div class="card-title">
-            <i data-lucide="tag" width="18" height="18" style="color:var(--color-primary)"></i>
+            <i data-lucide="tag" width="18" height="18" class="text-primary"></i>
             Identification
           </div>
         </div>
@@ -109,7 +109,7 @@
           <div class="form-grid-2">
             <div class="form-group flex-1">
               <label class="form-label">Numéro BV</label>
-              <input type="text" name="numero" class="form-control font-mono" value="{{ bv.numero }}" readonly style="background:var(--color-gray-100)">
+              <input type="text" name="numero" class="form-control font-mono bg-gray-100" value="{{ bv.numero }}" readonly>
             </div>
             <div class="form-group flex-1">
               <label class="form-label">Étude associée</label>
@@ -160,13 +160,13 @@
             <span class="text-muted" style="font-weight: 400; font-size: .75rem; margin-left:8px;">(Assiette : <span id="c-assiette">{{ bv.assiette|floatformat:2 }}</span> €)</span>
           </div>
         </div>
-        <div class="card-body" style="padding:0">
-          <table class="data-table" id="cotis-table" style="font-size: .8rem;">
+        <div class="card-body p-0">
+          <table class="data-table text-[0.8rem]" id="cotis-table">
             <thead>
               <tr>
-                <th style="padding:8px 10px">Poste</th>
-                <th class="text-right" style="padding:8px 10px">Part Junior (€)</th>
-                <th class="text-right" style="padding:8px 10px">Part Étudiant (€)</th>
+                <th class="p-[8px_10px]">Poste</th>
+                <th class="text-right p-[8px_10px]">Part Junior (€)</th>
+                <th class="text-right p-[8px_10px]">Part Étudiant (€)</th>
               </tr>
             </thead>
             <tbody>

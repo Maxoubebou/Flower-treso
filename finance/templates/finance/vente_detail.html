@@ -4,17 +4,17 @@
 
 {% block content %}
 
-<div class="flex gap-4" style="align-items:flex-start">
+<div class="flex gap-4 items-start">
 
   <!-- Carte principale -->
-  <div class="card" style="flex:2">
+  <div class="card flex-[2]">
     <div class="card-header">
       <div>
-        <div class="card-title" style="font-size:1.1rem">
-          <i data-lucide="receipt" width="18" height="18" style="color:var(--color-primary)"></i>
+        <div class="card-title text-[1.1rem]">
+          <i data-lucide="receipt" width="18" height="18" class="text-primary"></i>
           {{ facture.numero }}
         </div>
-        <div class="text-muted text-sm" style="margin-top:4px">{{ facture.libelle|default:"—" }}</div>
+        <div class="text-muted text-sm mt-1">{{ facture.libelle|default:"—" }}</div>
       </div>
       <div class="flex gap-2 items-center">
         <span class="badge badge-primary">{{ facture.type_facture.suffixe }}</span>
@@ -30,50 +30,50 @@
 
     <div class="card-body">
       <!-- Montants -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
-        <div style="background:var(--color-gray-50);border-radius:var(--radius);padding:16px;text-align:center">
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-gray-50 rounded p-4 text-center">
           <div class="text-muted text-sm">Montant HT</div>
-          <div class="font-bold font-mono" style="font-size:1.4rem;margin-top:4px">{{ facture.montant_ht|floatformat:2 }} €</div>
+          <div class="font-bold font-mono text-[1.4rem] mt-1">{{ facture.montant_ht|floatformat:2 }} €</div>
         </div>
-        <div style="background:#fef3c7;border-radius:var(--radius);padding:16px;text-align:center">
+        <div class="bg-[#fef3c7] rounded p-4 text-center">
           <div class="text-muted text-sm">TVA {{ facture.taux_tva }}%</div>
-          <div class="font-bold font-mono" style="font-size:1.4rem;margin-top:4px;color:#92400e">{{ facture.montant_tva|floatformat:2 }} €</div>
+          <div class="font-bold font-mono text-[1.4rem] mt-1 text-[#92400e]">{{ facture.montant_tva|floatformat:2 }} €</div>
         </div>
-        <div style="background:linear-gradient(135deg,var(--color-primary),var(--color-primary-dark));border-radius:var(--radius);padding:16px;text-align:center;color:#fff">
-          <div style="opacity:.8;font-size:.85rem">Total TTC</div>
-          <div class="font-bold font-mono" style="font-size:1.4rem;margin-top:4px">{{ facture.montant_ttc|floatformat:2 }} €</div>
+        <div class="bg-gradient-to-br from-primary to-primary-dark rounded p-4 text-center text-white">
+          <div class="opacity-80 text-[0.85rem]">Total TTC</div>
+          <div class="font-bold font-mono text-[1.4rem] mt-1">{{ facture.montant_ttc|floatformat:2 }} €</div>
         </div>
       </div>
 
       <!-- Métadonnées -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="grid grid-cols-2 gap-3">
         <div>
-          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Type</div>
+          <div class="text-[0.65rem] font-bold text-muted uppercase tracking-wider mb-1">Type</div>
           <div>{{ facture.type_facture.nom }}</div>
         </div>
         <div>
-          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Étude</div>
+          <div class="text-[0.65rem] font-bold text-muted uppercase tracking-wider mb-1">Étude</div>
           <div>{{ facture.etude|default:"—" }}</div>
         </div>
         <div>
-          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Date d'opération</div>
+          <div class="text-[0.65rem] font-bold text-muted uppercase tracking-wider mb-1">Date d'opération</div>
           <div class="font-mono">{{ facture.date_operation|date:"d/m/Y" }}</div>
         </div>
         <div>
-          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Date d'envoi</div>
+          <div class="text-[0.65rem] font-bold text-muted uppercase tracking-wider mb-1">Date d'envoi</div>
           <div class="font-mono">{{ facture.date_envoi|date:"d/m/Y"|default:"—" }}</div>
         </div>
         <div>
-          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Ligne budgétaire</div>
+          <div class="text-[0.65rem] font-bold text-muted uppercase tracking-wider mb-1">Ligne budgétaire</div>
           <div>{{ facture.ligne_budgetaire|default:"—" }}</div>
         </div>
         <div>
-          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Taux mixte</div>
+          <div class="text-[0.65rem] font-bold text-muted uppercase tracking-wider mb-1">Taux mixte</div>
           <div>{% if facture.taux_mixte %}<span class="badge badge-warning">Oui</span>{% else %}Non{% endif %}</div>
         </div>
         {% if facture.lien_drive %}
-        <div style="grid-column:span 2">
-          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Preuve comptable</div>
+        <div class="col-span-2">
+          <div class="text-[0.65rem] font-bold text-muted uppercase tracking-wider mb-1">Preuve comptable</div>
           <a href="{{ facture.lien_drive }}" target="_blank" class="btn btn-ghost btn-sm">
             <i data-lucide="external-link" width="13" height="13"></i>
             Ouvrir le document
@@ -81,9 +81,9 @@
         </div>
         {% endif %}
         {% if facture.commentaire %}
-        <div style="grid-column:span 2">
-          <div class="text-xs font-semibold text-muted" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Commentaire</div>
-          <div class="text-sm" style="background:var(--color-gray-50);padding:10px;border-radius:var(--radius)">{{ facture.commentaire }}</div>
+        <div class="col-span-2">
+          <div class="text-[0.65rem] font-bold text-muted uppercase tracking-wider mb-1">Commentaire</div>
+          <div class="text-sm bg-gray-50 p-2.5 rounded">{{ facture.commentaire }}</div>
         </div>
         {% endif %}
       </div>
@@ -91,12 +91,12 @@
   </div>
 
   <!-- Colonne droite : opération bancaire -->
-  <div style="flex:1">
+  <div class="flex-1">
     {% if facture.operation %}
     <div class="card">
       <div class="card-header">
         <div class="card-title text-sm">
-          <i data-lucide="landmark" width="15" height="15" style="color:var(--color-gray-400)"></i>
+          <i data-lucide="landmark" width="15" height="15" class="text-gray-400"></i>
           Opération bancaire liée
         </div>
       </div>
@@ -118,7 +118,7 @@
     {% endif %}
 
     <!-- Actions -->
-    <div class="card" style="margin-top:16px">
+    <div class="card mt-4">
       <div class="card-body">
         <a href="{% url 'finance:vente_edit' facture.pk %}" class="btn btn-primary w-full mb-4">
           <i data-lucide="edit-2" width="15" height="15"></i>
