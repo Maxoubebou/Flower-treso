@@ -109,10 +109,32 @@
     </div>
 
     <div class="sidebar-footer">
-      <a href="{% url 'config:settings_index' %}" class="nav-item {% if 'config' in request.path and 'autofill' not in request.path %}active{% endif %}">
-        <i data-lucide="settings" width="17" height="17"></i>
-        <span>Paramètres</span>
-      </a>
+      <div style="display:flex; flex-direction:column; gap:8px; width:100%; padding:0 4px">
+          {% if request.user.is_authenticated %}
+          <div class="user-info-sidebar" style="padding:8px 12px; display:flex; align-items:center; gap:10px; margin-bottom:4px; background:var(--color-gray-50); border-radius:12px">
+              <img src="{% if request.user.socialaccount_set.all.0 %}{{ request.user.socialaccount_set.all.0.get_avatar_url }}{% else %}https://ui-avatars.com/api/?name={{ request.user.email }}{% endif %}" 
+                   style="width:28px; height:28px; border-radius:50%; border:2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1)">
+              <div style="display:flex; flex-direction:column; overflow:hidden">
+                  <span style="font-size:0.8rem; font-weight:700; color:var(--color-gray-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                      {{ request.user.first_name|default:request.user.email|truncatechars:18 }}
+                  </span>
+              </div>
+          </div>
+          {% endif %}
+
+          <div style="display:flex; gap:4px">
+              <a href="{% url 'config:settings_index' %}" class="nav-item {% if 'config' in request.path %}active{% endif %}" style="flex:1; margin-bottom:0">
+                <i data-lucide="settings" width="17" height="17"></i>
+                <span class="nav-text">Paramètres</span>
+              </a>
+              <form method="post" action="{% url 'account_logout' %}" style="display:inline">
+                  {% csrf_token %}
+                  <button type="submit" class="nav-item" style="border:none; background:transparent; cursor:pointer; width:auto; padding:8px 12px; margin-bottom:0; color:var(--color-danger)" title="Déconnexion">
+                      <i data-lucide="log-out" width="17" height="17"></i>
+                  </button>
+              </form>
+          </div>
+      </div>
     </div>
   </aside>
 
