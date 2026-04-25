@@ -478,3 +478,22 @@ def generate_ndf_pdf(ndf, sig_config) -> bytes:
 
         with open(tmp_pdf, 'rb') as f:
             return f.read()
+def generate_numero_ndf(year, month):
+    """Génère un numéro de type NF-YYMMXX avec reset mensuel."""
+    from .models import FactureAchat
+    
+    prefix = f"NF-{str(year)[2:]}{month:02d}"
+    
+    # On cherche le dernier numéro commençant par ce prefixe
+    last = FactureAchat.objects.filter(numero__startswith=prefix).order_by('-numero').first()
+    
+    if not last:
+        return f"{prefix}01"
+    
+    try:
+        # On extrait les 2 derniers chiffres
+        last_num = int(last.numero[-2:])
+        new_num = last_num + 1
+        return f"{prefix}{new_num:02d}"
+    except (ValueError, IndexError):
+        return f"{prefix}01"

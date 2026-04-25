@@ -111,7 +111,7 @@
 
                 <div class="flex-1 flex overflow-hidden">
                     <div class="w-[400px] p-6 scroll-container flex-shrink-0">
-                        <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}" target="_blank">
+                        <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}" target="_blank" onsubmit="return handleValidationSubmit(this, '{{ ndf.id }}')">
                             {% csrf_token %}
                             <input type="hidden" name="libelle_final" id="libelle-input-{{ ndf.id }}" value="{{ ndf.libelle|default:"Sans titre" }}">
                             
@@ -195,7 +195,9 @@
                                     </div>
                                     <div class="form-group mb-0">
                                         <label class="form-label text-[0.65rem] uppercase text-muted">Référence Facture</label>
-                                        <input type="text" name="reference_facture" class="form-control form-control-sm" placeholder="FV-2024-..." value="">
+                                        <input type="text" name="reference_facture" class="form-control form-control-sm font-mono" 
+                                               placeholder="NF-..." value="{{ suggested_ref }}"
+                                               oninput="if(!this.value.startsWith('NF-')) this.value = 'NF-' + this.value.replace('NF-', '')">
                                     </div>
                                 </div>
 
@@ -559,6 +561,24 @@ function editLibelle(id, container) {
         if(e.key === 'Enter') { e.preventDefault(); finishEdit(); }
         if(e.key === 'Escape') { input.value = currentVal; finishEdit(); }
     };
+}
+
+function handleValidationSubmit(form, id) {
+    const currentItem = document.getElementById('ndf-item-' + id);
+    const nextItem = currentItem ? currentItem.nextElementSibling : null;
+    
+    // On attend un court instant que le navigateur lance l'ouverture du nouvel onglet
+    setTimeout(() => {
+        if (nextItem && nextItem.classList.contains('ndf-item')) {
+            nextItem.click();
+            if(currentItem) currentItem.remove();
+        } else {
+            // Plus de demandes, on rafraîchit pour afficher l'état vide
+            window.location.reload();
+        }
+    }, 800);
+    
+    return true; // Laisse le formulaire s'envoyer (dans l'onglet target="_blank")
 }
 </script>
 {% endblock %}

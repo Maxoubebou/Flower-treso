@@ -125,12 +125,6 @@
                       hx-trigger="refresh-invoice-achat-{{ f.id }} from:body"
                       hx-swap="innerHTML">{{ f.montant_tva|floatformat:2 }}</span> TVA
               </span>
-              {% if f.rib_beneficiaire %}
-              <div class="mt-1 flex items-center gap-1 text-[0.6rem] bg-primary-light text-primary px-1 rounded font-mono truncate max-w-[120px]" title="RIB: {{ f.rib_beneficiaire }}">
-                <i data-lucide="credit-card" width="10" height="10"></i>
-                {{ f.rib_beneficiaire|slice:"-10:" }}
-              </div>
-              {% endif %}
             </div>
           </td>
 
@@ -187,6 +181,13 @@
               <a href="{% url 'operations:operation_delete' f.operation.pk %}?next={{ request.get_full_path|urlencode }}"
                  class="btn btn-ghost btn-sm text-danger" style="padding:4px 6px"
                  onclick="return confirm('Supprimer l\'opération bancaire ET cette facture ?')"
+                 title="Supprimer">
+                <i data-lucide="trash-2" width="14" height="14"></i>
+              </a>
+              {% else %}
+              <a href="{% url 'finance:achat_delete' f.pk %}?next={{ request.get_full_path|urlencode }}"
+                 class="btn btn-ghost btn-sm text-danger" style="padding:4px 6px"
+                 onclick="return confirm('Supprimer cette facture ?')"
                  title="Supprimer">
                 <i data-lucide="trash-2" width="14" height="14"></i>
               </a>

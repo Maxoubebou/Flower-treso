@@ -12,7 +12,9 @@ def dashboard(request):
     """Dashboard principal avec KPIs."""
     from datetime import date
     from django.db import models
-    from django.db.models import Sum, Count
+    from django.db.models import Sum, Count, F
+    from finance.models import FactureVente, BulletinVersement, FactureAchat, DemandeNDF
+    from operations.models import Operation
 
     aujourd_hui = date.today()
     mois_courant = aujourd_hui.month
@@ -38,6 +40,11 @@ def dashboard(request):
     # BV en attente de liaison (Intégrité)
     bv_pending = BulletinVersement.objects.filter(operation__isnull=True).order_by('-date_emission')[:10]
     bv_pending_count = BulletinVersement.objects.filter(operation__isnull=True).count()
+    # NDF en attente
+    ndf_pending_count = DemandeNDF.objects.filter(statut='pending').count()
+    ndf_pending_sum = DemandeNDF.objects.filter(statut='pending').aggregate(total=Sum('lignes__montant_ttc'))['total'] or 0
+    ndf_waiting_payment_count = DemandeNDF.objects.filter(statut='waiting_payment').count()
+    ndf_waiting_payment_sum = DemandeNDF.objects.filter(statut='waiting_payment').aggregate(total=Sum('lignes__montant_ttc'))['total'] or 0
 
     # --- Gestion URSSAF Dashboard ---
     urssaf_history = []
@@ -173,6 +180,10 @@ def dashboard(request):
         'tva_history': tva_history,
         'urssaf_history': urssaf_history,
         'aujourd_hui': aujourd_hui,
+        'ndf_pending_count': ndf_pending_count,
+        'ndf_pending_sum': ndf_pending_sum,
+        'ndf_waiting_payment_count': ndf_waiting_payment_count,
+        'ndf_waiting_payment_sum': ndf_waiting_payment_sum,
     })
 
 

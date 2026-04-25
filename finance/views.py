@@ -1343,9 +1343,15 @@ def ndf_manage(request):
     for ndf in demandes:
         ndf.user_obj = User.objects.filter(email=ndf.email).first()
 
+    from .services import generate_numero_ndf
+    from datetime import date
+    today = date.today()
+    suggested_ref = generate_numero_ndf(today.year, today.month)
+
     return render(request, 'finance/ndf_manage.html', {
         'demandes': demandes,
         'param_ndf': ParametreNDF.objects.filter(actif=True).first(),
+        'suggested_ref': suggested_ref,
     })
 
 
@@ -1408,11 +1414,20 @@ def ndf_validate(request, pk):
         total_ttc = sum(l.montant_ttc for l in ndf.lignes.all())
         principal_taux = ndf.lignes.first().taux_tva if ndf.lignes.exists() else 20
 
-        # 4. Déterminer le numéro de facture
+        # 4. Déterminer le numéro de facture (Format NF-YYMMXX)
+        from .services import generate_numero_ndf
         today = date.today()
+        
         if not custom_ref:
-            from .services import generate_numero_facture_achat
-            custom_ref = generate_numero_facture_achat(type_ndf, today.year, today.month)
+            custom_ref = generate_numero_ndf(today.year, today.month)
+        else:
+            # On force le préfixe NF- si l'utilisateur a saisi autre chose et on vérifie l'unicité
+            if not custom_ref.startswith('NF-'):
+                custom_ref = f"NF-{custom_ref}"
+            
+            if FactureAchat.objects.filter(numero=custom_ref).exists():
+                messages.error(request, f"La référence {custom_ref} est déjà utilisée.")
+                return redirect('finance:ndf_manage')
 
         # 5. Créer la FactureAchat
         fa = FactureAchat.objects.create(
@@ -1500,8 +1515,40 @@ def ndf_reject(request, pk):
 
 
 def ndf_delete(request, pk):
-    """Supprime une demande de NDF de l'historique."""
+    """Supprime une demande de NDF (même historique)."""
     ndf = get_object_or_404(DemandeNDF, pk=pk)
+    libelle = ndf.libelle
+    
+    # Si y'a une facture liée, on la supprime aussi
+    if ndf.facture_achat:
+        ndf.facture_achat.delete()
+
     ndf.delete()
-    messages.success(request, "Note de frais supprimée avec succès.")
+    messages.success(request, f"La demande « {libelle} » a été supprimée.")
     return redirect('finance:ndf_history')
+
+def achat_delete(request, pk):
+    """Supprime une facture d'achat."""
+    achat = get_object_or_404(FactureAchat, pk=pk)
+    num = achat.numero
+    
+    # Si c'était lié à une NDF via OneToOne, on remet la NDF en attente
+    if hasattr(achat, 'demande_ndf'):
+        ndf = achat.demande_ndf
+        ndf.statut = 'pending'
+        ndf.save()
+        messages.info(request, f"La Note de Frais associée à {num} a été remise en attente de validation.")
+
+    # Si y'a une opération, on la supprime aussi (CASCADE le fera sinon mais c'est plus clair ici)
+    if achat.operation:
+        op = achat.operation
+        op.delete()
+    else:
+        achat.delete()
+
+    messages.success(request, f"Facture d'achat {num} supprimée.")
+    
+    next_url = request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
+    return redirect('finance:achats_list')

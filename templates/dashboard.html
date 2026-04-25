@@ -53,7 +53,44 @@
 
 </div>
 
+<!-- NDF KPIs -->
+<div class="stats-grid" style="margin-top: 24px; margin-bottom: 24px;">
+  <div class="stat-card primary">
+    <div class="stat-icon primary">
+      <i data-lucide="file-search" width="20" height="20"></i>
+    </div>
+    <div class="stat-value">{{ ndf_pending_count }}</div>
+    <div class="stat-label">NDF à valider</div>
+    <div class="stat-sub font-mono font-bold">{{ ndf_pending_sum|floatformat:2 }} € engagés</div>
+  </div>
 
+  <div class="stat-card warning">
+    <div class="stat-icon warning">
+      <i data-lucide="hourglass" width="20" height="20"></i>
+    </div>
+    <div class="stat-value">{{ ndf_waiting_payment_count }}</div>
+    <div class="stat-label">NDF en attente de paiement</div>
+    <div class="stat-sub font-mono font-bold">{{ ndf_waiting_payment_sum|floatformat:2 }} € à régler</div>
+  </div>
+
+  <div class="stat-card success" onclick="location.href='{% url 'finance:ndf_manage' %}'" style="cursor:pointer">
+    <div class="stat-icon success">
+      <i data-lucide="check-square" width="20" height="20"></i>
+    </div>
+    <div class="stat-value">Action</div>
+    <div class="stat-label">Gestion des NDF</div>
+    <div class="stat-sub">Valider les demandes <i data-lucide="arrow-right" class="inline" width="12"></i></div>
+  </div>
+
+  <div class="stat-card" onclick="location.href='{% url 'finance:ndf_history' %}'" style="cursor:pointer; background: var(--color-gray-50);">
+    <div class="stat-icon" style="background: var(--color-gray-200); color: var(--color-gray-600);">
+      <i data-lucide="history" width="20" height="20"></i>
+    </div>
+    <div class="stat-value">Historique</div>
+    <div class="stat-label">Archives NDF</div>
+    <div class="stat-sub">Consulter le passé</div>
+  </div>
+</div>
   <!-- Intégrité : BV non liés -->
   {% if bv_pending_count > 0 %}
   <div class="card" style="border-left: 4px solid var(--color-warning); margin-bottom: 24px;">
