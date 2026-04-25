@@ -8,7 +8,6 @@
 
 {% block content %}
 <div class="outlook-container">
-    <!-- Sidebar : Liste des demandes -->
     <aside class="outlook-sidebar card">
         <div class="sidebar-header border-b border-gray-100 p-4">
             <h3 class="text-sm font-bold uppercase tracking-widest text-muted">Demandes en attente</h3>
@@ -52,7 +51,6 @@
         </div>
     </aside>
 
-    <!-- Main Panel : Détails -->
     <main class="outlook-main">
         <div id="ndf-empty-state" class="card h-full flex flex-col items-center justify-center p-12 text-center">
             <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -65,12 +63,10 @@
         {% for ndf in demandes %}
         <div id="ndf-details-{{ ndf.id }}" class="ndf-detail-panel hidden h-full">
             <div class="card h-full flex flex-col overflow-hidden">
-                <!-- Header Récap : Structure Robuste -->
-                <div class="card-header bg-white border-b border-gray-100 py-6 px-10">
-                    <div class="flex items-center justify-between w-full h-full">
+                <div class="card-header bg-white border-b border-gray-100 py-6 px-8">
+                    <div class="flex items-center w-full h-full">
                         
-                        <!-- 1. IDENTITÉ -->
-                        <div class="flex items-center gap-5 min-w-[260px] flex-shrink-0">
+                        <div class="flex items-center gap-4 w-[25%] pr-4 shrink-0">
                             {% if ndf.user_obj.socialaccount_set.first.get_avatar_url %}
                                 <img src="{{ ndf.user_obj.socialaccount_set.first.get_avatar_url }}" 
                                      class="w-12 h-12 rounded-full object-cover shadow-sm bg-gray-100">
@@ -79,45 +75,40 @@
                                     {{ ndf.prenom_beneficiaire|slice:":1" }}
                                 </div>
                             {% endif %}
-                            <div class="flex flex-col gap-1">
-                                <div class="text-base font-bold text-gray-900 leading-none">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
+                            <div class="flex flex-col gap-1 text-left">
+                                <div class="text-sm font-bold text-gray-900 leading-none">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
                                 <div class="badge badge-warning text-[0.6rem] uppercase font-bold px-2 py-0.5 w-fit">En attente</div>
                             </div>
                         </div>
 
-                        <!-- 2. MISSION (Séparé par marge forcée) -->
-                        <div class="flex-[2] border-l border-gray-100 px-12 min-w-0 flex flex-col gap-1 mx-4">
-                            <div class="text-base font-bold text-gray-900 truncate leading-tight">{{ ndf.libelle|default:"Sans titre" }}</div>
+                        <div class="flex flex-col gap-1 w-[30%] border-l border-gray-100 px-6 shrink-0 text-left">
+                            <div class="text-sm font-bold text-gray-900 truncate leading-tight">{{ ndf.libelle|default:"Sans titre" }}</div>
                             <div class="text-[0.65rem] text-muted font-bold tracking-widest uppercase opacity-50">{{ ndf.get_type_frais_display }}</div>
                         </div>
 
-                        <!-- 3. FINANCES -->
-                        <div class="flex-[1.5] border-l border-gray-100 pl-12 flex items-center gap-12 flex-shrink-0">
-                            <div class="flex flex-col gap-1 min-w-[120px]">
-                                <div class="text-xl font-black text-primary font-mono leading-none">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</div>
-                                <div class="text-[0.6rem] text-muted uppercase font-bold tracking-widest opacity-50">Total Demandé</div>
-                            </div>
-                            
-                            <div class="flex flex-col gap-1">
-                                <div class="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-lg py-1.5 px-3">
-                                    <div class="font-mono text-[0.7rem] text-gray-600 tracking-tighter" id="rib-text-{{ ndf.id }}">
-                                        {{ ndf.rib_beneficiaire }}
-                                    </div>
-                                    <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)" 
-                                            class="hover:text-primary transition-colors"
-                                            title="Copier">
-                                        <i data-lucide="copy" width="14" height="14"></i>
-                                    </button>
+                        <div class="flex flex-col gap-1 w-[20%] border-l border-gray-100 px-6 shrink-0 text-left">
+                            <div class="text-lg font-black text-primary font-mono leading-none">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</div>
+                            <div class="text-[0.65rem] text-muted uppercase font-bold tracking-widest opacity-50">Total Demandé</div>
+                        </div>
+                        
+                        <div class="flex flex-col gap-1 w-[25%] border-l border-gray-100 pl-6 shrink-0 text-left">
+                            <div class="flex items-center gap-2">
+                                <div class="text-sm font-mono font-bold text-gray-900 tracking-tighter" id="rib-text-{{ ndf.id }}">
+                                    {{ ndf.rib_beneficiaire }}
                                 </div>
-                                <div class="text-[0.55rem] text-muted uppercase font-bold ml-1 opacity-50">RIB Bénéficiaire</div>
+                                <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)" 
+                                        class="hover:text-primary transition-colors"
+                                        title="Copier">
+                                    <i data-lucide="copy" width="14" height="14"></i>
+                                </button>
                             </div>
+                            <div class="text-[0.65rem] text-muted uppercase font-bold tracking-widest opacity-50">RIB Bénéficiaire</div>
                         </div>
 
                     </div>
                 </div>
 
-                    <div class="flex-1 flex overflow-hidden">
-                    <!-- Gauche : Édition & Formulaire -->
+                <div class="flex-1 flex overflow-hidden">
                     <div class="flex-[3] p-6 scroll-container">
                         <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}">
                             {% csrf_token %}
@@ -188,9 +179,7 @@
                         </form>
                     </div>
 
-                    <!-- Droite : Visionneuse -->
                     <div class="flex-[7] bg-gray-900 flex flex-col border-l border-gray-100">
-                        <!-- Sélecteur de fichiers -->
                         <div class="flex gap-1 p-3 bg-black/20 overflow-x-auto no-scrollbar">
                             {% for doc in ndf.justificatifs.all %}
                             <button class="flex-shrink-0 px-3 py-1.5 rounded text-[0.65rem] font-medium transition-colors 
@@ -201,7 +190,6 @@
                             {% endfor %}
                         </div>
                         
-                        <!-- Preview Area -->
                         <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4">
                             {% with first_doc=ndf.justificatifs.first %}
                             <div id="preview-container-{{ ndf.id }}" class="w-full h-full flex items-center justify-center">
@@ -221,7 +209,6 @@
                 </div>
             </div>
 
-            <!-- Formulaire caché pour le rejet -->
             <form id="reject-form-{{ ndf.id }}" method="post" action="{% url 'finance:ndf_reject' ndf.pk %}" class="hidden">
                 {% csrf_token %}
                 <input type="hidden" name="commentaire_tresorier" id="reject-comment-{{ ndf.id }}">
@@ -236,7 +223,7 @@
     display: flex;
     height: calc(100vh - 120px);
     gap: 16px;
-    margin: -16px; /* Offset parent padding if necessary */
+    margin: -16px;
     padding: 16px;
 }
 
@@ -301,28 +288,22 @@ iframe { filter: drop-shadow(0 20px 25px rgb(0 0 0 / 0.1)); }
 
 <script>
 function showNDF(id) {
-    // Hide empty state
     document.getElementById('ndf-empty-state').classList.add('hidden');
     
-    // Hide all panels
     document.querySelectorAll('.ndf-detail-panel').forEach(p => p.classList.add('hidden'));
     
-    // Unactivate all list items
     document.querySelectorAll('.ndf-item').forEach(i => i.classList.remove('active'));
     
-    // Show selected panel & activate item
     const panel = document.getElementById('ndf-details-' + id);
     if(panel) panel.classList.remove('hidden');
     
     const item = document.getElementById('ndf-item-' + id);
     if(item) item.classList.add('active');
 
-    // Refresh lucide icons for newly shown content
     lucide.createIcons();
 }
 
 function switchPreview(btn, url, isPdf) {
-    // UI Update (button colors)
     const container = btn.closest('.bg-gray-900');
     container.querySelectorAll('button').forEach(b => {
         b.classList.remove('bg-primary', 'text-white');
@@ -331,7 +312,6 @@ function switchPreview(btn, url, isPdf) {
     btn.classList.remove('bg-gray-800', 'text-gray-400');
     btn.classList.add('bg-primary', 'text-white');
 
-    // Content Update
     const previewArea = container.querySelector('[id^="preview-container-"]');
     if (isPdf === "True") {
         previewArea.innerHTML = `<iframe src="${url}#toolbar=0" class="w-full h-full border-none rounded"></iframe>`;
