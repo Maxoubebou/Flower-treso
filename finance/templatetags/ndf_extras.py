@@ -23,3 +23,11 @@ def is_pdf(value):
 def is_image(value):
     """Vérifie si le fichier est une image."""
     return get_file_extension(value) in ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+
+@register.filter
+def days_since(value):
+    """Retourne le nombre de jours entre maintenant et la valeur."""
+    from django.utils import timezone
+    if not value: return ""
+    diff = timezone.now() - value
+    return diff.days

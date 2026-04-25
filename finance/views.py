@@ -1337,7 +1337,7 @@ def ndf_manage(request):
     """Vue trésorier pour gérer les NDF en attente."""
     from django.contrib.auth import get_user_model
     User = get_user_model()
-    demandes = DemandeNDF.objects.filter(statut='pending').prefetch_related('lignes').order_by('-date_soumission')
+    demandes = DemandeNDF.objects.filter(statut='pending').prefetch_related('lignes').order_by('date_soumission')
     
     # On attache l'objet utilisateur à chaque demande pour l'avatar SocialAccount
     for ndf in demandes:

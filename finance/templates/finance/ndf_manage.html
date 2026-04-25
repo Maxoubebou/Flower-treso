@@ -12,39 +12,29 @@
         <div class="sidebar-header border-b border-gray-100 p-4">
             <h3 class="text-sm font-bold uppercase tracking-widest text-muted">Demandes en attente</h3>
         </div>
-        <div class="sidebar-list scroll-container">
+        <div class="sidebar-list scroll-container p-3 bg-gray-50/50">
             {% if not demandes %}
             <div class="p-8 text-center text-muted text-sm">
                 Aucune demande en attente
             </div>
             {% endif %}
             {% for ndf in demandes %}
-            <div class="p-8 border-b border-gray-100 bg-white flex items-center gap-16">
-                <div class="flex items-center gap-4 min-w-[250px]">
-                    <div class="w-12 h-12 rounded-full text-white flex items-center justify-center text-lg font-bold">
-                        {{ ndf.nom_beneficiaire|slice:":1" }}
+            <div id="ndf-item-{{ ndf.id }}" 
+                 class="ndf-item mb-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 cursor-pointer transition-all duration-200" 
+                 onclick="showNDF('{{ ndf.id }}')">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex flex-col flex-1 min-w-0 pr-4">
+                        <span class="text-md font-bold text-gray-900 truncate leading-tight">{{ ndf.libelle|default:"Sans titre" }}</span>
+                        <span class="text-xs text-muted mt-0.5">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</span>
                     </div>
-                    <div class="flex flex-col">
-                        <span class="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Demandeur</span>
-                        <span class="text-sm font-semibold text-gray-900">{{ ndf.nom_beneficiaire }}</span>
+                </div>
+                <div class="flex justify-between items-center mt-4">
+                    <div class="px-2 py-1 bg-primary/5 rounded-md">
+                        <span class="text-xs font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }}€</span>
                     </div>
-                </div>
-
-                <div class="flex flex-col min-w-[120px]">
-                    <span class="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Montant</span>
-                    <span class="text-sm font-semibold text-gray-900">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</span>
-                </div>
-
-                <div class="flex flex-col min-w-[120px]">
-                    <span class="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Date de soumission</span>
-                    <span class="text-sm font-semibold text-gray-900">{{ ndf.date_soumission|date:"d M Y" }}</span>
-                </div>
-
-                <div class="flex flex-col group cursor-pointer" onclick="copyToClipboard('{{ ndf.rib_beneficiaire }}', this)">
-                    <span class="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400 flex items-center gap-2">
-                        RIB de remboursement <i data-lucide="copy" width="10" class="opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                    <span class="text-md text-muted italic font-medium">
+                        {{ ndf.date_soumission|days_since }} jours
                     </span>
-                    <span class="text-sm font-mono font-semibold text-gray-900 tracking-tight">{{ ndf.rib_beneficiaire }}</span>
                 </div>
             </div>
             {% endfor %}
