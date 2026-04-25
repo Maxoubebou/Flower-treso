@@ -11,7 +11,7 @@ SECRET_KEY = 'django-insecure-flower-treso-jv#8k!2m5xp@z1n6w3q9t0r4y7u'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['ton-pseudo.pythonanywhere.com', 'localhost', '127.0.0.1']
 
 # ---------------------------------------------------------------------------
 # Applications
