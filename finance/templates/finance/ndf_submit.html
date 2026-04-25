@@ -221,7 +221,6 @@
 const IK_RATE = {{ param_ndf.montant_ik|default:0.45|stringformat:".4f" }};
 
 function toggleFraisType(val) {
-    console.log("Toggle type:", val);
     const sectionJustifsIK = document.getElementById('section-justifs-ik');
     const sectionJustifsAchat = document.getElementById('section-justifs-achat');
     const tableIK = document.getElementById('table-ik');
@@ -322,6 +321,36 @@ function addExtraFile() {
 document.addEventListener('DOMContentLoaded', () => {
     toggleFraisType(document.querySelector('select[name="type_frais"]').value);
     lucide.createIcons();
+
+    // Gestion du placeholder 'preuve obligatoire'
+    function updateFileStatus(input) {
+        if (input.files && input.files.length > 0) {
+            input.classList.remove('empty-file');
+        } else {
+            input.classList.add('empty-file');
+        }
+    }
+
+    // Initialisation
+    document.querySelectorAll('input[type="file"]').forEach(input => {
+        updateFileStatus(input);
+        input.addEventListener('change', () => updateFileStatus(input));
+    });
+
+    // Observer pour les lignes ajoutées dynamiquement
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) {
+                    node.querySelectorAll('input[type="file"]').forEach(input => {
+                        updateFileStatus(input);
+                        input.addEventListener('change', () => updateFileStatus(input));
+                    });
+                }
+            });
+        });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
 });
 </script>
 {% endblock %}
