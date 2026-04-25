@@ -21,7 +21,7 @@
             {% for ndf in demandes %}
             <div class="p-8 border-b border-gray-100 bg-white flex items-center gap-16">
                 <div class="flex items-center gap-4 min-w-[250px]">
-                    <div class="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center text-lg font-bold">
+                    <div class="w-12 h-12 rounded-full text-white flex items-center justify-center text-lg font-bold">
                         {{ ndf.nom_beneficiaire|slice:":1" }}
                     </div>
                     <div class="flex flex-col">
@@ -53,7 +53,7 @@
 
     <main class="outlook-main">
         <div id="ndf-empty-state" class="card h-full flex flex-col items-center justify-center p-12 text-center">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center ">
                 <i data-lucide="mail-open" class="text-gray-400" width="32" height="32"></i>
             </div>
             <h3 class="text-lg font-semibold text-gray-900">Sélectionnez une demande</h3>
@@ -101,7 +101,7 @@
                 </div>
 
                 <div class="flex-1 flex overflow-hidden">
-                    <div class="flex-[3] p-6 scroll-container">
+                    <div class="w-[400px] p-6 scroll-container flex-shrink-0">
                         <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}">
                             {% csrf_token %}
                             
@@ -171,13 +171,25 @@
                         </form>
                     </div>
 
-                    <div class="flex-[7] bg-gray-900 flex flex-col border-l border-gray-100">
-                        <div class="flex gap-1 p-3 bg-black/20 overflow-x-auto no-scrollbar">
+                    <div class="flex-1 flex flex-col">
+                        <div class="flex items-center gap-6 p-4 bg-white">
                             {% for doc in ndf.justificatifs.all %}
-                            <button class="flex-shrink-0 px-3 py-1.5 rounded text-[0.65rem] font-medium transition-colors 
-                                           {% if forloop.first %}bg-primary text-white{% else %}bg-gray-800 text-gray-400 hover:bg-gray-700{% endif %}"
+                            <button class="flex items-center gap-2 group cursor-pointer transition-colors"
                                     onclick="switchPreview(this, '{{ doc.fichier.url }}', '{{ doc.fichier|is_pdf }}')">
-                                <i data-lucide="file" width="12" class="inline mb-0.5"></i> {{ doc.type_pièce|default:"Pièce" }}
+                                
+                                <span class="flex items-center gap-2 {% if forloop.first %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}">
+                                    {% if doc.type_pièce == 'Facture' %}
+                                        <i data-lucide="file-text" width="12"></i>
+                                    {% elif doc.fichier|is_pdf %}
+                                        <i data-lucide="file" width="12"></i>
+                                    {% else %}
+                                        <i data-lucide="image" width="12"></i>
+                                    {% endif %}
+
+                                    <span class="text-[10px] font-bold uppercase tracking-widest">
+                                        {% if doc.type_pièce == 'Facture' %}Facture{% elif doc.type_pièce == 'Extra' %}Extra {{ forloop.counter|add:"-1" }}{% else %}{{ doc.type_pièce }}{% endif %}
+                                    </span>
+                                </span>
                             </button>
                             {% endfor %}
                         </div>
@@ -296,13 +308,16 @@ function showNDF(id) {
 }
 
 function switchPreview(btn, url, isPdf) {
-    const container = btn.closest('.bg-gray-900');
-    container.querySelectorAll('button').forEach(b => {
-        b.classList.remove('bg-primary', 'text-white');
-        b.classList.add('bg-gray-800', 'text-gray-400');
+    const container = btn.closest('.flex-col');
+    // Récupérer tous les spans de texte dans les boutons
+    container.querySelectorAll('button span.flex').forEach(s => {
+        s.classList.remove('text-primary');
+        s.classList.add('text-gray-400');
     });
-    btn.classList.remove('bg-gray-800', 'text-gray-400');
-    btn.classList.add('bg-primary', 'text-white');
+    // Activer celui du bouton cliqué
+    const activeSpan = btn.querySelector('span.flex');
+    activeSpan.classList.remove('text-gray-400');
+    activeSpan.classList.add('text-primary');
 
     const previewArea = container.querySelector('[id^="preview-container-"]');
     if (isPdf === "True") {
