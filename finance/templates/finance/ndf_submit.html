@@ -246,16 +246,26 @@ function toggleFraisType(val) {
         tableIK.classList.remove('hidden');
         tableAchat.classList.add('hidden');
         title.textContent = "Détails des frais kilométriques";
-        document.querySelectorAll('.j-ik').forEach(f => f.required = true);
-        document.querySelectorAll('.j-achat').forEach(f => f.required = false);
+        
+        // Activer IK, Désactiver Achat
+        document.querySelectorAll('.j-ik').forEach(f => { f.required = true; f.disabled = false; });
+        document.querySelectorAll('.j-achat').forEach(f => { f.required = false; f.disabled = true; });
+        document.querySelectorAll('#achat-lines-body input, #achat-lines-body select').forEach(f => { f.required = false; f.disabled = true; });
+        document.querySelector('input[name="ik_distance"]').required = true;
+        document.querySelector('input[name="ik_distance"]').disabled = false;
     } else {
         sectionJustifsIK.classList.add('hidden');
         sectionJustifsAchat.classList.remove('hidden');
         tableIK.classList.add('hidden');
         tableAchat.classList.remove('hidden');
         title.textContent = "Détails des achats standards";
-        document.querySelectorAll('.j-ik').forEach(f => f.required = false);
-        document.querySelectorAll('.j-achat').forEach(f => f.required = true);
+        
+        // Désactiver IK, Activer Achat
+        document.querySelectorAll('.j-ik').forEach(f => { f.required = false; f.disabled = true; });
+        document.querySelectorAll('.j-achat').forEach(f => { f.required = true; f.disabled = false; });
+        document.querySelectorAll('#achat-lines-body .achat-line:first-child input, #achat-lines-body .achat-line:first-child select').forEach(f => { f.required = true; f.disabled = false; });
+        document.querySelector('input[name="ik_distance"]').required = false;
+        document.querySelector('input[name="ik_distance"]').disabled = true;
     }
 }
 
