@@ -113,6 +113,18 @@ def generate_numero_bv(annee: int) -> str:
     return f"{prefix}{new_idx:02d}"
 
 
+def to_decimal(value):
+    """Convertit une chaîne (éventuellement avec virgule) en Decimal."""
+    if not value:
+        return Decimal('0')
+    if isinstance(value, str):
+        value = value.replace(',', '.')
+    try:
+        return Decimal(value)
+    except:
+        return Decimal('0')
+
+
 # ─── Calculs TVA ─────────────────────────────────────────────────────────────
 
 def calculate_tva(montant_ttc: Decimal, taux: Decimal) -> dict:

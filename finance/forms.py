@@ -4,27 +4,31 @@ from .models import DemandeNDF, LigneNDF
 class DemandeNDFForm(forms.ModelForm):
     class Meta:
         model = DemandeNDF
-        fields = ['email', 'rib_beneficiaire', 'justificatif']
+        fields = ['prenom_beneficiaire', 'nom_beneficiaire', 'libelle', 'type_frais', 'rib_beneficiaire']
         widgets = {
-            'email': forms.EmailInput(attrs={
+            'prenom_beneficiaire': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'prenom.nom@ouest-insa.fr',
+                'placeholder': 'Prénom',
                 'required': 'required'
+            }),
+            'nom_beneficiaire': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nom',
+                'required': 'required'
+            }),
+            'libelle': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: Déplacement AG Lyon / Achat fournitures bureau',
+                'required': 'required'
+            }),
+            'type_frais': forms.Select(attrs={
+                'class': 'form-control',
+                'onchange': 'toggleFraisType(this.value)'
             }),
             'rib_beneficiaire': forms.TextInput(attrs={
                 'class': 'form-control font-mono',
                 'placeholder': 'FR76 ...',
                 'required': 'required'
             }),
-            'justificatif': forms.FileInput(attrs={
-                'class': 'form-control',
-                'required': 'required',
-                'accept': 'image/*,application/pdf'
-            }),
         }
 
-    def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if not email.endswith('@ouest-insa.fr'):
-            raise forms.ValidationError("L'adresse email doit être une adresse @ouest-insa.fr")
-        return email

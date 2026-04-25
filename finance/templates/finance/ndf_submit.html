@@ -5,137 +5,187 @@
 {% block page_title %}Soumission d'une Note de Frais{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto pb-12">
     <form method="post" enctype="multipart/form-data" id="ndf-form">
         {% csrf_token %}
         
-        <div class="grid-2 mb-6">
-            <!-- Informations Bénéficiaire -->
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <div class="card-title text-primary">
-                        <i data-lucide="user" width="18" height="18"></i>
-                        Informations Demandeur
+        <!-- 1. Informations Demandeur & Type -->
+        <div class="card shadow-sm mb-6">
+            <div class="card-header">
+                <div class="card-title text-primary">
+                    <i data-lucide="user" width="18" height="18"></i>
+                    Informations Générales
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-grid-2 mb-4">
+                    <div class="form-group">
+                        <label class="form-label">Prénom <span class="required">*</span></label>
+                        {{ form.prenom_beneficiaire }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nom <span class="required">*</span></label>
+                        {{ form.nom_beneficiaire }}
                     </div>
                 </div>
-                <div class="card-body">
+                
+                <div class="form-group mb-4">
+                    <label class="form-label">Libellé de la demande <span class="required">*</span></label>
+                    {{ form.libelle }}
+                </div>
+
+                <div class="form-grid-2">
                     <div class="form-group">
-                        <label class="form-label">Email Ouest INSA <span class="required">*</span></label>
-                        {{ form.email }}
-                        <div class="text-[0.7rem] text-muted mt-1">Utilisez votre adresse prenom.nom@ouest-insa.fr</div>
-                        {% if form.email.errors %}
-                            <div class="text-danger text-xs mt-1">{{ form.email.errors.0 }}</div>
-                        {% endif %}
+                        <label class="form-label">Type de frais <span class="required">*</span></label>
+                        {{ form.type_frais }}
                     </div>
                     <div class="form-group">
                         <label class="form-label">RIB (IBAN) <span class="required">*</span></label>
                         {{ form.rib_beneficiaire }}
-                        <div class="text-[0.7rem] text-muted mt-1">Pour le remboursement par virement</div>
-                        {% if form.rib_beneficiaire.errors %}
-                            <div class="text-danger text-xs mt-1">{{ form.rib_beneficiaire.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Justificatif -->
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <div class="card-title text-primary">
-                        <i data-lucide="file-text" width="18" height="18"></i>
-                        Justificatif
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="form-group">
-                        <label class="form-label">Photo du reçu / PDF <span class="required">*</span></label>
-                        {{ form.justificatif }}
-                        <div class="text-[0.7rem] text-muted mt-1">Image ou PDF (max 5Mo)</div>
-                        {% if form.justificatif.errors %}
-                            <div class="text-danger text-xs mt-1">{{ form.justificatif.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div id="file-preview" class="hidden mt-4 p-4 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
-                         <span class="text-muted text-sm italic">Justificatif sélectionné</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Lignes de frais -->
+        <!-- 2. Justificatifs -->
         <div class="card shadow-sm mb-6">
             <div class="card-header flex justify-between items-center">
                 <div class="card-title text-primary">
-                    <i data-lucide="list" width="18" height="18"></i>
-                    Lignes de frais
+                    <i data-lucide="file-text" width="18" height="18"></i>
+                    Justificatifs
                 </div>
-                <button type="button" class="btn btn-outline btn-sm" onclick="addRow()">
-                    <i data-lucide="plus" width="14" height="14"></i> Ajouter une ligne
-                </button>
             </div>
-            <div class="card-body p-0">
-                <table class="data-table" id="lines-table">
-                    <thead>
-                        <tr>
-                            <th class="w-[40%]">Libellé / Description</th>
-                            <th>HT (€)</th>
-                            <th>TVA (%)</th>
-                            <th>TVA (€)</th>
-                            <th>TTC (€)</th>
-                            <th class="w-[50px]"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="lines-body">
-                        <!-- Première ligne par défaut -->
-                        <tr class="line-row">
-                            <td>
-                                <input type="text" name="l_libelle" class="form-control" placeholder="Ex: Restaurant client" required>
-                                <div class="flex items-center gap-2 mt-2">
-                                    <label class="flex items-center gap-1.5 cursor-pointer">
-                                        <input type="checkbox" name="l_est_ik" class="ik-checkbox" onchange="toggleIK(this)">
-                                        <span class="text-[0.7rem] font-bold uppercase tracking-wider text-muted">Indemnités Kilométriques</span>
-                                    </label>
-                                    <div class="ik-field hidden flex items-center gap-2">
-                                        <input type="number" step="0.01" name="l_distance" class="form-control form-control-sm w-20 distance-input" placeholder="Km" oninput="computeIK(this)">
-                                        <span class="text-[0.7rem] text-muted">x {{ param_ndf.montant_ik|default:"0" }}€/km</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <input type="number" step="0.01" name="l_montant_ht" class="form-control font-mono ht-input" required oninput="recomputeLine(this)">
-                            </td>
-                            <td>
-                                <select name="l_taux_tva" class="form-control tva-select" onchange="recomputeLine(this)">
-                                    {% for t in taux_tva_disponibles %}
-                                    <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %}>{{ t.taux }}%</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            <td class="font-mono text-sm tva-display">0.00</td>
-                            <td class="font-mono font-bold ttc-display">0.00</td>
-                            <td class="text-center">
-                                <button type="button" class="text-danger hover:text-danger-dark" onclick="removeRow(this)">
-                                    <i data-lucide="trash-2" width="16" height="16"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                    <tfoot>
-                        <tr class="bg-gray-50 font-bold">
-                            <td class="text-right pr-4">Total</td>
-                            <td id="total-ht" class="font-mono">0.00 €</td>
-                            <td></td>
-                            <td id="total-tva" class="font-mono">0.00 €</td>
-                            <td id="total-ttc" class="font-mono text-primary text-lg">0.00 €</td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
-                </table>
+            <div class="card-body">
+                <!-- Section IK -->
+                <div id="section-justifs-ik" class="hidden">
+                    <p class="text-xs text-muted mb-4 italic">Pour un remboursement kilométrique, les trois pièces suivantes sont obligatoires.</p>
+                    <div class="grid-3 gap-4">
+                        <div class="form-group">
+                            <label class="form-label text-xs">Compteur Kilométrique <span class="required">*</span></label>
+                            <input type="file" name="file_compteur" class="form-control form-control-sm j-ik" accept="image/*,application/pdf">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label text-xs">Trajet Mappy/Maps <span class="required">*</span></label>
+                            <input type="file" name="file_mappy" class="form-control form-control-sm j-ik" accept="image/*,application/pdf">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label text-xs">Carte Grise <span class="required">*</span></label>
+                            <input type="file" name="file_cartegrise" class="form-control form-control-sm j-ik" accept="image/*,application/pdf">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Achat -->
+                <div id="section-justifs-achat" class="">
+                    <div class="p-3 bg-blue-50 border-l-4 border-blue-400 rounded mb-4">
+                        <div class="flex gap-2">
+                            <i data-lucide="info" class="text-blue-500" width="16"></i>
+                            <p class="text-xs text-blue-700">
+                                <strong>Important :</strong> La facture doit obligatoirement être établie au nom de <strong>Ouest INSA</strong> pour être remboursée.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Facture / Reçu <span class="required">*</span></label>
+                        <input type="file" name="file_facture" class="form-control j-achat" accept="image/*,application/pdf">
+                    </div>
+                </div>
+
+                <!-- Fichiers additionnels -->
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <label class="form-label text-xs text-muted mb-2">Autres justificatifs (optionnel)</label>
+                    <div id="extra-files-container"></div>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="addExtraFile()">
+                        <i data-lucide="plus" width="14"></i> Ajouter un fichier
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="flex justify-end gap-4">
+        <!-- 3. Détails des montants -->
+        <div class="card shadow-sm mb-6">
+            <div class="card-header">
+                <div class="card-title text-primary" id="table-title">
+                    Détails des achats standards
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <!-- Tableau Frais Kilométriques -->
+                <div id="table-ik" class="hidden">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Distance (en km)</th>
+                                <th>Prix au kilomètre</th>
+                                <th class="text-right">Total TTC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <input type="number" step="0.01" name="ik_distance" id="ik_distance" class="form-control font-mono" placeholder="0.00" oninput="computeTotalIK()">
+                                </td>
+                                <td class="font-mono text-muted">
+                                    {{ param_ndf.montant_ik|default:"0.45" }} €/km
+                                </td>
+                                <td class="text-right font-mono font-bold text-lg text-primary" id="ik_total_ttc">
+                                    0.00 €
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tableau Achats -->
+                <div id="table-achat">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="w-[35%]">Description</th>
+                                <th class="w-[15%]">Montant TTC</th>
+                                <th class="w-[15%]">Taux TVA</th>
+                                <th class="w-[15%]">Valeur HT</th>
+                                <th class="w-[15%]">Valeur TVA</th>
+                                <th class="w-[5%]"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="achat-lines-body">
+                            <tr class="achat-line">
+                                <td><input type="text" name="l_libelle" class="form-control" placeholder="Description" required></td>
+                                <td><input type="number" step="0.01" name="l_montant_ttc" class="form-control font-mono ttc-input" oninput="recomputeAchatLine(this)" required></td>
+                                <td>
+                                    <select name="l_taux_tva" class="form-control tva-select" onchange="recomputeAchatLine(this)">
+                                        {% for t in taux_tva_disponibles %}
+                                        <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %}>{{ t.taux }}%</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="font-mono text-sm ht-display">0.00</td>
+                                <td class="font-mono text-sm tva-display">0.00</td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                             <tr class="bg-gray-50 font-bold border-t-2 border-gray-200">
+                                <td class="text-right pr-4">Résumé</td>
+                                <td id="total-achat-ttc" class="font-mono text-primary">0.00 €</td>
+                                <td id="summary-tva-type" class="text-xs text-muted">Taux: 20%</td>
+                                <td id="total-achat-ht" class="font-mono text-xs text-muted">0.00 € HT</td>
+                                <td id="total-achat-tva" class="font-mono text-xs text-muted">0.00 € TVA</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div class="p-3">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="addAchatRow()">
+                            <i data-lucide="plus" width="14"></i> Ajouter une ligne
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-4 mt-8">
             <button type="submit" class="btn btn-primary btn-lg px-12">
                 <i data-lucide="send" width="20" height="20"></i>
                 Soumettre ma demande
@@ -144,37 +194,22 @@
     </form>
 </div>
 
-<template id="row-template">
-    <tr class="line-row">
+<!-- Template ligne achat -->
+<template id="achat-row-template">
+    <tr class="achat-line">
+        <td><input type="text" name="l_libelle" class="form-control" placeholder="Description" required></td>
+        <td><input type="number" step="0.01" name="l_montant_ttc" class="form-control font-mono ttc-input" oninput="recomputeAchatLine(this)" required></td>
         <td>
-            <input type="text" name="l_libelle" class="form-control" placeholder="Libellé" required>
-            <div class="flex items-center gap-2 mt-2">
-                <label class="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" name="l_est_ik" class="ik-checkbox" onchange="toggleIK(this)">
-                    <span class="text-[0.7rem] font-bold uppercase tracking-wider text-muted">Indemnités Kilométriques</span>
-                </label>
-                <div class="ik-field hidden flex items-center gap-2">
-                    <input type="number" step="0.01" name="l_distance" class="form-control form-control-sm w-20 distance-input" placeholder="Km" oninput="computeIK(this)">
-                    <span class="text-[0.7rem] text-muted">x {{ param_ndf.montant_ik|default:"0" }}€/km</span>
-                </div>
-            </div>
-        </td>
-        <td>
-            <input type="number" step="0.01" name="l_montant_ht" class="form-control font-mono ht-input" required oninput="recomputeLine(this)">
-        </td>
-        <td>
-            <select name="l_taux_tva" class="form-control tva-select" onchange="recomputeLine(this)">
+            <select name="l_taux_tva" class="form-control tva-select" onchange="recomputeAchatLine(this)">
                 {% for t in taux_tva_disponibles %}
                 <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %}>{{ t.taux }}%</option>
                 {% endfor %}
             </select>
         </td>
+        <td class="font-mono text-sm ht-display">0.00</td>
         <td class="font-mono text-sm tva-display">0.00</td>
-        <td class="font-mono font-bold ttc-display">0.00</td>
-        <td class="text-center">
-            <button type="button" class="text-danger hover:text-danger-dark" onclick="removeRow(this)">
-                <i data-lucide="trash-2" width="16" height="16"></i>
-            </button>
+        <td class="text-center text-danger cursor-pointer" onclick="this.closest('tr').remove(); updateAchatTotals();">
+            <i data-lucide="trash-2" width="16"></i>
         </td>
     </tr>
 </template>
@@ -183,98 +218,110 @@
 
 {% block extra_js %}
 <script>
-const IK_RATE = {{ param_ndf.montant_ik|default:0|stringformat:".4f" }};
+const IK_RATE = {{ param_ndf.montant_ik|default:0.45|stringformat:".4f" }};
 
-function addRow() {
-    const template = document.getElementById('row-template');
-    const tbody = document.getElementById('lines-body');
-    const clone = template.content.cloneNode(true);
-    tbody.appendChild(clone);
+function toggleFraisType(val) {
+    console.log("Toggle type:", val);
+    const sectionJustifsIK = document.getElementById('section-justifs-ik');
+    const sectionJustifsAchat = document.getElementById('section-justifs-achat');
+    const tableIK = document.getElementById('table-ik');
+    const tableAchat = document.getElementById('table-achat');
+    const title = document.getElementById('table-title');
+
+    if (val === 'ik') {
+        sectionJustifsIK.classList.remove('hidden');
+        sectionJustifsAchat.classList.add('hidden');
+        tableIK.classList.remove('hidden');
+        tableAchat.classList.add('hidden');
+        title.textContent = "Détails des frais kilométriques";
+        document.querySelectorAll('.j-ik').forEach(f => f.required = true);
+        document.querySelectorAll('.j-achat').forEach(f => f.required = false);
+    } else {
+        sectionJustifsIK.classList.add('hidden');
+        sectionJustifsAchat.classList.remove('hidden');
+        tableIK.classList.add('hidden');
+        tableAchat.classList.remove('hidden');
+        title.textContent = "Détails des achats standards";
+        document.querySelectorAll('.j-ik').forEach(f => f.required = false);
+        document.querySelectorAll('.j-achat').forEach(f => f.required = true);
+    }
+}
+
+function computeTotalIK() {
+    const dist = parseFloat(document.getElementById('ik_distance').value) || 0;
+    const total = dist * IK_RATE;
+    document.getElementById('ik_total_ttc').textContent = total.toFixed(2) + " €";
+}
+
+function recomputeAchatLine(el) {
+    const row = el.closest('tr');
+    const ttc = parseFloat(row.querySelector('.ttc-input').value) || 0;
+    const taux = parseFloat(row.querySelector('.tva-select').value) || 0;
+    
+    // Calcul HT à partir du TTC : HT = TTC / (1 + taux/100)
+    const ht = ttc / (1 + (taux / 100));
+    const tva = ttc - ht;
+    
+    row.querySelector('.ht-display').textContent = ht.toFixed(2);
+    row.querySelector('.tva-display').textContent = tva.toFixed(2);
+    
+    updateAchatTotals();
+}
+
+function updateAchatTotals() {
+    let totalTtc = 0;
+    let totalHt = 0;
+    let totalTva = 0;
+    let tauxSet = new Set();
+    
+    document.querySelectorAll('.achat-line').forEach(row => {
+        const ttc = parseFloat(row.querySelector('.ttc-input').value) || 0;
+        const ht = parseFloat(row.querySelector('.ht-display').textContent) || 0;
+        const tva = parseFloat(row.querySelector('.tva-display').textContent) || 0;
+        const taux = row.querySelector('.tva-select').value;
+        
+        totalTtc += ttc;
+        totalHt += ht;
+        totalTva += tva;
+        if (ttc > 0) tauxSet.add(taux);
+    });
+    
+    document.getElementById('total-achat-ttc').textContent = totalTtc.toFixed(2) + " €";
+    document.getElementById('total-achat-ht').textContent = totalHt.toFixed(2) + " € HT";
+    document.getElementById('total-achat-tva').textContent = totalTva.toFixed(2) + " € TVA";
+    
+    const summaryTva = document.getElementById('summary-tva-type');
+    if (tauxSet.size === 0) {
+        summaryTva.textContent = "";
+    } else if (tauxSet.size === 1) {
+        summaryTva.textContent = "Taux: " + [...tauxSet][0] + "%";
+    } else {
+        summaryTva.textContent = "Taux composé";
+    }
+}
+
+function addAchatRow() {
+    const template = document.getElementById('achat-row-template');
+    const tbody = document.getElementById('achat-lines-body');
+    tbody.appendChild(template.content.cloneNode(true));
     lucide.createIcons();
 }
 
-function removeRow(btn) {
-    const row = btn.closest('tr');
-    const tbody = document.getElementById('lines-body');
-    if (tbody.querySelectorAll('tr').length > 1) {
-        row.remove();
-        updateTotals();
-    }
-}
-
-function toggleIK(cb) {
-    const row = cb.closest('tr');
-    const ikField = row.querySelector('.ik-field');
-    const htInput = row.querySelector('.ht-input');
-    const tvaSelect = row.querySelector('.tva-select');
-    
-    if (cb.checked) {
-        ikField.classList.remove('hidden');
-        htInput.readOnly = true;
-        htInput.classList.add('bg-gray-100');
-        tvaSelect.value = "0";
-        tvaSelect.disabled = true;
-    } else {
-        ikField.classList.add('hidden');
-        htInput.readOnly = false;
-        htInput.classList.remove('bg-gray-100');
-        tvaSelect.disabled = false;
-        tvaSelect.value = "20";
-    }
-    recomputeLine(htInput);
-}
-
-function computeIK(input) {
-    const row = input.closest('tr');
-    const htInput = row.querySelector('.ht-input');
-    const km = parseFloat(input.value) || 0;
-    htInput.value = (km * IK_RATE).toFixed(2);
-    recomputeLine(htInput);
-}
-
-function recomputeLine(element) {
-    const row = element.closest('tr');
-    const ht = parseFloat(row.querySelector('.ht-input').value) || 0;
-    const taux = parseFloat(row.querySelector('.tva-select').value) || 0;
-    
-    const tva = ht * (taux / 100);
-    const ttc = ht + tva;
-    
-    row.querySelector('.tva-display').textContent = tva.toFixed(2);
-    row.querySelector('.ttc-display').textContent = ttc.toFixed(2);
-    
-    updateTotals();
-}
-
-function updateTotals() {
-    let totalHt = 0;
-    let totalTva = 0;
-    let totalTtc = 0;
-    
-    document.querySelectorAll('.line-row').forEach(row => {
-        totalHt += parseFloat(row.querySelector('.ht-input').value) || 0;
-        totalTva += parseFloat(row.querySelector('.tva-display').textContent) || 0;
-        totalTtc += parseFloat(row.querySelector('.ttc-display').textContent) || 0;
-    });
-    
-    document.getElementById('total-ht').textContent = totalHt.toFixed(2) + ' €';
-    document.getElementById('total-tva').textContent = totalTva.toFixed(2) + ' €';
-    document.getElementById('total-ttc').textContent = totalTtc.toFixed(2) + ' €';
+function addExtraFile() {
+    const container = document.getElementById('extra-files-container');
+    const div = document.createElement('div');
+    div.className = "flex gap-2 mb-2 items-center";
+    div.innerHTML = `
+        <input type="file" name="file_extra" class="form-control form-control-sm" accept="image/*,application/pdf">
+        <button type="button" class="text-danger" onclick="this.parentElement.remove()"><i data-lucide="x" width="14"></i></button>
+    `;
+    container.appendChild(div);
+    lucide.createIcons();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Preview justificatif
-    const fileInput = document.querySelector('input[type="file"]');
-    const preview = document.getElementById('file-preview');
-    if (fileInput) {
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files && fileInput.files[0]) {
-                preview.classList.remove('hidden');
-                preview.innerHTML = `<i data-lucide="check" class="text-success mr-2"></i> <span class="text-sm font-semibold">${fileInput.files[0].name}</span>`;
-                lucide.createIcons();
-            }
-        });
-    }
+    toggleFraisType(document.querySelector('select[name="type_frais"]').value);
+    lucide.createIcons();
 });
 </script>
 {% endblock %}

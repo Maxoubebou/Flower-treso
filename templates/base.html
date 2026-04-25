@@ -77,6 +77,11 @@
         <i data-lucide="users" width="17" height="17"></i>
         <span>Bulletins de versement</span>
       </a>
+      <a href="{% url 'finance:ndf_manage' %}"
+         class="nav-item {% if '/ndf/gerer' in request.path %}active{% endif %}">
+        <i data-lucide="file-check" width="17" height="17"></i>
+        <span>Notes de frais</span>
+      </a>
       <a href="{% url 'finance:ignored_operations_list' %}"
          class="nav-item {% if 'operations-ignorees' in request.path %}active{% endif %}">
         <i data-lucide="arrow-left-right" width="17" height="17"></i>
@@ -86,6 +91,11 @@
 
     <div class="sidebar-section">
       <div class="sidebar-section-title"><span>Génération</span></div>
+      <a href="{% url 'finance:ndf_submit' %}"
+         class="nav-item {% if '/ndf/demander' in request.path %}active{% endif %}">
+        <i data-lucide="file-edit" width="17" height="17"></i>
+        <span>Soumettre une NDF</span>
+      </a>
       <a href="{% url 'finance:bv_generation' %}"
          class="nav-item {% if 'bv/generation' in request.path %}active{% endif %}">
         <i data-lucide="file-plus" width="17" height="17"></i>

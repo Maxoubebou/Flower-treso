@@ -254,10 +254,17 @@ class DemandeNDF(models.Model):
         ('approved', 'Validée'),
         ('rejected', 'Rejetée'),
     ]
+    TYPE_FRAIS_CHOICES = [
+        ('ik', 'Frais Kilométriques'),
+        ('achat', 'Achats au nom de Ouest INSA'),
+    ]
     email = models.EmailField()
-    nom_beneficiaire = models.CharField(max_length=255)
+    prenom_beneficiaire = models.CharField(max_length=100)
+    nom_beneficiaire = models.CharField(max_length=100)
+    libelle = models.CharField(max_length=255, blank=True)
+    type_frais = models.CharField(max_length=20, choices=TYPE_FRAIS_CHOICES, default='achat')
     rib_beneficiaire = models.CharField(max_length=34)
-    justificatif = models.FileField(upload_to='preuve_NDF/')
+    # Les fichiers seront gérés par un modèle dédié pour en avoir plusieurs
     date_soumission = models.DateTimeField(auto_now_add=True)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='pending')
     
@@ -272,7 +279,18 @@ class DemandeNDF(models.Model):
         verbose_name_plural = "Demandes de Notes de Frais"
 
     def __str__(self):
-        return f"NDF {self.nom_beneficiaire} - {self.date_soumission.strftime('%d/%m/%Y')}"
+        return f"NDF {self.prenom_beneficiaire} {self.nom_beneficiaire} - {self.date_soumission.strftime('%d/%m/%Y')}"
+
+
+class JustificatifNDF(models.Model):
+    """Fichier justificatif lié à une demande de NDF."""
+    demande = models.ForeignKey(DemandeNDF, on_delete=models.CASCADE, related_name='justificatifs')
+    fichier = models.FileField(upload_to='preuve_NDF/')
+    nom_original = models.CharField(max_length=255, blank=True)
+    type_pièce = models.CharField(max_length=50, blank=True) # Ex: Carte Grise, Mappy, etc.
+
+    def __str__(self):
+        return f"Justificatif {self.demande.id} - {self.type_pièce}"
 
 
 class LigneNDF(models.Model):

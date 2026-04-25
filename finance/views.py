@@ -1,14 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 import csv
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
 from django.contrib import messages
 from django.db.models import Q, Sum, F
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.middleware.csrf import get_token
 
-from .models import FactureVente, BulletinVersement, FactureAchat, Etude, DemandeNDF, LigneNDF
-from .services import generate_numero_bv, generate_numero_facture_achat, calculate_ht_tva
+from .models import FactureVente, BulletinVersement, FactureAchat, Etude, DemandeNDF, LigneNDF, JustificatifNDF
+from .services import generate_numero_bv, generate_numero_facture_achat, calculate_ht_tva, calculate_tva
 from operations.models import Operation
 
 from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, ParametreCotisation, ParametreNDF
@@ -1249,52 +1250,80 @@ def ndf_submit(request):
         if form.is_valid():
             with transaction.atomic():
                 ndf = form.save(commit=False)
-                # Déduction du nom à partir de l'email prenom.nom@ouest-insa.fr
-                email = form.cleaned_data['email']
-                parts = email.split('@')[0].split('.')
-                if len(parts) >= 2:
-                    ndf.nom_beneficiaire = f"{parts[0].capitalize()} {parts[1].upper()}"
+                if request.user.is_authenticated:
+                    ndf.email = request.user.email
                 else:
-                    ndf.nom_beneficiaire = email.split('@')[0].capitalize()
-                
+                    ndf.email = "anonyme@ouest-insa.fr"
                 ndf.save()
+
+                # 1. Gestion des fichiers
+                type_f = form.cleaned_data['type_frais']
+                justifs = []
+                if type_f == 'ik':
+                    if 'file_compteur' in request.FILES: justifs.append(('Compteur', request.FILES['file_compteur']))
+                    if 'file_mappy' in request.FILES: justifs.append(('Mappy', request.FILES['file_mappy']))
+                    if 'file_cartegrise' in request.FILES: justifs.append(('Carte Grise', request.FILES['file_cartegrise']))
+                else:
+                    if 'file_facture' in request.FILES: justifs.append(('Facture', request.FILES['file_facture']))
                 
-                # Traitement des lignes
-                # On s'attend à une liste de libellés, montants HT, taux TVA
-                libelles = request.POST.getlist('l_libelle')
-                montants_ht = request.POST.getlist('l_montant_ht')
-                taux_tva = request.POST.getlist('l_taux_tva')
-                est_iks = request.POST.getlist('l_est_ik') # 'on' or ''
-                distances = request.POST.getlist('l_distance')
+                # Fichiers extra
+                for f in request.FILES.getlist('file_extra'):
+                    justifs.append(('Extra', f))
+                
+                for label, f in justifs:
+                    JustificatifNDF.objects.create(
+                        demande=ndf,
+                        fichier=f,
+                        nom_original=f.name,
+                        type_pièce=label
+                    )
 
-                for i in range(len(libelles)):
-                    if not libelles[i]: continue
+                # 2. Gestion des lignes
+                if type_f == 'ik':
+                    dist = to_decimal(request.POST.get('ik_distance'))
+                    param_ndf = ParametreNDF.objects.filter(actif=True).first()
+                    rate = param_ndf.montant_ik if param_ndf else Decimal('0.45')
+                    total_ttc = (dist * rate).quantize(Decimal('0.01'), ROUND_HALF_UP)
                     
-                    ht = to_decimal(montants_ht[i])
-                    taux = to_decimal(taux_tva[i])
-                    res = calculate_ht_tva(ht, taux)
-                    
-                    is_ik = False
-                    dist = None
-                    if i < len(est_iks) and est_iks[i] == 'on':
-                        is_ik = True
-                        dist = to_decimal(distances[i])
-
                     LigneNDF.objects.create(
                         demande=ndf,
-                        libelle=libelles[i],
-                        montant_ht=ht,
-                        montant_tva=res['tva'],
-                        montant_ttc=res['ttc'],
-                        taux_tva=taux,
-                        est_ik=is_ik,
+                        libelle=f"Frais IK - {dist} km",
+                        montant_ht=total_ttc,
+                        montant_tva=Decimal('0'),
+                        montant_ttc=total_ttc,
+                        taux_tva=Decimal('0'),
+                        est_ik=True,
                         distance_km=dist
                     )
+                else:
+                    libelles = request.POST.getlist('l_libelle')
+                    montants_ttc = request.POST.getlist('l_montant_ttc')
+                    taux_tvas = request.POST.getlist('l_taux_tva')
+
+                    for i in range(len(libelles)):
+                        if not libelles[i]: continue
+                        ttc = to_decimal(montants_ttc[i])
+                        taux = to_decimal(taux_tvas[i])
+                        # On calcule HT et TVA depuis le TTC
+                        res = calculate_tva(ttc, taux)
+                        
+                        LigneNDF.objects.create(
+                            demande=ndf,
+                            libelle=libelles[i],
+                            montant_ht=res['ht'],
+                            montant_tva=res['tva'],
+                            montant_ttc=ttc,
+                            taux_tva=taux
+                        )
                 
             messages.success(request, "Votre demande de Note de Frais a été soumise avec succès.")
             return redirect('finance:ndf_submit')
     else:
-        form = DemandeNDFForm()
+        initial = {}
+        if request.user.is_authenticated:
+            initial['prenom_beneficiaire'] = request.user.first_name
+            initial['nom_beneficiaire'] = request.user.last_name
+        form = DemandeNDFForm(initial=initial)
     
     param_ndf = ParametreNDF.objects.filter(actif=True).first()
     return render(request, 'finance/ndf_submit.html', {
