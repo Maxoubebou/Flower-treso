@@ -531,12 +531,18 @@ input[type="file"].form-control.empty-file {
 input[type="file"].form-control.empty-file::after {
     content: 'preuve obligatoire';
     position: absolute;
-    left: 14px; /* Aligné à gauche sans le bouton */
+    left: 14px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--color-gray-400);
     font-size: 0.875rem;
     pointer-events: none;
+}
+
+input[type="file"].form-control.empty-file.optional::after {
+    content: 'autre preuve (optionnel)';
+    font-style: italic;
+    font-size: 0.8rem;
 }
 
 /* Form grid */

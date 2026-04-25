@@ -4,6 +4,8 @@
 {% block title %}Génération de BV — Flower-Tréso{% endblock %}
 {% block page_title %}Générer un Bulletin de Versement{% endblock %}
 
+{% block date_filters %}{% endblock %}
+
 {% block content %}
 <form method="post" action="{% url 'finance:bv_generation' %}">
   {% csrf_token %}

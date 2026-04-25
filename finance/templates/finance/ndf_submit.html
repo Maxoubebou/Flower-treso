@@ -4,6 +4,8 @@
 {% block title %}Soumission Note de Frais — Flower-Tréso{% endblock %}
 {% block page_title %}Soumission d'une Note de Frais{% endblock %}
 
+{% block date_filters %}{% endblock %}
+
 {% block content %}
 <div class="max-w-4xl mx-auto pb-12">
     <form method="post" enctype="multipart/form-data" id="ndf-form">
@@ -92,12 +94,14 @@
                 </div>
 
                 <!-- Fichiers additionnels -->
-                <div class="mt-4 pt-4 border-t border-gray-100">
-                    <label class="form-label text-xs text-muted mb-2">Autres justificatifs (optionnel)</label>
+                <div class="mt-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="form-label text-xs text-muted mb-0">Autres justificatifs (optionnel)</label>
+                        <button type="button" class="btn btn-ghost btn-xs text-primary" onclick="addExtraFile()">
+                            <i data-lucide="plus" width="14"></i> Ajouter une preuve
+                        </button>
+                    </div>
                     <div id="extra-files-container"></div>
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="addExtraFile()">
-                        <i data-lucide="plus" width="14"></i> Ajouter un fichier
-                    </button>
                 </div>
             </div>
         </div>
@@ -306,15 +310,27 @@ function addAchatRow() {
     lucide.createIcons();
 }
 
+// Suppression de handleExtraFileChange car on repasse en mode bouton manuel
+
 function addExtraFile() {
     const container = document.getElementById('extra-files-container');
     const div = document.createElement('div');
-    div.className = "flex gap-2 mb-2 items-center";
+    div.className = "form-group mb-2 flex gap-2 items-center";
     div.innerHTML = `
-        <input type="file" name="file_extra" class="form-control form-control-sm" accept="image/*,application/pdf">
-        <button type="button" class="text-danger" onclick="this.parentElement.remove()"><i data-lucide="x" width="14"></i></button>
+        <div class="flex-1">
+            <input type="file" name="file_extra" class="form-control form-control-sm optional empty-file" accept="image/*,application/pdf">
+        </div>
+        <button type="button" class="text-danger p-1 hover:bg-red-100 rounded transition-colors" onclick="this.parentElement.remove()" title="Supprimer">
+            <i data-lucide="trash-2" width="16"></i>
+        </button>
     `;
     container.appendChild(div);
+    // On n'oublie pas d'attacher le détective de statut pour le placeholder
+    const input = div.querySelector('input');
+    input.addEventListener('change', () => {
+        if (input.files && input.files.length > 0) input.classList.remove('empty-file');
+        else input.classList.add('empty-file');
+    });
     lucide.createIcons();
 }
 
