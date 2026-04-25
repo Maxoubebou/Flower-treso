@@ -1335,7 +1335,14 @@ def ndf_submit(request):
 
 def ndf_manage(request):
     """Vue trésorier pour gérer les NDF en attente."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
     demandes = DemandeNDF.objects.filter(statut='pending').prefetch_related('lignes').order_by('-date_soumission')
+    
+    # On attache l'objet utilisateur à chaque demande pour l'avatar SocialAccount
+    for ndf in demandes:
+        ndf.user_obj = User.objects.filter(email=ndf.email).first()
+
     return render(request, 'finance/ndf_manage.html', {
         'demandes': demandes,
     })
@@ -1343,17 +1350,40 @@ def ndf_manage(request):
 
 @require_POST
 def ndf_validate(request, pk):
-    """Valider une NDF et générer la FA associée."""
+    """Valider une NDF et générer la FA associée après modification éventuelle des lignes."""
     ndf = get_object_or_404(DemandeNDF, pk=pk, statut='pending')
     lien_drive = request.POST.get('lien_drive')
     commentaire = request.POST.get('commentaire_tresorier', '')
+    custom_ref = request.POST.get('reference_facture', '').strip()
 
     if not lien_drive:
         messages.error(request, "Un lien Drive est requis pour valider la NDF.")
         return redirect('finance:ndf_manage')
 
     with transaction.atomic():
-        # 1. Identifier le type d'achat NDF
+        # 1. Mise à jour des lignes de frais (si modifiées par le trésorier)
+        ligne_ids = request.POST.getlist('l_id')
+        l_libelles = request.POST.getlist('l_libelle')
+        l_ttcs = request.POST.getlist('l_ttc')
+        l_tvas = request.POST.getlist('l_tva')
+
+        for i, l_id in enumerate(ligne_ids):
+            try:
+                ligne = LigneNDF.objects.get(id=l_id, demande=ndf)
+                ligne.libelle = l_libelles[i]
+                ttc = to_decimal(l_ttcs[i])
+                tva_taux = to_decimal(l_tvas[i])
+                
+                res = calculate_tva(ttc, tva_taux)
+                ligne.montant_ttc = ttc
+                ligne.taux_tva = tva_taux
+                ligne.montant_ht = res['ht']
+                ligne.montant_tva = res['tva']
+                ligne.save()
+            except (LigneNDF.DoesNotExist, IndexError):
+                continue
+
+        # 2. Identifier le type d'achat NDF
         type_ndf = TypeAchat.objects.filter(suffixe='NF').first()
         if not type_ndf:
             type_ndf = TypeAchat.objects.filter(nom__icontains='frais').first()
@@ -1362,26 +1392,29 @@ def ndf_validate(request, pk):
             messages.error(request, "Type d'achat pour Note de Frais (NF) non configuré.")
             return redirect('finance:ndf_manage')
 
-        # 2. Calculer totaux
+        # 3. Calculer totaux actualisés
         total_ht = sum(l.montant_ht for l in ndf.lignes.all())
         total_tva = sum(l.montant_tva for l in ndf.lignes.all())
         total_ttc = sum(l.montant_ttc for l in ndf.lignes.all())
-        
-        # On prend le taux de TVA de la première ligne comme référence (indicatif)
         principal_taux = ndf.lignes.first().taux_tva if ndf.lignes.exists() else 20
 
-        # 3. Créer la FactureAchat
+        # 4. Déterminer le numéro de facture
         today = date.today()
+        if not custom_ref:
+            from .services import generate_numero_facture_achat
+            custom_ref = generate_numero_facture_achat(type_ndf, today.year, today.month)
+
+        # 5. Créer la FactureAchat
         fa = FactureAchat.objects.create(
             type_achat=type_ndf,
-            numero=generate_numero_facture_achat(type_ndf, today.year, today.month),
-            fournisseur=ndf.nom_beneficiaire,
-            libelle=f"Remboursement NDF du {ndf.date_soumission.strftime('%d/%m/%Y')}",
+            numero=custom_ref,
+            fournisseur=f"{ndf.prenom_beneficiaire} {ndf.nom_beneficiaire}",
+            libelle=f"Remboursement NDF : {ndf.libelle or 'Sans titre'}",
             lien_drive=lien_drive,
             date_operation=today,
             date_reception=today,
             taux_tva=principal_taux,
-            taux_compose=True, # Puisqu'on somme plusieurs lignes potentiellement
+            taux_compose=True,
             montant_ht=total_ht,
             montant_tva=total_tva,
             montant_ttc=total_ttc,
@@ -1389,7 +1422,7 @@ def ndf_validate(request, pk):
             commentaire=f"Généré depuis la demande NDF #{ndf.id}. {commentaire}"
         )
 
-        # 4. Mettre à jour la demande
+        # 6. Mettre à jour la demande
         ndf.statut = 'approved'
         ndf.facture_achat = fa
         ndf.commentaire_tresorier = commentaire

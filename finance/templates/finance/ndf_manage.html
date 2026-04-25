@@ -7,128 +7,354 @@
 {% block date_filters %}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    {% if not demandes %}
-    <div class="card p-12 text-center">
-        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i data-lucide="check-circle-2" class="text-gray-400" width="32" height="32"></i>
+<div class="outlook-container">
+    <!-- Sidebar : Liste des demandes -->
+    <aside class="outlook-sidebar card">
+        <div class="sidebar-header border-b border-gray-100 p-4">
+            <h3 class="text-sm font-bold uppercase tracking-widest text-muted">Demandes en attente</h3>
         </div>
-        <div class="text-lg font-semibold text-gray-900">Aucune demande en attente</div>
-        <p class="text-muted">Toutes les notes de frais ont été traitées. Beau travail !</p>
-    </div>
-    {% endif %}
+        <div class="sidebar-list scroll-container">
+            {% if not demandes %}
+            <div class="p-8 text-center text-muted text-sm">
+                Aucune demande en attente
+            </div>
+            {% endif %}
+            {% for ndf in demandes %}
+            <div class="p-8 border-b border-gray-100 bg-white flex items-center gap-16">
+                <div class="flex items-center gap-4 min-w-[250px]">
+                    <div class="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center text-lg font-bold">
+                        {{ ndf.nom_beneficiaire|slice:":1" }}
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Demandeur</span>
+                        <span class="text-sm font-semibold text-gray-900">{{ ndf.nom_beneficiaire }}</span>
+                    </div>
+                </div>
 
-    {% for ndf in demandes %}
-    <div class="card overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-        <div class="card-header bg-gray-50 flex justify-between items-center p-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-primary font-bold">
-                    {{ ndf.nom_beneficiaire|slice:":1" }}
+                <div class="flex flex-col min-w-[120px]">
+                    <span class="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Montant</span>
+                    <span class="text-sm font-semibold text-gray-900">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</span>
                 </div>
-                <div>
-                    <div class="font-bold text-gray-900">{{ ndf.nom_beneficiaire }}</div>
-                    <div class="text-[0.7rem] text-muted uppercase tracking-wider">{{ ndf.email }}</div>
+
+                <div class="flex flex-col min-w-[120px]">
+                    <span class="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Date de soumission</span>
+                    <span class="text-sm font-semibold text-gray-900">{{ ndf.date_soumission|date:"d M Y" }}</span>
+                </div>
+
+                <div class="flex flex-col group cursor-pointer" onclick="copyToClipboard('{{ ndf.rib_beneficiaire }}', this)">
+                    <span class="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400 flex items-center gap-2">
+                        RIB de remboursement <i data-lucide="copy" width="10" class="opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                    </span>
+                    <span class="text-sm font-mono font-semibold text-gray-900 tracking-tight">{{ ndf.rib_beneficiaire }}</span>
                 </div>
             </div>
-            <div class="text-right">
-                <div class="text-[0.7rem] text-muted uppercase tracking-wider mb-1">Soumis le</div>
-                <div class="font-semibold">{{ ndf.date_soumission|date:"d/m/Y à H:i" }}</div>
-            </div>
+            {% endfor %}
         </div>
-        
-        <div class="p-6">
-            <div class="grid-2 gap-8">
-                <!-- Détails des lignes -->
-                <div>
-                    <h4 class="text-sm font-bold uppercase tracking-widest text-muted mb-4">Détails des frais</h4>
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-left border-b border-gray-100">
-                                <th class="pb-2 font-semibold">Libellé</th>
-                                <th class="pb-2 font-semibold text-right">HT</th>
-                                <th class="pb-2 font-semibold text-right">TVA</th>
-                                <th class="pb-2 font-semibold text-right">TTC</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            {% for ligne in ndf.lignes.all %}
-                            <tr>
-                                <td class="py-2">
-                                    {{ ligne.libelle }}
-                                    {% if ligne.est_ik %}
-                                    <span class="badge badge-info ml-2" style="font-size: 0.6rem;">IK : {{ ligne.distance_km }} km</span>
-                                    {% endif %}
-                                </td>
-                                <td class="py-2 text-right font-mono">{{ ligne.montant_ht }} €</td>
-                                <td class="py-2 text-right font-mono text-muted">{{ ligne.montant_tva }} €</td>
-                                <td class="py-2 text-right font-mono font-bold">{{ ligne.montant_ttc }} €</td>
-                            </tr>
+    </aside>
+
+    <!-- Main Panel : Détails -->
+    <main class="outlook-main">
+        <div id="ndf-empty-state" class="card h-full flex flex-col items-center justify-center p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <i data-lucide="mail-open" class="text-gray-400" width="32" height="32"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">Sélectionnez une demande</h3>
+            <p class="text-muted max-w-xs mx-auto">Cliquez sur une demande dans la liste de gauche pour afficher ses détails et procéder à la validation.</p>
+        </div>
+
+        {% for ndf in demandes %}
+        <div id="ndf-details-{{ ndf.id }}" class="ndf-detail-panel hidden h-full">
+            <div class="card h-full flex flex-col overflow-hidden">
+                <!-- Header Récap : Structure Robuste -->
+                <div class="card-header bg-white border-b border-gray-100 py-6 px-10">
+                    <div class="flex items-center justify-between w-full h-full">
+                        
+                        <!-- 1. IDENTITÉ -->
+                        <div class="flex items-center gap-5 min-w-[260px] flex-shrink-0">
+                            {% if ndf.user_obj.socialaccount_set.first.get_avatar_url %}
+                                <img src="{{ ndf.user_obj.socialaccount_set.first.get_avatar_url }}" 
+                                     class="w-12 h-12 rounded-full object-cover shadow-sm bg-gray-100">
+                            {% else %}
+                                <div class="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center text-primary text-lg font-bold">
+                                    {{ ndf.prenom_beneficiaire|slice:":1" }}
+                                </div>
+                            {% endif %}
+                            <div class="flex flex-col gap-1">
+                                <div class="text-base font-bold text-gray-900 leading-none">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
+                                <div class="badge badge-warning text-[0.6rem] uppercase font-bold px-2 py-0.5 w-fit">En attente</div>
+                            </div>
+                        </div>
+
+                        <!-- 2. MISSION (Séparé par marge forcée) -->
+                        <div class="flex-[2] border-l border-gray-100 px-12 min-w-0 flex flex-col gap-1 mx-4">
+                            <div class="text-base font-bold text-gray-900 truncate leading-tight">{{ ndf.libelle|default:"Sans titre" }}</div>
+                            <div class="text-[0.65rem] text-muted font-bold tracking-widest uppercase opacity-50">{{ ndf.get_type_frais_display }}</div>
+                        </div>
+
+                        <!-- 3. FINANCES -->
+                        <div class="flex-[1.5] border-l border-gray-100 pl-12 flex items-center gap-12 flex-shrink-0">
+                            <div class="flex flex-col gap-1 min-w-[120px]">
+                                <div class="text-xl font-black text-primary font-mono leading-none">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</div>
+                                <div class="text-[0.6rem] text-muted uppercase font-bold tracking-widest opacity-50">Total Demandé</div>
+                            </div>
+                            
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-lg py-1.5 px-3">
+                                    <div class="font-mono text-[0.7rem] text-gray-600 tracking-tighter" id="rib-text-{{ ndf.id }}">
+                                        {{ ndf.rib_beneficiaire }}
+                                    </div>
+                                    <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)" 
+                                            class="hover:text-primary transition-colors"
+                                            title="Copier">
+                                        <i data-lucide="copy" width="14" height="14"></i>
+                                    </button>
+                                </div>
+                                <div class="text-[0.55rem] text-muted uppercase font-bold ml-1 opacity-50">RIB Bénéficiaire</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                    <div class="flex-1 flex overflow-hidden">
+                    <!-- Gauche : Édition & Formulaire -->
+                    <div class="flex-[3] p-6 scroll-container">
+                        <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}">
+                            {% csrf_token %}
+                            
+                            <h4 class="text-xs font-bold uppercase tracking-widest text-muted mb-4 flex items-center gap-2">
+                                <i data-lucide="edit-3" width="14"></i> Détails éditables
+                            </h4>
+                            
+                            <div class="p-0 mb-6">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="text-left text-[0.65rem] text-muted uppercase font-bold">
+                                            <th class="pb-3 px-2">Libellé</th>
+                                            <th class="pb-3 px-2 w-24">TTC (€)</th>
+                                            <th class="pb-3 px-2 w-20">TVA (%)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        {% for ligne in ndf.lignes.all %}
+                                        <tr>
+                                            <input type="hidden" name="l_id" value="{{ ligne.id }}">
+                                            <td class="py-2 px-1">
+                                                <input type="text" name="l_libelle" value="{{ ligne.libelle }}" 
+                                                       class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors">
+                                            </td>
+                                            <td class="py-2 px-1">
+                                                <input type="number" step="0.01" name="l_ttc" value="{{ ligne.montant_ttc|stringformat:'.2f' }}" 
+                                                       class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono font-bold">
+                                            </td>
+                                            <td class="py-2 px-1">
+                                                <input type="number" step="0.01" name="l_tva" value="{{ ligne.taux_tva|stringformat:'.1f' }}" 
+                                                       class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono">
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="form-group mb-6">
+                                <label class="form-label text-xs uppercase text-muted">Commentaire Trésorier</label>
+                                <textarea name="commentaire_tresorier" class="form-control" rows="3" placeholder="Notes internes..."></textarea>
+                            </div>
+
+                            <div class="pt-5 space-y-4">
+                                <h4 class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Finalisation & Validation</h4>
+                                
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="form-group mb-0">
+                                        <label class="form-label text-[0.65rem]">Lien Drive <span class="required">*</span></label>
+                                        <input type="url" name="lien_drive" class="form-control form-control-sm" placeholder="https://..." required>
+                                    </div>
+                                    <div class="form-group mb-0">
+                                        <label class="form-label text-[0.65rem]">Référence Facture</label>
+                                        <input type="text" name="reference_facture" class="form-control form-control-sm" placeholder="FV-2024-..." value="">
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-3 pt-2">
+                                    <button type="submit" class="btn btn-success flex-1 justify-center py-3">
+                                        <i data-lucide="check-check" width="18" height="18"></i> Valider la demande
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger px-4" onclick="confirmReject('{{ ndf.id }}')">
+                                        <i data-lucide="x" width="18" height="18"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Droite : Visionneuse -->
+                    <div class="flex-[7] bg-gray-900 flex flex-col border-l border-gray-100">
+                        <!-- Sélecteur de fichiers -->
+                        <div class="flex gap-1 p-3 bg-black/20 overflow-x-auto no-scrollbar">
+                            {% for doc in ndf.justificatifs.all %}
+                            <button class="flex-shrink-0 px-3 py-1.5 rounded text-[0.65rem] font-medium transition-colors 
+                                           {% if forloop.first %}bg-primary text-white{% else %}bg-gray-800 text-gray-400 hover:bg-gray-700{% endif %}"
+                                    onclick="switchPreview(this, '{{ doc.fichier.url }}', '{{ doc.fichier|is_pdf }}')">
+                                <i data-lucide="file" width="12" class="inline mb-0.5"></i> {{ doc.type_pièce|default:"Pièce" }}
+                            </button>
                             {% endfor %}
-                        </tbody>
-                        <tfoot>
-                            <tr class="border-t-2 border-gray-100 font-bold">
-                                <td class="pt-3">TOTAL</td>
-                                <td class="pt-3 text-right font-mono"></td>
-                                <td class="pt-3 text-right font-mono"></td>
-                                <td class="pt-3 text-right font-mono text-primary text-lg" id="total-ttc-{{ ndf.id }}">
-                                    {{ ndf.lignes.all|sum_ttc|floatformat:2 }} €
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                    
-                    <div class="mt-6">
-                        <a href="{{ ndf.justificatif.url }}" target="_blank" class="btn btn-outline btn-sm w-full justify-center">
-                            <i data-lucide="external-link" width="14" height="14"></i> Voir le justificatif ({{ ndf.justificatif.name|slice:"-3:"|upper }})
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Formulaire de validation -->
-                <div class="bg-gray-50 rounded-xl p-5 border border-gray-100">
-                    <h4 class="text-sm font-bold uppercase tracking-widest text-muted mb-4">Validation Trésorier</h4>
-                    
-                    <div class="mb-4 p-3 bg-white rounded border border-gray-200">
-                        <div class="text-[0.7rem] text-muted uppercase font-bold mb-1">RIB de remboursement</div>
-                        <div class="font-mono text-sm break-all select-all cursor-pointer" title="Cliquer pour copier">
-                            {{ ndf.rib_beneficiaire }}
-                        </div>
-                    </div>
-
-                    <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}" class="space-y-4">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label class="form-label text-xs">Lien vers le dossier Drive <span class="required">*</span></label>
-                            <input type="url" name="lien_drive" class="form-control form-control-sm" placeholder="https://drive.google.com/..." required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label text-xs">Commentaire interne (optionnel)</label>
-                            <textarea name="commentaire_tresorier" class="form-control form-control-sm" rows="2" placeholder="Notes pour la comptabilité..."></textarea>
                         </div>
                         
-                        <div class="flex gap-2 pt-2">
-                            <button type="submit" class="btn btn-success flex-1 justify-center">
-                                <i data-lucide="check" width="16" height="16"></i> Valider & Générer FA
-                            </button>
-                            <button type="button" class="btn btn-outline-danger" onclick="confirmReject('{{ ndf.id }}')">
-                                <i data-lucide="x" width="16" height="16"></i>
-                            </button>
+                        <!-- Preview Area -->
+                        <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4">
+                            {% with first_doc=ndf.justificatifs.first %}
+                            <div id="preview-container-{{ ndf.id }}" class="w-full h-full flex items-center justify-center">
+                                {% if first_doc %}
+                                    {% if first_doc.fichier|is_pdf %}
+                                    <iframe src="{{ first_doc.fichier.url }}#toolbar=0" class="w-full h-full border-none rounded"></iframe>
+                                    {% else %}
+                                    <img src="{{ first_doc.fichier.url }}" class="max-w-full max-h-full object-contain shadow-2xl rounded">
+                                    {% endif %}
+                                {% else %}
+                                    <div class="text-gray-600 italic text-sm">Aucun justificatif disponible</div>
+                                {% endif %}
+                            </div>
+                            {% endwith %}
                         </div>
-                    </form>
-
-                    <!-- Formulaire caché pour le rejet -->
-                    <form id="reject-form-{{ ndf.id }}" method="post" action="{% url 'finance:ndf_reject' ndf.pk %}" class="hidden">
-                        {% csrf_token %}
-                        <input type="hidden" name="commentaire_tresorier" id="reject-comment-{{ ndf.id }}">
-                    </form>
+                    </div>
                 </div>
             </div>
+
+            <!-- Formulaire caché pour le rejet -->
+            <form id="reject-form-{{ ndf.id }}" method="post" action="{% url 'finance:ndf_reject' ndf.pk %}" class="hidden">
+                {% csrf_token %}
+                <input type="hidden" name="commentaire_tresorier" id="reject-comment-{{ ndf.id }}">
+            </form>
         </div>
-    </div>
-    {% endfor %}
+        {% endfor %}
+    </main>
 </div>
 
+<style>
+.outlook-container {
+    display: flex;
+    height: calc(100vh - 120px);
+    gap: 16px;
+    margin: -16px; /* Offset parent padding if necessary */
+    padding: 16px;
+}
+
+.outlook-sidebar {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+}
+
+.sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.outlook-main {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    height: 100%;
+}
+
+.ndf-detail-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+.ndf-detail-panel > .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: none;
+    box-shadow: none;
+}
+
+.ndf-item.active {
+    background: var(--color-primary-light);
+    border-left: 4px solid var(--color-primary);
+    padding-left: 12px;
+}
+
+.scroll-container::-webkit-scrollbar {
+    width: 6px;
+}
+.scroll-container::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-info { background: #e0f2fe; color: #075985; }
+.badge-primary { background: #e0e7ff; color: #3730a3; }
+
+iframe { filter: drop-shadow(0 20px 25px rgb(0 0 0 / 0.1)); }
+</style>
+
 <script>
+function showNDF(id) {
+    // Hide empty state
+    document.getElementById('ndf-empty-state').classList.add('hidden');
+    
+    // Hide all panels
+    document.querySelectorAll('.ndf-detail-panel').forEach(p => p.classList.add('hidden'));
+    
+    // Unactivate all list items
+    document.querySelectorAll('.ndf-item').forEach(i => i.classList.remove('active'));
+    
+    // Show selected panel & activate item
+    const panel = document.getElementById('ndf-details-' + id);
+    if(panel) panel.classList.remove('hidden');
+    
+    const item = document.getElementById('ndf-item-' + id);
+    if(item) item.classList.add('active');
+
+    // Refresh lucide icons for newly shown content
+    lucide.createIcons();
+}
+
+function switchPreview(btn, url, isPdf) {
+    // UI Update (button colors)
+    const container = btn.closest('.bg-gray-900');
+    container.querySelectorAll('button').forEach(b => {
+        b.classList.remove('bg-primary', 'text-white');
+        b.classList.add('bg-gray-800', 'text-gray-400');
+    });
+    btn.classList.remove('bg-gray-800', 'text-gray-400');
+    btn.classList.add('bg-primary', 'text-white');
+
+    // Content Update
+    const previewArea = container.querySelector('[id^="preview-container-"]');
+    if (isPdf === "True") {
+        previewArea.innerHTML = `<iframe src="${url}#toolbar=0" class="w-full h-full border-none rounded"></iframe>`;
+    } else {
+        previewArea.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain shadow-2xl rounded animated fadeIn">`;
+    }
+}
+
+function copyRIBById(id, btn) {
+    const text = document.getElementById(id).innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        const icon = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="check" width="14" height="14"></i>';
+        lucide.createIcons();
+        btn.classList.add('text-green-500');
+        setTimeout(() => {
+            btn.innerHTML = icon;
+            btn.classList.remove('text-green-500');
+            lucide.createIcons();
+        }, 2000);
+    });
+}
+
 function confirmReject(id) {
     const reason = prompt("Raison du rejet (sera notifiée au demandeur) :");
     if (reason !== null) {
