@@ -111,7 +111,7 @@
 
                 <div class="flex-1 flex overflow-hidden">
                     <div class="w-[400px] p-6 scroll-container flex-shrink-0">
-                        <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}">
+                        <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}" target="_blank">
                             {% csrf_token %}
                             <input type="hidden" name="libelle_final" id="libelle-input-{{ ndf.id }}" value="{{ ndf.libelle|default:"Sans titre" }}">
                             

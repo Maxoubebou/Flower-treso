@@ -1460,7 +1460,7 @@ def ndf_download_pdf(request, pk):
         pdf_content = generate_ndf_pdf(ndf, sig_config)
         filename = f"NDF_{ndf.nom_beneficiaire}_{ndf.id}.pdf"
         response = HttpResponse(pdf_content, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
     except Exception as e:
         messages.error(request, f"Erreur lors de la génération du PDF : {e}")
