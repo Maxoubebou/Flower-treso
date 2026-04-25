@@ -24,14 +24,14 @@
                  style="padding: 20px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
                  onclick="showNDF('{{ ndf.id }}')">
                 
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
-                    <div style="display: flex; flex-direction: column; flex: 1; min-width: 0; padding-right: 16px;">
+                <div class="flex justify-between items-start mb-1">
+                    <div class="flex flex-col flex-1 min-width-0 pr-4">
                         <span class="text-md font-bold text-gray-900 truncate" style="line-height: 1.2;">{{ ndf.libelle|default:"Sans titre" }}</span>
-                        <span class="text-xs text-muted" style="margin-top: 4px;">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</span>
+                        <span class="text-xs text-muted mt-1">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</span>
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 16px;">
+                <div class="flex justify-between items-end mt-4">
                     <span class="text-md font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }}€</span>
                     <span class="text-md text-muted italic">
                         {{ ndf.date_soumission|days_since }} jours
@@ -44,7 +44,7 @@
 
     <main class="outlook-main">
         <div id="ndf-empty-state" class="card h-full flex flex-col items-center justify-center p-12 text-center">
-            <div class="w-16 h-16 rounded-full flex items-center justify-center ">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center">
                 <i data-lucide="mail-open" class="text-gray-400" width="32" height="32"></i>
             </div>
             <h3 class="text-lg font-semibold text-gray-900">Sélectionnez une demande</h3>
@@ -57,33 +57,34 @@
                 <div class="card-header bg-white py-6 px-8">
                     <div class="flex flex-row items-start gap-16">
                         
-                        <div class="flex-col">
+                        <div class="flex flex-col">
                             {% if ndf.user_obj.socialaccount_set.first.get_avatar_url %}
                                 <img src="{{ ndf.user_obj.socialaccount_set.first.get_avatar_url }}" 
                                     class="w-12 h-12 rounded-full">
                             {% else %}
-                                <div class="w-12 h-12 rounded-full text-primary font-bold">
+                                <div class="w-12 h-12 rounded-full text-primary font-bold bg-primary/10 flex items-center justify-center">
                                     {{ ndf.prenom_beneficiaire|slice:":1" }}
                                 </div>
                             {% endif %}
                         </div>
-                        <div class="flex-col">
+
+                        <div class="flex flex-col">
                             <div class="text-xl font-bold">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
                             <div class="badge badge-warning text-[10px] uppercase font-bold px-2 py-0.5 w-fit mt-1">En attente</div>
                         </div>
 
-                        <div class="flex-col">
+                        <div class="flex flex-col">
                             <div class="text-xl font-bold">{{ ndf.libelle|default:"Sans titre" }}</div>
                             <div class="text-sm text-muted">{{ ndf.get_type_frais_display }}</div>
                         </div>
 
-                        <div class="flex-col">
+                        <div class="flex flex-col">
                             <div class="text-xl font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</div>
                             <div class="flex items-center gap-4">
                                 <span class="text-sm text-muted" id="rib-text-{{ ndf.id }}">
                                     {{ ndf.rib_beneficiaire }}
                                 </span>
-                                <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)" class="text-sm text-muted">
+                                <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)" class="text-sm text-muted hover:text-primary transition-colors">
                                     <i data-lucide="copy" width="16" height="16"></i>
                                 </button>
                             </div>
@@ -96,63 +97,90 @@
                         <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}">
                             {% csrf_token %}
                             
-                            <h4 class="text-xs font-bold uppercase tracking-widest text-muted mb-4 flex items-center gap-2">
-                                <i data-lucide="edit-3" width="14"></i> Détails éditables
-                            </h4>
-
-                            {% if ndf.commentaire_demandeur %}
-                            <div class="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
-                                <div class="text-[10px] uppercase font-bold text-blue-600 mb-1 tracking-widest">Commentaire du demandeur</div>
-                                <div class="text-sm text-blue-800 leading-relaxed">{{ ndf.commentaire_demandeur }}</div>
-                            </div>
-                            {% endif %}
-                            
                             <div class="p-0 mb-6">
-                                <table class="w-full text-sm">
-                                    <thead>
-                                        <tr class="text-left text-[0.65rem] text-muted uppercase font-bold">
-                                            <th class="pb-3 px-2">Libellé</th>
-                                            <th class="pb-3 px-2 w-24">TTC (€)</th>
-                                            <th class="pb-3 px-2 w-20">TVA (%)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-100">
-                                        {% for ligne in ndf.lignes.all %}
-                                        <tr>
+                                {% if ndf.type_frais == 'ik' %}
+                                    <h5 class="text-[10px] uppercase font-bold text-muted mb-3 tracking-widest">Calcul de l'indemnité</h5>
+                                    {% for ligne in ndf.lignes.all %}
+                                        {% if ligne.est_ik %}
+                                        <div class="grid grid-cols-3 gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
                                             <input type="hidden" name="l_id" value="{{ ligne.id }}">
-                                            <td class="py-2 px-1">
-                                                <input type="text" name="l_libelle" value="{{ ligne.libelle }}" 
-                                                       class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors">
-                                            </td>
-                                            <td class="py-2 px-1">
+                                            <input type="hidden" name="l_libelle" value="{{ ligne.libelle }}">
+                                            <input type="hidden" name="l_tva" value="0">
+                                            
+                                            <div class="form-group mb-0">
+                                                <label class="form-label text-[0.65rem] uppercase text-muted">Distance (km)</label>
+                                                <input type="number" step="0.01" name="l_distance" value="{{ ligne.distance_km|stringformat:'.2f' }}" 
+                                                       class="form-control form-control-sm font-mono font-bold"
+                                                       oninput="recomputeIK(this, '{{ param_ndf.montant_ik|default:0.45|stringformat:'.4f' }}')">
+                                            </div>
+                                            <div class="form-group mb-0">
+                                                <label class="form-label text-[0.65rem] uppercase text-muted">Taux (€/km)</label>
+                                                <div class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted">
+                                                    {{ param_ndf.montant_ik|default:0.45 }}
+                                                </div>
+                                            </div>
+                                            <div class="form-group mb-0">
+                                                <label class="form-label text-[0.65rem] uppercase text-muted">Total TTC (€)</label>
                                                 <input type="number" step="0.01" name="l_ttc" value="{{ ligne.montant_ttc|stringformat:'.2f' }}" 
-                                                       class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono font-bold">
-                                            </td>
-                                            <td class="py-2 px-1">
-                                                <input type="number" step="0.01" name="l_tva" value="{{ ligne.taux_tva|stringformat:'.1f' }}" 
-                                                       class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono">
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                                                       class="form-control form-control-sm border-transparent bg-transparent font-mono font-bold text-primary text-lg" readonly>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <table class="w-full text-sm table-fixed border-separate border-spacing-x-2 -mx-2">
+                                        <thead>
+                                            <tr class="text-left text-[0.65rem] text-muted uppercase font-bold">
+                                                <th class="pb-3 px-1 w-1/2">Libellé</th>
+                                                <th class="pb-3 px-1 w-1/4 text-right">TTC (€)</th>
+                                                <th class="pb-3 px-1 w-1/4 text-right">TVA (%)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            {% for ligne in ndf.lignes.all %}
+                                            <tr>
+                                                <input type="hidden" name="l_id" value="{{ ligne.id }}">
+                                                <td class="py-2 px-0">
+                                                    <input type="text" name="l_libelle" value="{{ ligne.libelle }}" 
+                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors truncate">
+                                                </td>
+                                                <td class="py-2 px-0">
+                                                    <input type="number" step="0.01" name="l_ttc" value="{{ ligne.montant_ttc|stringformat:'.2f' }}" 
+                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono font-bold">
+                                                </td>
+                                                <td class="py-2 px-0">
+                                                    <input type="number" step="0.01" name="l_tva" value="{{ ligne.taux_tva|stringformat:'.1f' }}" 
+                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono">
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% endif %}
                             </div>
 
-                            <div class="form-group mb-6">
-                                <label class="form-label text-xs uppercase text-muted">Commentaire Trésorier</label>
-                                <textarea name="commentaire_tresorier" class="form-control" rows="3" placeholder="Notes internes..."></textarea>
+                            <div class="space-y-4">
+                                {% if ndf.commentaire_demandeur %}
+                                <div class="form-group mb-0">
+                                    <label class="form-label text-xs uppercase text-muted">Commentaire Demandeur</label>
+                                    <textarea class="form-control bg-blue-50/30 border-blue-100 text-blue-900" rows="2" readonly>{{ ndf.commentaire_demandeur }}</textarea>
+                                </div>
+                                {% endif %}
+
+                                <div class="form-group mb-0">
+                                    <label class="form-label text-xs uppercase text-muted">Commentaire Trésorier</label>
+                                    <textarea name="commentaire_tresorier" class="form-control" rows="2" placeholder="Notes internes..."></textarea>
+                                </div>
                             </div>
 
                             <div class="pt-5 space-y-4">
-                                <h4 class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Finalisation & Validation</h4>
-                                
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-group mb-0">
-                                        <label class="form-label text-[0.65rem]">Lien Drive <span class="required">*</span></label>
+                                        <label class="form-label text-[0.65rem] uppercase text-muted">Lien Drive <span class="required">*</span></label>
                                         <input type="url" name="lien_drive" class="form-control form-control-sm" placeholder="https://..." required>
                                     </div>
                                     <div class="form-group mb-0">
-                                        <label class="form-label text-[0.65rem]">Référence Facture</label>
+                                        <label class="form-label text-[0.65rem] uppercase text-muted">Référence Facture</label>
                                         <input type="text" name="reference_facture" class="form-control form-control-sm" placeholder="FV-2024-..." value="">
                                     </div>
                                 </div>
@@ -318,7 +346,7 @@ iframe { filter: drop-shadow(0 20px 25px rgb(0 0 0 / 0.1)); }
 }
 
 .viewer-img {
-    pointer-events: none; /* L'évènement de pan est géré par le container */
+    pointer-events: none;
 }
 
 .outlook-main:hover .zoom-controls {
@@ -334,16 +362,14 @@ iframe { filter: drop-shadow(0 20px 25px rgb(0 0 0 / 0.1)); }
 <script>
 function showNDF(id) {
     document.getElementById('ndf-empty-state').classList.add('hidden');
-    
     document.querySelectorAll('.ndf-detail-panel').forEach(p => p.classList.add('hidden'));
-    
     document.querySelectorAll('.ndf-item').forEach(i => i.classList.remove('active'));
     
     const panel = document.getElementById('ndf-details-' + id);
     if(panel) {
         panel.classList.remove('hidden');
-        resetZoom(id); // Réinitialiser le zoom au chargement d'une nouvelle demande
-        initPanZoom(id); // Initialiser le pan/zoom pour cette demande
+        resetZoom(id);
+        initPanZoom(id);
     }
     
     const item = document.getElementById('ndf-item-' + id);
@@ -354,25 +380,21 @@ function showNDF(id) {
 
 function switchPreview(btn, url, isPdf) {
     const detailPanel = btn.closest('.ndf-detail-panel');
-    const container = btn.closest('.flex-1'); // Le conteneur de navigation des boutons
+    const container = btn.closest('.flex-1');
     const ndfId = detailPanel.id.replace('ndf-details-', '');
     
-    // Récupérer tous les boutons de cette demande
     detailPanel.querySelectorAll('button span.flex').forEach(s => {
         s.classList.remove('text-primary');
         s.classList.add('text-gray-400');
     });
     
-    // Activer celui du bouton cliqué
     const activeSpan = btn.querySelector('span.flex');
     activeSpan.classList.remove('text-gray-400');
     activeSpan.classList.add('text-primary');
 
-    // Mettre à jour le lien de téléchargement
     const downloadLink = document.getElementById('download-link-' + ndfId);
     if (downloadLink) downloadLink.href = url;
 
-    // Reset Zoom avant de changer
     resetZoom(ndfId);
 
     const previewArea = document.getElementById('preview-container-' + ndfId);
@@ -385,8 +407,6 @@ function switchPreview(btn, url, isPdf) {
     }
 }
 
-// --- Logique de Zoom/Pan ---
-
 let zoomStates = {};
 
 function initPanZoom(id) {
@@ -395,14 +415,7 @@ function initPanZoom(id) {
     if (!container || !canvas) return;
 
     if (!zoomStates[id]) {
-        zoomStates[id] = {
-            scale: 1,
-            posX: 0,
-            posY: 0,
-            isDragging: false,
-            startX: 0,
-            startY: 0
-        };
+        zoomStates[id] = { scale: 1, posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0 };
     }
 
     container.onmousedown = (e) => {
@@ -410,7 +423,7 @@ function initPanZoom(id) {
         zoomStates[id].isDragging = true;
         zoomStates[id].startX = e.clientX - zoomStates[id].posX;
         zoomStates[id].startY = e.clientY - zoomStates[id].posY;
-        canvas.classList.replace('cursor-grab', 'cursor-grabbing');
+        canvas.classList.add('cursor-grabbing');
     };
 
     window.onmousemove = (e) => {
@@ -422,11 +435,11 @@ function initPanZoom(id) {
 
     window.onmouseup = () => {
         zoomStates[id].isDragging = false;
-        canvas.classList.replace('cursor-grabbing', 'cursor-grab');
+        canvas.classList.remove('cursor-grabbing');
     };
 
     container.onwheel = (e) => {
-        if (canvas.querySelector('iframe')) return; // Pas de zoom custom sur PDF
+        if (canvas.querySelector('iframe')) return;
         e.preventDefault();
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
         zoomPreview(id, delta);
@@ -435,15 +448,10 @@ function initPanZoom(id) {
 
 function zoomPreview(id, factor) {
     if (!zoomStates[id]) zoomStates[id] = { scale: 1, posX: 0, posY: 0 };
-    
     const newScale = zoomStates[id].scale * factor;
     if (newScale < 0.5 || newScale > 5) return;
-    
     zoomStates[id].scale = newScale;
-    if (newScale <= 1) {
-        zoomStates[id].posX = 0;
-        zoomStates[id].posY = 0;
-    }
+    if (newScale <= 1) { zoomStates[id].posX = 0; zoomStates[id].posY = 0; }
     updateTransform(id);
 }
 
@@ -467,6 +475,18 @@ function showZoomControls(id) {
 function hideZoomControls(id) {
     const controls = document.querySelector(`#viewer-area-${id} .zoom-controls`);
     if (controls) controls.classList.add('hidden');
+}
+
+function recomputeIK(input, rate) {
+    const row = input.closest('.grid');
+    const dist = parseFloat(input.value) || 0;
+    const ttcInput = row.querySelector('input[name="l_ttc"]');
+    const libelleInput = row.querySelector('input[name="l_libelle"]');
+    const total = dist * parseFloat(rate);
+    ttcInput.value = total.toFixed(2);
+    if (libelleInput && libelleInput.value.includes('km')) {
+        libelleInput.value = `Frais IK - ${dist} km`;
+    }
 }
 
 function copyRIBById(id, btn) {

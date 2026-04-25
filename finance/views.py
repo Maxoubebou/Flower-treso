@@ -1345,6 +1345,7 @@ def ndf_manage(request):
 
     return render(request, 'finance/ndf_manage.html', {
         'demandes': demandes,
+        'param_ndf': ParametreNDF.objects.filter(actif=True).first(),
     })
 
 
@@ -1366,6 +1367,7 @@ def ndf_validate(request, pk):
         l_libelles = request.POST.getlist('l_libelle')
         l_ttcs = request.POST.getlist('l_ttc')
         l_tvas = request.POST.getlist('l_tva')
+        l_distances = request.POST.getlist('l_distance') # Pour les IK
 
         for i, l_id in enumerate(ligne_ids):
             try:
@@ -1379,6 +1381,13 @@ def ndf_validate(request, pk):
                 ligne.taux_tva = tva_taux
                 ligne.montant_ht = res['ht']
                 ligne.montant_tva = res['tva']
+
+                # Mise à jour de la distance si c'est une ligne IK
+                if ligne.est_ik and i < len(l_distances):
+                    dist = to_decimal(l_distances[i])
+                    if dist:
+                        ligne.distance_km = dist
+
                 ligne.save()
             except (LigneNDF.DoesNotExist, IndexError):
                 continue
