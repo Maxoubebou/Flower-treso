@@ -202,14 +202,29 @@
                             </a>
                         </div>
                         
-                        <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4">
+                        <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4 bg-gray-50/50" id="viewer-area-{{ ndf.id }}">
+                            <!-- Zoom Controls -->
+                            <div class="absolute bottom-6 right-6 flex items-center gap-2 z-30 zoom-controls bg-white/80 backdrop-blur-md border border-gray-200 p-1.5 rounded-xl shadow-lg transition-all duration-300 transform translate-y-12 opacity-0">
+                                <button onclick="zoomPreview('{{ ndf.id }}', 0.8)" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Zoom arrière">
+                                    <i data-lucide="zoom-out" width="18" height="18"></i>
+                                </button>
+                                <div class="w-px h-4 bg-gray-200"></div>
+                                <button onclick="resetZoom('{{ ndf.id }}')" class="px-2 py-1 hover:bg-gray-100 rounded-lg text-xs font-bold text-gray-600 transition-colors" title="Réinitialiser">
+                                    100%
+                                </button>
+                                <div class="w-px h-4 bg-gray-200"></div>
+                                <button onclick="zoomPreview('{{ ndf.id }}', 1.25)" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Zoom avant">
+                                    <i data-lucide="zoom-in" width="18" height="18"></i>
+                                </button>
+                            </div>
+
                             {% with first_doc=ndf.justificatifs.first %}
-                            <div id="preview-container-{{ ndf.id }}" class="w-full h-full flex items-center justify-center">
+                            <div id="preview-container-{{ ndf.id }}" class="w-full h-full flex items-center justify-center transition-transform duration-200 ease-out origin-center cursor-grab active:cursor-grabbing viewer-canvas">
                                 {% if first_doc %}
                                     {% if first_doc.fichier|is_pdf %}
-                                    <iframe src="{{ first_doc.fichier.url }}#toolbar=0" class="w-full h-full border-none rounded"></iframe>
+                                    <iframe src="{{ first_doc.fichier.url }}" class="w-full h-full border-none rounded shadow-2xl"></iframe>
                                     {% else %}
-                                    <img src="{{ first_doc.fichier.url }}" class="max-w-full max-h-full object-contain shadow-2xl rounded">
+                                    <img src="{{ first_doc.fichier.url }}" class="max-w-full max-h-full object-contain shadow-2xl rounded viewer-img">
                                     {% endif %}
                                 {% else %}
                                     <div class="text-gray-600 italic text-sm">Aucun justificatif disponible</div>
@@ -296,6 +311,24 @@
 .badge-primary { background: #e0e7ff; color: #3730a3; }
 
 iframe { filter: drop-shadow(0 20px 25px rgb(0 0 0 / 0.1)); }
+
+.viewer-canvas {
+    will-change: transform;
+    user-select: none;
+}
+
+.viewer-img {
+    pointer-events: none; /* L'évènement de pan est géré par le container */
+}
+
+.outlook-main:hover .zoom-controls {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.zoom-controls button:active {
+    transform: scale(0.95);
+}
 </style>
 
 <script>
@@ -307,7 +340,11 @@ function showNDF(id) {
     document.querySelectorAll('.ndf-item').forEach(i => i.classList.remove('active'));
     
     const panel = document.getElementById('ndf-details-' + id);
-    if(panel) panel.classList.remove('hidden');
+    if(panel) {
+        panel.classList.remove('hidden');
+        resetZoom(id); // Réinitialiser le zoom au chargement d'une nouvelle demande
+        initPanZoom(id); // Initialiser le pan/zoom pour cette demande
+    }
     
     const item = document.getElementById('ndf-item-' + id);
     if(item) item.classList.add('active');
@@ -316,28 +353,120 @@ function showNDF(id) {
 }
 
 function switchPreview(btn, url, isPdf) {
-    const container = btn.closest('.flex-col');
-    // Récupérer tous les spans de texte dans les boutons
-    container.querySelectorAll('button span.flex').forEach(s => {
+    const detailPanel = btn.closest('.ndf-detail-panel');
+    const container = btn.closest('.flex-1'); // Le conteneur de navigation des boutons
+    const ndfId = detailPanel.id.replace('ndf-details-', '');
+    
+    // Récupérer tous les boutons de cette demande
+    detailPanel.querySelectorAll('button span.flex').forEach(s => {
         s.classList.remove('text-primary');
         s.classList.add('text-gray-400');
     });
+    
     // Activer celui du bouton cliqué
     const activeSpan = btn.querySelector('span.flex');
     activeSpan.classList.remove('text-gray-400');
     activeSpan.classList.add('text-primary');
 
     // Mettre à jour le lien de téléchargement
-    const ndfId = btn.closest('.ndf-detail-panel').id.replace('ndf-details-', '');
     const downloadLink = document.getElementById('download-link-' + ndfId);
     if (downloadLink) downloadLink.href = url;
 
-    const previewArea = container.querySelector('[id^="preview-container-"]');
+    // Reset Zoom avant de changer
+    resetZoom(ndfId);
+
+    const previewArea = document.getElementById('preview-container-' + ndfId);
     if (isPdf === "True") {
-        previewArea.innerHTML = `<iframe src="${url}#toolbar=0" class="w-full h-full border-none rounded"></iframe>`;
+        previewArea.innerHTML = `<iframe src="${url}" class="w-full h-full border-none rounded shadow-2xl"></iframe>`;
+        hideZoomControls(ndfId);
     } else {
-        previewArea.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain shadow-2xl rounded animated fadeIn">`;
+        previewArea.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain shadow-2xl rounded animated fadeIn viewer-img">`;
+        showZoomControls(ndfId);
     }
+}
+
+// --- Logique de Zoom/Pan ---
+
+let zoomStates = {};
+
+function initPanZoom(id) {
+    const container = document.getElementById('viewer-area-' + id);
+    const canvas = document.getElementById('preview-container-' + id);
+    if (!container || !canvas) return;
+
+    if (!zoomStates[id]) {
+        zoomStates[id] = {
+            scale: 1,
+            posX: 0,
+            posY: 0,
+            isDragging: false,
+            startX: 0,
+            startY: 0
+        };
+    }
+
+    container.onmousedown = (e) => {
+        if (zoomStates[id].scale <= 1) return;
+        zoomStates[id].isDragging = true;
+        zoomStates[id].startX = e.clientX - zoomStates[id].posX;
+        zoomStates[id].startY = e.clientY - zoomStates[id].posY;
+        canvas.classList.replace('cursor-grab', 'cursor-grabbing');
+    };
+
+    window.onmousemove = (e) => {
+        if (!zoomStates[id].isDragging) return;
+        zoomStates[id].posX = e.clientX - zoomStates[id].startX;
+        zoomStates[id].posY = e.clientY - zoomStates[id].startY;
+        updateTransform(id);
+    };
+
+    window.onmouseup = () => {
+        zoomStates[id].isDragging = false;
+        canvas.classList.replace('cursor-grabbing', 'cursor-grab');
+    };
+
+    container.onwheel = (e) => {
+        if (canvas.querySelector('iframe')) return; // Pas de zoom custom sur PDF
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        zoomPreview(id, delta);
+    };
+}
+
+function zoomPreview(id, factor) {
+    if (!zoomStates[id]) zoomStates[id] = { scale: 1, posX: 0, posY: 0 };
+    
+    const newScale = zoomStates[id].scale * factor;
+    if (newScale < 0.5 || newScale > 5) return;
+    
+    zoomStates[id].scale = newScale;
+    if (newScale <= 1) {
+        zoomStates[id].posX = 0;
+        zoomStates[id].posY = 0;
+    }
+    updateTransform(id);
+}
+
+function resetZoom(id) {
+    zoomStates[id] = { scale: 1, posX: 0, posY: 0, isDragging: false };
+    updateTransform(id);
+}
+
+function updateTransform(id) {
+    const canvas = document.getElementById('preview-container-' + id);
+    if (canvas) {
+        canvas.style.transform = `translate(${zoomStates[id].posX}px, ${zoomStates[id].posY}px) scale(${zoomStates[id].scale})`;
+    }
+}
+
+function showZoomControls(id) {
+    const controls = document.querySelector(`#viewer-area-${id} .zoom-controls`);
+    if (controls) controls.classList.remove('hidden');
+}
+
+function hideZoomControls(id) {
+    const controls = document.querySelector(`#viewer-area-${id} .zoom-controls`);
+    if (controls) controls.classList.add('hidden');
 }
 
 function copyRIBById(id, btn) {
