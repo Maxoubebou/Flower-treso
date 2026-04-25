@@ -1,18 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
 import csv
+from datetime import date
 from django.contrib import messages
 from django.db.models import Q, Sum, F
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.middleware.csrf import get_token
 
-from .models import FactureVente, BulletinVersement, FactureAchat, Etude
-from .services import generate_numero_bv
+from .models import FactureVente, BulletinVersement, FactureAchat, Etude, DemandeNDF, LigneNDF
+from .services import generate_numero_bv, generate_numero_facture_achat, calculate_ht_tva
 from operations.models import Operation
 
-from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, ParametreCotisation
+from config_app.models import TypeFactureVente, TypeAchat, LigneBudgetaire, ParametreTVA, ParametreCotisation, ParametreNDF
 from flower_treso.utils import to_decimal
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
+from .forms import DemandeNDFForm
 
 
 def _get_filtres(request):
@@ -1236,6 +1238,147 @@ def bv_unlink_operation(request, pk):
         
     from django.shortcuts import redirect
     return redirect('finance:bv_list')
+
+
+# ─── Notes de Frais (NDF) ──────────────────────────────────────────────────
+
+def ndf_submit(request):
+    """Vue publique de soumission d'une NDF (1 reçu = 1 demande)."""
+    if request.method == 'POST':
+        form = DemandeNDFForm(request.POST, request.FILES)
+        if form.is_valid():
+            with transaction.atomic():
+                ndf = form.save(commit=False)
+                # Déduction du nom à partir de l'email prenom.nom@ouest-insa.fr
+                email = form.cleaned_data['email']
+                parts = email.split('@')[0].split('.')
+                if len(parts) >= 2:
+                    ndf.nom_beneficiaire = f"{parts[0].capitalize()} {parts[1].upper()}"
+                else:
+                    ndf.nom_beneficiaire = email.split('@')[0].capitalize()
+                
+                ndf.save()
+                
+                # Traitement des lignes
+                # On s'attend à une liste de libellés, montants HT, taux TVA
+                libelles = request.POST.getlist('l_libelle')
+                montants_ht = request.POST.getlist('l_montant_ht')
+                taux_tva = request.POST.getlist('l_taux_tva')
+                est_iks = request.POST.getlist('l_est_ik') # 'on' or ''
+                distances = request.POST.getlist('l_distance')
+
+                for i in range(len(libelles)):
+                    if not libelles[i]: continue
+                    
+                    ht = to_decimal(montants_ht[i])
+                    taux = to_decimal(taux_tva[i])
+                    res = calculate_ht_tva(ht, taux)
+                    
+                    is_ik = False
+                    dist = None
+                    if i < len(est_iks) and est_iks[i] == 'on':
+                        is_ik = True
+                        dist = to_decimal(distances[i])
+
+                    LigneNDF.objects.create(
+                        demande=ndf,
+                        libelle=libelles[i],
+                        montant_ht=ht,
+                        montant_tva=res['tva'],
+                        montant_ttc=res['ttc'],
+                        taux_tva=taux,
+                        est_ik=is_ik,
+                        distance_km=dist
+                    )
+                
+            messages.success(request, "Votre demande de Note de Frais a été soumise avec succès.")
+            return redirect('finance:ndf_submit')
+    else:
+        form = DemandeNDFForm()
+    
+    param_ndf = ParametreNDF.objects.filter(actif=True).first()
+    return render(request, 'finance/ndf_submit.html', {
+        'form': form,
+        'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True).order_by('ordre'),
+        'param_ndf': param_ndf,
+    })
+
+
+def ndf_manage(request):
+    """Vue trésorier pour gérer les NDF en attente."""
+    demandes = DemandeNDF.objects.filter(statut='pending').prefetch_related('lignes').order_by('-date_soumission')
+    return render(request, 'finance/ndf_manage.html', {
+        'demandes': demandes,
+    })
+
+
+@require_POST
+def ndf_validate(request, pk):
+    """Valider une NDF et générer la FA associée."""
+    ndf = get_object_or_404(DemandeNDF, pk=pk, statut='pending')
+    lien_drive = request.POST.get('lien_drive')
+    commentaire = request.POST.get('commentaire_tresorier', '')
+
+    if not lien_drive:
+        messages.error(request, "Un lien Drive est requis pour valider la NDF.")
+        return redirect('finance:ndf_manage')
+
+    with transaction.atomic():
+        # 1. Identifier le type d'achat NDF
+        type_ndf = TypeAchat.objects.filter(suffixe='NF').first()
+        if not type_ndf:
+            type_ndf = TypeAchat.objects.filter(nom__icontains='frais').first()
+        
+        if not type_ndf:
+            messages.error(request, "Type d'achat pour Note de Frais (NF) non configuré.")
+            return redirect('finance:ndf_manage')
+
+        # 2. Calculer totaux
+        total_ht = sum(l.montant_ht for l in ndf.lignes.all())
+        total_tva = sum(l.montant_tva for l in ndf.lignes.all())
+        total_ttc = sum(l.montant_ttc for l in ndf.lignes.all())
+        
+        # On prend le taux de TVA de la première ligne comme référence (indicatif)
+        principal_taux = ndf.lignes.first().taux_tva if ndf.lignes.exists() else 20
+
+        # 3. Créer la FactureAchat
+        today = date.today()
+        fa = FactureAchat.objects.create(
+            type_achat=type_ndf,
+            numero=generate_numero_facture_achat(type_ndf, today.year, today.month),
+            fournisseur=ndf.nom_beneficiaire,
+            libelle=f"Remboursement NDF du {ndf.date_soumission.strftime('%d/%m/%Y')}",
+            lien_drive=lien_drive,
+            date_operation=today,
+            date_reception=today,
+            taux_tva=principal_taux,
+            taux_compose=True, # Puisqu'on somme plusieurs lignes potentiellement
+            montant_ht=total_ht,
+            montant_tva=total_tva,
+            montant_ttc=total_ttc,
+            rib_beneficiaire=ndf.rib_beneficiaire,
+            commentaire=f"Généré depuis la demande NDF #{ndf.id}. {commentaire}"
+        )
+
+        # 4. Mettre à jour la demande
+        ndf.statut = 'approved'
+        ndf.facture_achat = fa
+        ndf.commentaire_tresorier = commentaire
+        ndf.save()
+
+    messages.success(request, f"NDF #{ndf.id} validée. Facture d'achat {fa.numero} générée.")
+    return redirect('finance:ndf_manage')
+
+
+@require_POST
+def ndf_reject(request, pk):
+    """Rejeter une demande de NDF."""
+    ndf = get_object_or_404(DemandeNDF, pk=pk, statut='pending')
+    ndf.statut = 'rejected'
+    ndf.commentaire_tresorier = request.POST.get('commentaire_tresorier', '')
+    ndf.save()
+    messages.warning(request, f"La demande de NDF #{ndf.id} a été rejetée.")
+    return redirect('finance:ndf_manage')
 
 
 

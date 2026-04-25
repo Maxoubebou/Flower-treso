@@ -27,6 +27,11 @@ urlpatterns = [
     path('achats/', views.achats_list, name='achats_list'),
     path('achats/export/', views.achat_export_csv, name='achat_export_csv'),
     path('achats/<int:pk>/edit/', views.achat_edit, name='achat_edit'),
+    # Notes de Frais
+    path('ndf/demander/', views.ndf_submit, name='ndf_submit'),
+    path('ndf/gerer/', views.ndf_manage, name='ndf_manage'),
+    path('ndf/<int:pk>/valider/', views.ndf_validate, name='ndf_validate'),
+    path('ndf/<int:pk>/rejeter/', views.ndf_reject, name='ndf_reject'),
     # Études
     path('etudes/', views.etudes_list, name='etudes_list'),
     path('etudes/nouvelle/', views.etude_create, name='etude_create'),

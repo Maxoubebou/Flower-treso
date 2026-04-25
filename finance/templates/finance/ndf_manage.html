@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static ndf_extras %}
+
+{% block title %}Validation Notes de Frais — Flower-Tréso{% endblock %}
+{% block page_title %}Gestion des Notes de Frais{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    {% if not demandes %}
+    <div class="card p-12 text-center">
+        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="check-circle-2" class="text-gray-400" width="32" height="32"></i>
+        </div>
+        <div class="text-lg font-semibold text-gray-900">Aucune demande en attente</div>
+        <p class="text-muted">Toutes les notes de frais ont été traitées. Beau travail !</p>
+    </div>
+    {% endif %}
+
+    {% for ndf in demandes %}
+    <div class="card overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div class="card-header bg-gray-50 flex justify-between items-center p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-primary font-bold">
+                    {{ ndf.nom_beneficiaire|slice:":1" }}
+                </div>
+                <div>
+                    <div class="font-bold text-gray-900">{{ ndf.nom_beneficiaire }}</div>
+                    <div class="text-[0.7rem] text-muted uppercase tracking-wider">{{ ndf.email }}</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-[0.7rem] text-muted uppercase tracking-wider mb-1">Soumis le</div>
+                <div class="font-semibold">{{ ndf.date_soumission|date:"d/m/Y à H:i" }}</div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid-2 gap-8">
+                <!-- Détails des lignes -->
+                <div>
+                    <h4 class="text-sm font-bold uppercase tracking-widest text-muted mb-4">Détails des frais</h4>
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left border-b border-gray-100">
+                                <th class="pb-2 font-semibold">Libellé</th>
+                                <th class="pb-2 font-semibold text-right">HT</th>
+                                <th class="pb-2 font-semibold text-right">TVA</th>
+                                <th class="pb-2 font-semibold text-right">TTC</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            {% for ligne in ndf.lignes.all %}
+                            <tr>
+                                <td class="py-2">
+                                    {{ ligne.libelle }}
+                                    {% if ligne.est_ik %}
+                                    <span class="badge badge-info ml-2" style="font-size: 0.6rem;">IK : {{ ligne.distance_km }} km</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-2 text-right font-mono">{{ ligne.montant_ht }} €</td>
+                                <td class="py-2 text-right font-mono text-muted">{{ ligne.montant_tva }} €</td>
+                                <td class="py-2 text-right font-mono font-bold">{{ ligne.montant_ttc }} €</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="border-t-2 border-gray-100 font-bold">
+                                <td class="pt-3">TOTAL</td>
+                                <td class="pt-3 text-right font-mono"></td>
+                                <td class="pt-3 text-right font-mono"></td>
+                                <td class="pt-3 text-right font-mono text-primary text-lg" id="total-ttc-{{ ndf.id }}">
+                                    {{ ndf.lignes.all|sum_ttc|floatformat:2 }} €
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    
+                    <div class="mt-6">
+                        <a href="{{ ndf.justificatif.url }}" target="_blank" class="btn btn-outline btn-sm w-full justify-center">
+                            <i data-lucide="external-link" width="14" height="14"></i> Voir le justificatif ({{ ndf.justificatif.name|slice:"-3:"|upper }})
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Formulaire de validation -->
+                <div class="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                    <h4 class="text-sm font-bold uppercase tracking-widest text-muted mb-4">Validation Trésorier</h4>
+                    
+                    <div class="mb-4 p-3 bg-white rounded border border-gray-200">
+                        <div class="text-[0.7rem] text-muted uppercase font-bold mb-1">RIB de remboursement</div>
+                        <div class="font-mono text-sm break-all select-all cursor-pointer" title="Cliquer pour copier">
+                            {{ ndf.rib_beneficiaire }}
+                        </div>
+                    </div>
+
+                    <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}" class="space-y-4">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label class="form-label text-xs">Lien vers le dossier Drive <span class="required">*</span></label>
+                            <input type="url" name="lien_drive" class="form-control form-control-sm" placeholder="https://drive.google.com/..." required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label text-xs">Commentaire interne (optionnel)</label>
+                            <textarea name="commentaire_tresorier" class="form-control form-control-sm" rows="2" placeholder="Notes pour la comptabilité..."></textarea>
+                        </div>
+                        
+                        <div class="flex gap-2 pt-2">
+                            <button type="submit" class="btn btn-success flex-1 justify-center">
+                                <i data-lucide="check" width="16" height="16"></i> Valider & Générer FA
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" onclick="confirmReject('{{ ndf.id }}')">
+                                <i data-lucide="x" width="16" height="16"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Formulaire caché pour le rejet -->
+                    <form id="reject-form-{{ ndf.id }}" method="post" action="{% url 'finance:ndf_reject' ndf.pk %}" class="hidden">
+                        {% csrf_token %}
+                        <input type="hidden" name="commentaire_tresorier" id="reject-comment-{{ ndf.id }}">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+function confirmReject(id) {
+    const reason = prompt("Raison du rejet (sera notifiée au demandeur) :");
+    if (reason !== null) {
+        document.getElementById('reject-comment-' + id).value = reason;
+        document.getElementById('reject-form-' + id).submit();
+    }
+}
+</script>
+{% endblock %}

@@ -166,3 +166,16 @@ class AutofillRule(models.Model):
 
     def __str__(self):
         return f"{self.nom} ({self.get_type_operation_display()})"
+
+class ParametreNDF(models.Model):
+    """Paramètres pour les notes de frais (Indemnité Kilométrique)."""
+    nom = models.CharField(max_length=100, default="Indemnité Kilométrique", unique=True)
+    montant_ik = models.DecimalField(max_digits=10, decimal_places=4, default=0.0, help_text="Montant au km (€)")
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Paramètre NDF"
+        verbose_name_plural = "Paramètres NDF"
+
+    def __str__(self):
+        return f"{self.nom} : {self.montant_ik} €/km"

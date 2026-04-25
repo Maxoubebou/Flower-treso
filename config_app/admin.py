@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import LigneBudgetaire, TypeFactureVente, TypeAchat, ParametreTVA, ParametreCotisation
+from .models import LigneBudgetaire, TypeFactureVente, TypeAchat, ParametreTVA, ParametreCotisation, ParametreNDF
 
 
 @admin.register(LigneBudgetaire)
@@ -29,3 +29,9 @@ class ParametreTVAAdmin(admin.ModelAdmin):
 @admin.register(ParametreCotisation)
 class ParametreCotisationAdmin(admin.ModelAdmin):
     list_display = ('type_cotisant', 'base_urssaf', 'assurance_maladie', 'vieillesse_plafonnee')
+
+
+@admin.register(ParametreNDF)
+class ParametreNDFAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'montant_ik', 'actif')
+    list_editable = ('montant_ik', 'actif')

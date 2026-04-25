@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Soumission Note de Frais — Flower-Tréso{% endblock %}
+{% block page_title %}Soumission d'une Note de Frais{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <form method="post" enctype="multipart/form-data" id="ndf-form">
+        {% csrf_token %}
+        
+        <div class="grid-2 mb-6">
+            <!-- Informations Bénéficiaire -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <div class="card-title text-primary">
+                        <i data-lucide="user" width="18" height="18"></i>
+                        Informations Demandeur
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">Email Ouest INSA <span class="required">*</span></label>
+                        {{ form.email }}
+                        <div class="text-[0.7rem] text-muted mt-1">Utilisez votre adresse prenom.nom@ouest-insa.fr</div>
+                        {% if form.email.errors %}
+                            <div class="text-danger text-xs mt-1">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">RIB (IBAN) <span class="required">*</span></label>
+                        {{ form.rib_beneficiaire }}
+                        <div class="text-[0.7rem] text-muted mt-1">Pour le remboursement par virement</div>
+                        {% if form.rib_beneficiaire.errors %}
+                            <div class="text-danger text-xs mt-1">{{ form.rib_beneficiaire.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Justificatif -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <div class="card-title text-primary">
+                        <i data-lucide="file-text" width="18" height="18"></i>
+                        Justificatif
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">Photo du reçu / PDF <span class="required">*</span></label>
+                        {{ form.justificatif }}
+                        <div class="text-[0.7rem] text-muted mt-1">Image ou PDF (max 5Mo)</div>
+                        {% if form.justificatif.errors %}
+                            <div class="text-danger text-xs mt-1">{{ form.justificatif.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div id="file-preview" class="hidden mt-4 p-4 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
+                         <span class="text-muted text-sm italic">Justificatif sélectionné</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lignes de frais -->
+        <div class="card shadow-sm mb-6">
+            <div class="card-header flex justify-between items-center">
+                <div class="card-title text-primary">
+                    <i data-lucide="list" width="18" height="18"></i>
+                    Lignes de frais
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="addRow()">
+                    <i data-lucide="plus" width="14" height="14"></i> Ajouter une ligne
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <table class="data-table" id="lines-table">
+                    <thead>
+                        <tr>
+                            <th class="w-[40%]">Libellé / Description</th>
+                            <th>HT (€)</th>
+                            <th>TVA (%)</th>
+                            <th>TVA (€)</th>
+                            <th>TTC (€)</th>
+                            <th class="w-[50px]"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="lines-body">
+                        <!-- Première ligne par défaut -->
+                        <tr class="line-row">
+                            <td>
+                                <input type="text" name="l_libelle" class="form-control" placeholder="Ex: Restaurant client" required>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="checkbox" name="l_est_ik" class="ik-checkbox" onchange="toggleIK(this)">
+                                        <span class="text-[0.7rem] font-bold uppercase tracking-wider text-muted">Indemnités Kilométriques</span>
+                                    </label>
+                                    <div class="ik-field hidden flex items-center gap-2">
+                                        <input type="number" step="0.01" name="l_distance" class="form-control form-control-sm w-20 distance-input" placeholder="Km" oninput="computeIK(this)">
+                                        <span class="text-[0.7rem] text-muted">x {{ param_ndf.montant_ik|default:"0" }}€/km</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <input type="number" step="0.01" name="l_montant_ht" class="form-control font-mono ht-input" required oninput="recomputeLine(this)">
+                            </td>
+                            <td>
+                                <select name="l_taux_tva" class="form-control tva-select" onchange="recomputeLine(this)">
+                                    {% for t in taux_tva_disponibles %}
+                                    <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %}>{{ t.taux }}%</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="font-mono text-sm tva-display">0.00</td>
+                            <td class="font-mono font-bold ttc-display">0.00</td>
+                            <td class="text-center">
+                                <button type="button" class="text-danger hover:text-danger-dark" onclick="removeRow(this)">
+                                    <i data-lucide="trash-2" width="16" height="16"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-50 font-bold">
+                            <td class="text-right pr-4">Total</td>
+                            <td id="total-ht" class="font-mono">0.00 €</td>
+                            <td></td>
+                            <td id="total-tva" class="font-mono">0.00 €</td>
+                            <td id="total-ttc" class="font-mono text-primary text-lg">0.00 €</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-4">
+            <button type="submit" class="btn btn-primary btn-lg px-12">
+                <i data-lucide="send" width="20" height="20"></i>
+                Soumettre ma demande
+            </button>
+        </div>
+    </form>
+</div>
+
+<template id="row-template">
+    <tr class="line-row">
+        <td>
+            <input type="text" name="l_libelle" class="form-control" placeholder="Libellé" required>
+            <div class="flex items-center gap-2 mt-2">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" name="l_est_ik" class="ik-checkbox" onchange="toggleIK(this)">
+                    <span class="text-[0.7rem] font-bold uppercase tracking-wider text-muted">Indemnités Kilométriques</span>
+                </label>
+                <div class="ik-field hidden flex items-center gap-2">
+                    <input type="number" step="0.01" name="l_distance" class="form-control form-control-sm w-20 distance-input" placeholder="Km" oninput="computeIK(this)">
+                    <span class="text-[0.7rem] text-muted">x {{ param_ndf.montant_ik|default:"0" }}€/km</span>
+                </div>
+            </div>
+        </td>
+        <td>
+            <input type="number" step="0.01" name="l_montant_ht" class="form-control font-mono ht-input" required oninput="recomputeLine(this)">
+        </td>
+        <td>
+            <select name="l_taux_tva" class="form-control tva-select" onchange="recomputeLine(this)">
+                {% for t in taux_tva_disponibles %}
+                <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %}>{{ t.taux }}%</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td class="font-mono text-sm tva-display">0.00</td>
+        <td class="font-mono font-bold ttc-display">0.00</td>
+        <td class="text-center">
+            <button type="button" class="text-danger hover:text-danger-dark" onclick="removeRow(this)">
+                <i data-lucide="trash-2" width="16" height="16"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const IK_RATE = {{ param_ndf.montant_ik|default:0|stringformat:".4f" }};
+
+function addRow() {
+    const template = document.getElementById('row-template');
+    const tbody = document.getElementById('lines-body');
+    const clone = template.content.cloneNode(true);
+    tbody.appendChild(clone);
+    lucide.createIcons();
+}
+
+function removeRow(btn) {
+    const row = btn.closest('tr');
+    const tbody = document.getElementById('lines-body');
+    if (tbody.querySelectorAll('tr').length > 1) {
+        row.remove();
+        updateTotals();
+    }
+}
+
+function toggleIK(cb) {
+    const row = cb.closest('tr');
+    const ikField = row.querySelector('.ik-field');
+    const htInput = row.querySelector('.ht-input');
+    const tvaSelect = row.querySelector('.tva-select');
+    
+    if (cb.checked) {
+        ikField.classList.remove('hidden');
+        htInput.readOnly = true;
+        htInput.classList.add('bg-gray-100');
+        tvaSelect.value = "0";
+        tvaSelect.disabled = true;
+    } else {
+        ikField.classList.add('hidden');
+        htInput.readOnly = false;
+        htInput.classList.remove('bg-gray-100');
+        tvaSelect.disabled = false;
+        tvaSelect.value = "20";
+    }
+    recomputeLine(htInput);
+}
+
+function computeIK(input) {
+    const row = input.closest('tr');
+    const htInput = row.querySelector('.ht-input');
+    const km = parseFloat(input.value) || 0;
+    htInput.value = (km * IK_RATE).toFixed(2);
+    recomputeLine(htInput);
+}
+
+function recomputeLine(element) {
+    const row = element.closest('tr');
+    const ht = parseFloat(row.querySelector('.ht-input').value) || 0;
+    const taux = parseFloat(row.querySelector('.tva-select').value) || 0;
+    
+    const tva = ht * (taux / 100);
+    const ttc = ht + tva;
+    
+    row.querySelector('.tva-display').textContent = tva.toFixed(2);
+    row.querySelector('.ttc-display').textContent = ttc.toFixed(2);
+    
+    updateTotals();
+}
+
+function updateTotals() {
+    let totalHt = 0;
+    let totalTva = 0;
+    let totalTtc = 0;
+    
+    document.querySelectorAll('.line-row').forEach(row => {
+        totalHt += parseFloat(row.querySelector('.ht-input').value) || 0;
+        totalTva += parseFloat(row.querySelector('.tva-display').textContent) || 0;
+        totalTtc += parseFloat(row.querySelector('.ttc-display').textContent) || 0;
+    });
+    
+    document.getElementById('total-ht').textContent = totalHt.toFixed(2) + ' €';
+    document.getElementById('total-tva').textContent = totalTva.toFixed(2) + ' €';
+    document.getElementById('total-ttc').textContent = totalTtc.toFixed(2) + ' €';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Preview justificatif
+    const fileInput = document.querySelector('input[type="file"]');
+    const preview = document.getElementById('file-preview');
+    if (fileInput) {
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files && fileInput.files[0]) {
+                preview.classList.remove('hidden');
+                preview.innerHTML = `<i data-lucide="check" class="text-success mr-2"></i> <span class="text-sm font-semibold">${fileInput.files[0].name}</span>`;
+                lucide.createIcons();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

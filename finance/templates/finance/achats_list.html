@@ -125,6 +125,12 @@
                       hx-trigger="refresh-invoice-achat-{{ f.id }} from:body"
                       hx-swap="innerHTML">{{ f.montant_tva|floatformat:2 }}</span> TVA
               </span>
+              {% if f.rib_beneficiaire %}
+              <div class="mt-1 flex items-center gap-1 text-[0.6rem] bg-primary-light text-primary px-1 rounded font-mono truncate max-w-[120px]" title="RIB: {{ f.rib_beneficiaire }}">
+                <i data-lucide="credit-card" width="10" height="10"></i>
+                {{ f.rib_beneficiaire|slice:"-10:" }}
+              </div>
+              {% endif %}
             </div>
           </td>
 

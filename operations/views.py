@@ -141,6 +141,9 @@ def process_operation(request, operation_id):
         elif action == 'achat':
             return _process_achat(request, operation)
 
+        elif action == 'ndf_link':
+            return _process_ndf_link(request, operation)
+
     # Récupérer les BV non liés pour l'affichage de la liaison
     unlinked_bvs = BulletinVersement.objects.filter(operation__isnull=True).select_related('etude')
     
@@ -150,6 +153,19 @@ def process_operation(request, operation_id):
         bv.matches_amount = (bv.net_a_payer == target_amount)
 
     context['unlinked_bvs'] = sorted(unlinked_bvs, key=lambda x: not x.matches_amount)
+
+    # Récupérer les FA issues de NDF validées et non liées à une opération
+    valid_ndf_fas = FactureAchat.objects.filter(
+        demande_ndf__isnull=False,
+        operation__isnull=True
+    )
+    
+    # Marquer les FA qui matchent le montant
+    target_amount_debit = abs(operation.debit)
+    for fa in valid_ndf_fas:
+        fa.matches_amount = (fa.montant_ttc == target_amount_debit)
+        
+    context['valid_ndf_fas'] = sorted(valid_ndf_fas, key=lambda x: not x.matches_amount)
 
     return render(request, 'operations/process_operation.html', context)
 
@@ -341,6 +357,40 @@ def _process_achat(request, operation):
 
     except Exception as e:
         messages.error(request, f"Erreur lors de la création de la facture d'achat : {e}")
+        return redirect('operations:process_operation', operation_id=operation.pk)
+
+
+def _process_ndf_link(request, operation):
+    """Lie un débit bancaire à une FactureAchat issue d'une NDF."""
+    from finance.models import FactureAchat
+    
+    try:
+        fa_pk = request.POST.get('fa_id')
+        if not fa_pk:
+            messages.error(request, "Veuillez sélectionner une note de frais.")
+            return redirect('operations:process_operation', operation_id=operation.pk)
+            
+        fa = get_object_or_404(FactureAchat, pk=fa_pk)
+        
+        # Vérification qu'elle n'est pas déjà liée
+        if fa.operation:
+            messages.error(request, "Cette note de frais est déjà liée à une opération.")
+            return redirect('operations:process_operation', operation_id=operation.pk)
+
+        # Liaison
+        fa.operation = operation
+        fa.save()
+
+        operation.statut = 'processed'
+        operation.save()
+        
+        messages.success(request, f"Remboursement NDF {fa.numero} lié avec succès.")
+        
+        to_next = 'save_next' in request.POST
+        return _redirect_next(operation, to_next=to_next)
+
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la liaison NDF : {e}")
         return redirect('operations:process_operation', operation_id=operation.pk)
 
 

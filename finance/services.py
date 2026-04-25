@@ -128,6 +128,16 @@ def calculate_tva(montant_ttc: Decimal, taux: Decimal) -> dict:
     return {'ht': ht, 'tva': tva}
 
 
+def calculate_ht_tva(montant_ht: Decimal, taux: Decimal) -> dict:
+    """
+    Calcule TVA et TTC à partir du HT et du taux.
+    """
+    taux_decimal = taux / Decimal('100')
+    tva = (montant_ht * taux_decimal).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    ttc = (montant_ht + tva).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    return {'tva': tva, 'ttc': ttc}
+
+
 def get_taux_tva_defaut(type_facture) -> Decimal:
     """Retourne le taux de TVA par défaut selon le type de facture."""
     return Decimal(str(type_facture.taux_tva_defaut))

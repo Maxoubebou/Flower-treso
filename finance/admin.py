@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Etude, FactureVente, BulletinVersement, FactureAchat
+from .models import Etude, FactureVente, BulletinVersement, FactureAchat, DemandeNDF, LigneNDF
 
 
 @admin.register(Etude)
@@ -28,8 +28,21 @@ class BulletinVersementAdmin(admin.ModelAdmin):
 
 @admin.register(FactureAchat)
 class FactureAchatAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'type_achat', 'fournisseur', 'date_operation', 'taux_tva', 'montant_ttc', 'categorisation', 'immobilisation')
+    list_display = ('numero', 'type_achat', 'fournisseur', 'date_operation', 'taux_tva', 'montant_ttc', 'categorisation', 'immobilisation', 'rib_beneficiaire')
     list_filter = ('type_achat', 'pays_tva', 'categorisation', 'immobilisation')
     search_fields = ('numero', 'fournisseur', 'libelle')
     date_hierarchy = 'date_operation'
     readonly_fields = ('created_at', 'updated_at', 'immobilisation')
+
+
+class LigneNDFInline(admin.TabularInline):
+    model = LigneNDF
+    extra = 0
+
+
+@admin.register(DemandeNDF)
+class DemandeNDFAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nom_beneficiaire', 'email', 'date_soumission', 'statut')
+    list_filter = ('statut', 'date_soumission')
+    search_fields = ('nom_beneficiaire', 'email')
+    inlines = [LigneNDFInline]

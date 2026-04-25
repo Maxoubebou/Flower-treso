@@ -215,6 +215,7 @@ class FactureAchat(models.Model):
         LigneBudgetaire, on_delete=models.SET_NULL, null=True, blank=True
     )
     commentaire = models.TextField(blank=True)
+    rib_beneficiaire = models.CharField(max_length=34, blank=True, help_text="RIB du bénéficiaire pour remboursement")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -245,3 +246,46 @@ class FactureAchat(models.Model):
     @property
     def mois(self):
         return self.date_operation.month
+
+class DemandeNDF(models.Model):
+    """Demande de Note de Frais par un membre."""
+    STATUT_CHOICES = [
+        ('pending', 'En attente'),
+        ('approved', 'Validée'),
+        ('rejected', 'Rejetée'),
+    ]
+    email = models.EmailField()
+    nom_beneficiaire = models.CharField(max_length=255)
+    rib_beneficiaire = models.CharField(max_length=34)
+    justificatif = models.FileField(upload_to='preuve_NDF/')
+    date_soumission = models.DateTimeField(auto_now_add=True)
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='pending')
+    
+    # Lien vers la FA générée après validation
+    facture_achat = models.OneToOneField(
+        FactureAchat, on_delete=models.SET_NULL, null=True, blank=True, related_name='demande_ndf'
+    )
+    commentaire_tresorier = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Demande de Note de Frais"
+        verbose_name_plural = "Demandes de Notes de Frais"
+
+    def __str__(self):
+        return f"NDF {self.nom_beneficiaire} - {self.date_soumission.strftime('%d/%m/%Y')}"
+
+
+class LigneNDF(models.Model):
+    """Ligne de frais au sein d'une demande NDF."""
+    demande = models.ForeignKey(DemandeNDF, on_delete=models.CASCADE, related_name='lignes')
+    libelle = models.CharField(max_length=255)
+    montant_ttc = models.DecimalField(max_digits=12, decimal_places=2)
+    montant_ht = models.DecimalField(max_digits=12, decimal_places=2)
+    montant_tva = models.DecimalField(max_digits=12, decimal_places=2)
+    taux_tva = models.DecimalField(max_digits=5, decimal_places=2, default=20)
+    # Pour les IK
+    est_ik = models.BooleanField(default=False)
+    distance_km = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.libelle} ({self.montant_ttc}€)"
