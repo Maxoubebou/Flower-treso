@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
 
-from .models import DeclarationTVA
+from .models import DeclarationTVA, DeclarationURSSAF
 from .services import compute_declaration_tva, finalise_declaration
 from finance.models import FactureVente, BulletinVersement, FactureAchat
 from flower_treso.utils import to_decimal
@@ -11,6 +11,7 @@ from flower_treso.utils import to_decimal
 def dashboard(request):
     """Dashboard principal avec KPIs."""
     from datetime import date
+    from django.db import models
     from django.db.models import Sum, Count
 
     aujourd_hui = date.today()
@@ -32,13 +33,79 @@ def dashboard(request):
     )
 
     from operations.models import Operation
-    ops_pending = Operation.objects.filter(statut='pending').count()
+    ops_pending_count = Operation.objects.filter(statut='pending').count()
+    
+    # BV en attente de liaison (Intégrité)
+    bv_pending = BulletinVersement.objects.filter(operation__isnull=True).order_by('-date_emission')[:10]
+    bv_pending_count = BulletinVersement.objects.filter(operation__isnull=True).count()
+
+    # --- Gestion URSSAF Dashboard ---
+    urssaf_history = []
+    # On affiche les trois mois précédant le mois actuel (périodes prêtes à être déclarées)
+    for i in range(1, 4):
+        # Calcul de la période
+        d = aujourd_hui
+        target_month = (d.month - i - 1) % 12 + 1
+        target_year = d.year + (d.month - i - 1) // 12
+        
+        period_str = f"{target_year}{target_month:02d}"
+        # Échéance : le 15 du mois suivant la période
+        deadline_year = target_year + (target_month // 12)
+        deadline_month = (target_month % 12) + 1
+        deadline_date = date(deadline_year, deadline_month, 15)
+        
+        # Filtre sur date_envoi (Date Facture) comme demandé
+        bvs = BulletinVersement.objects.filter(
+            date_envoi__year=target_year,
+            date_envoi__month=target_month
+        )
+        
+        # Statistiques
+        participants = bvs.values('intervenant_nom', 'intervenant_prenom').distinct().count()
+        total_assiette = bvs.aggregate(total=Sum('assiette'))['total'] or 0
+        total_cotis = bvs.aggregate(
+            total=Sum(models.F('total_junior') + models.F('total_etudiant'))
+        )['total'] or 0
+        
+        decl = DeclarationURSSAF.objects.filter(periode=period_str).first()
+        status = 'not_started'
+        status_label = "En attente"
+        days_left = (deadline_date - aujourd_hui).days
+        days_late = (aujourd_hui - deadline_date).days if aujourd_hui > deadline_date else 0
+        
+        if decl and decl.finalisee:
+            status = 'done'
+            status_label = "Déclaration faite"
+        elif aujourd_hui > deadline_date:
+            status = 'late'
+            status_label = f"Retard: {days_late}j"
+        elif days_left <= 7:
+            status = 'urgent'
+            status_label = f"J-{days_left}"
+        
+        months_fr = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+        period_label = f"{months_fr[target_month-1]} {target_year}"
+
+        urssaf_history.append({
+            'period': period_str,
+            'label': period_label,
+            'month': target_month,
+            'year': target_year,
+            'deadline': deadline_date,
+            'decl': decl,
+            'status': status,
+            'status_label': status_label,
+            'days_left': days_left,
+            'days_late': days_late,
+            # KPIs demandés (arrondis à l'unité)
+            'participants': participants,
+            'assiette': round(total_assiette),
+            'cotisations': round(total_cotis),
+        })
 
     # --- Gestion TVA Dashboard ---
     # On affiche les 3 dernières périodes (M-1, M-2, M-3 par rapport à aujourd'hui)
     tva_history = []
-    
-    # On commence par le mois précédent (période à déclarer ce mois-ci)
     for i in range(1, 4):
         # Calcul de la période (ex: si aujourd'hui est Avril, i=1 -> Mars, i=2 -> Février...)
         d = aujourd_hui
@@ -52,16 +119,17 @@ def dashboard(request):
         status = 'not_started'
         status_label = "En attente"
         days_left = (deadline_date - aujourd_hui).days
+        days_late = (aujourd_hui - deadline_date).days if aujourd_hui > deadline_date else 0
         
         if decl and decl.finalisee:
             status = 'done'
             status_label = "Déclaration faite"
         elif aujourd_hui > deadline_date:
             status = 'late'
-            status_label = "En retard"
+            status_label = f"Retard: {days_late}j"
         elif days_left <= 10:
             status = 'urgent'
-            status_label = f"Plus que {days_left} jours"
+            status_label = f"Plus que {days_left}j"
         
         # Libellé du mois à déclarer (ex: "Mars 2026")
         months_fr = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
@@ -76,6 +144,8 @@ def dashboard(request):
             'decl': decl,
             'status': status,
             'status_label': status_label,
+            'days_left': days_left,
+            'days_late': days_late,
             # Résumé financier
             'amount': decl.ligne_27 if decl and decl.ligne_27 > 0 else (decl.ligne_32 if decl else 0),
             'is_credit': decl and decl.ligne_27 > 0,
@@ -95,10 +165,13 @@ def dashboard(request):
         'nb_ventes': ventes_mois.count(),
         'nb_achats': achats_mois.count(),
         'nb_bv': bv_mois.count(),
-        'ops_pending': ops_pending,
+        'ops_pending': ops_pending_count,
+        'bv_pending': bv_pending,
+        'bv_pending_count': bv_pending_count,
         'mois_courant': mois_courant,
         'annee_courante': annee_courante,
         'tva_history': tva_history,
+        'urssaf_history': urssaf_history,
         'aujourd_hui': aujourd_hui,
     })
 
@@ -348,3 +421,19 @@ def brc_synthese(request):
         'deduction': deduction,
         'montant_a_payer': montant_a_payer,
     })
+
+def urssaf_save_link(request):
+    """Enregistre le lien de preuve pour une déclaration URSSAF."""
+    if request.method == 'POST':
+        periode = request.POST.get('periode')
+        lien = request.POST.get('lien_preuve')
+        
+        if periode and lien:
+            decl, created = DeclarationURSSAF.objects.get_or_create(periode=periode)
+            decl.lien_preuve = lien
+            decl.finalisee = True
+            decl.date_declaration = timezone.now()
+            decl.save()
+            messages.success(request, f"Preuve de déclaration enregistrée pour {decl.libelle_periode}.")
+        
+    return redirect('reporting:dashboard')

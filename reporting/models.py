@@ -106,3 +106,39 @@ class DeclarationTVA(models.Model):
             'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
         ]
         return f"{mois_noms[mois]} {annee}"
+
+
+class DeclarationURSSAF(models.Model):
+    """
+    Suivi des déclarations URSSAF mensuelles (BRC).
+    """
+    periode = models.CharField(
+        max_length=6, unique=True,
+        help_text="Format AAAAMM (ex: 202406)"
+    )
+    lien_preuve = models.URLField(max_length=500, blank=True, null=True, help_text="Lien vers la preuve de déclaration")
+    date_declaration = models.DateTimeField(null=True, blank=True)
+    finalisee = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-periode']
+        verbose_name = "Déclaration URSSAF"
+        verbose_name_plural = "Déclarations URSSAF"
+
+    def __str__(self):
+        annee = self.periode[:4]
+        mois = self.periode[4:]
+        return f"Déclaration URSSAF {mois}/{annee}"
+
+    @property
+    def libelle_periode(self):
+        from datetime import date
+        mois_int = int(self.periode[4:])
+        annee_int = int(self.periode[:4])
+        mois_noms = [
+            '', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+            'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+        ]
+        return f"{mois_noms[mois_int]} {annee_int}"
