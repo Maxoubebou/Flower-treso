@@ -124,6 +124,12 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# ---------------------------------------------------------------------------
+# Media files
+# ---------------------------------------------------------------------------
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ---------------------------------------------------------------------------
@@ -173,6 +179,8 @@ SOCIALACCOUNT_PROVIDERS = {
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
+# Security settings
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 # ─── Override local (SQLite pour dev, PostgreSQL pour prod) ──────────────────
 try:
     from .local_settings import *  # noqa: F401, F403
