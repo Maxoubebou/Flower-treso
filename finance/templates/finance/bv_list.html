@@ -112,17 +112,17 @@
           <th style="padding:8px 10px; width: 140px;">Étude</th>
           <th style="padding:8px 10px">Intervenant</th>
           <th style="padding:8px 10px">
-
             <a href="?sort=retribution_brute_par_jeh&order={% if current_sort == 'retribution_brute_par_jeh' and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1">
               Net à payer {% if current_sort == 'retribution_brute_par_jeh' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
+          <th style="padding:8px 10px; width: 100px;">Cotisation</th>
           <th style="padding:8px 10px">Date Opé.</th>
-          <th style="padding:8px 10px">Réf. Opération</th>
-          <th style="padding:8px 10px; width: 110px;" class="text-center">Download BV</th>
-          <th style="padding:8px 10px">Date facture</th>
+          <th style="padding:8px 10px">Réf. Opé.</th>
+          <th style="padding:8px 10px">Download</th>
+          <th style="padding:8px 10px">Date facture</th> 
           <th style="padding:8px 10px">Commentaire</th>
-          <th style="padding:8px 10px; width: 140px;" class="text-right">Actions</th>
+          <th style="padding:8px 10px">Actions</th>
         </tr>
       </thead>
 
@@ -157,6 +157,14 @@
           <!-- Net à payer -->
           <td class="font-mono font-bold text-primary" style="padding:7px 10px">
             {{ bv.net_a_payer|floatformat:2 }} €
+          </td>
+
+          <!-- Cotisation -->
+          <td style="padding:7px 10px">
+            <div class="font-mono font-bold" style="color:var(--color-gray-600)">{{ bv.total_cotisations|floatformat:2 }} €</div>
+            <div class="text-xs text-muted" style="font-size:0.65rem">
+              J: {{ bv.total_junior|floatformat:1 }} / E: {{ bv.total_etudiant|floatformat:1 }}
+            </div>
           </td>
 
           <!-- Date Opération -->

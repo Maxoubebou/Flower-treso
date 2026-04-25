@@ -5,6 +5,7 @@
 {% block page_title %}Tableau de bord 📊{% endblock %}
 
 {% block content %}
+<div id="dashboard-content">
 {% now "F Y" as periode_label %}
 
 <!-- KPIs -->
@@ -191,7 +192,7 @@
               <td class="text-right">
                 {% if item.decl.lien_preuve %}
                 <a href="{{ item.decl.lien_preuve }}" target="_blank" class="btn btn-icon btn-ghost text-success">
-                  <i data-lucide="external-link" width="16" height="16"></i>
+                  <i data-lucide="folder-open" width="16" height="16"></i>
                 </a>
                 {% else %}
                 <button onclick="openUrssafModal('{{ item.period }}', '{{ item.label }}')" class="btn btn-icon btn-ghost text-muted">
@@ -305,4 +306,5 @@ function closeUrssafModal() {
 }
 </script>
 
+</div> <!-- End #dashboard-content -->
 {% endblock %}

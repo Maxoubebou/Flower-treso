@@ -75,7 +75,7 @@ def dashboard(request):
         
         if decl and decl.finalisee:
             status = 'done'
-            status_label = "Déclaration faite"
+            status_label = "BRC déclaré"
         elif aujourd_hui > deadline_date:
             status = 'late'
             status_label = f"Retard: {days_late}j"
@@ -429,11 +429,16 @@ def urssaf_save_link(request):
         lien = request.POST.get('lien_preuve')
         
         if periode and lien:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Saving URSSAF link: {periode} -> {lien}")
             decl, created = DeclarationURSSAF.objects.get_or_create(periode=periode)
             decl.lien_preuve = lien
             decl.finalisee = True
             decl.date_declaration = timezone.now()
             decl.save()
             messages.success(request, f"Preuve de déclaration enregistrée pour {decl.libelle_periode}.")
+        else:
+            print(f"DEBUG: missing data: periode={periode}, lien={lien}")
         
     return redirect('reporting:dashboard')
