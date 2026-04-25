@@ -123,7 +123,7 @@ def dashboard(request):
         
         if decl and decl.finalisee:
             status = 'done'
-            status_label = "Déclaration faite"
+            status_label = "TVA faite"
         elif aujourd_hui > deadline_date:
             status = 'late'
             status_label = f"Retard: {days_late}j"
@@ -441,4 +441,10 @@ def urssaf_save_link(request):
         else:
             print(f"DEBUG: missing data: periode={periode}, lien={lien}")
         
+    if request.headers.get('HX-Request'):
+        from django.http import HttpResponse
+        response = HttpResponse()
+        response['HX-Refresh'] = 'true'
+        return response
+
     return redirect('reporting:dashboard')

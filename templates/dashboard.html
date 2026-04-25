@@ -191,7 +191,8 @@
               </td>
               <td class="text-right">
                 {% if item.decl.lien_preuve %}
-                <a href="{{ item.decl.lien_preuve }}" target="_blank" class="btn btn-icon btn-ghost text-success">
+                <a href="{{ item.decl.lien_preuve }}" target="_blank" class="btn btn-icon btn-ghost text-success"
+                   oncontextmenu="event.preventDefault(); openUrssafModal('{{ item.period }}', '{{ item.label }}', '{{ item.decl.lien_preuve|escapejs }}')">
                   <i data-lucide="folder-open" width="16" height="16"></i>
                 </a>
                 {% else %}
@@ -249,7 +250,7 @@
         
         <div class="form-group mb-4">
           <label class="form-label">Lien vers la preuve (URL Drive, PDF, etc.)</label>
-          <input type="url" name="lien_preuve" class="form-control" placeholder="https://..." required autofocus>
+          <input type="url" name="lien_preuve" id="modal-lien-val" class="form-control" placeholder="https://..." required autofocus>
         </div>
         
         <div class="flex gap-3 justify-end">
@@ -296,9 +297,10 @@
 </style>
 
 <script>
-function openUrssafModal(period, label) {
+function openUrssafModal(period, label, curLink = '') {
   document.getElementById('modal-period-val').value = period;
   document.getElementById('modal-period-label').innerText = label;
+  document.getElementById('modal-lien-val').value = curLink;
   document.getElementById('urssaf-modal').style.display = 'flex';
 }
 function closeUrssafModal() {
