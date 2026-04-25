@@ -447,6 +447,7 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="bv">
         <input type="hidden" name="bv_id" id="selected_bv_link" value="">
+        <input type="hidden" name="save_next" value="1">
 
         <div class="card mb-4">
             <div class="card-header">
@@ -458,6 +459,7 @@
                         <table class="data-table" style="font-size: 0.85rem;">
                             <thead>
                                 <tr>
+                                    <th style="width:40px"></th>
                                     <th>Bulletin</th>
                                     <th>Intervenant</th>
                                     <th>Étude</th>

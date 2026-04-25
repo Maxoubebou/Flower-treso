@@ -1174,6 +1174,8 @@ def bv_pdf_export(request, pk):
         
         'TOTAL_GLOBAL': float(bv.total_global),
         'NET_A_PAYER': float(bv.net_a_payer),
+        'REF_OPE': bv.operation.reference if bv.operation and bv.operation.reference else (bv.operation.libelle if bv.operation else ''),
+        'DATE_OPE': bv.operation.date_operation.strftime('%d/%m/%Y') if bv.operation else '',
     }
     
     try:
@@ -1206,6 +1208,26 @@ def update_bv_field(request):
         
     bv.save()
     return HttpResponse(status=200)
+
+def bv_unlink_operation(request, pk):
+    """Délie un BV de son opération bancaire."""
+    from .models import BulletinVersement
+    bv = get_object_or_404(BulletinVersement, pk=pk)
+    if bv.operation:
+        op = bv.operation
+        op.statut = 'pending'
+        op.save()
+        
+        bv.operation = None
+        bv.save()
+        from django.contrib import messages
+        messages.success(request, f"Le bulletin {bv.numero} a été délié de l'opération. L'opération est de nouveau en attente.")
+    else:
+        from django.contrib import messages
+        messages.warning(request, "Ce bulletin n'est lié à aucune opération.")
+        
+    from django.shortcuts import redirect
+    return redirect('finance:bv_list')
 
 
 

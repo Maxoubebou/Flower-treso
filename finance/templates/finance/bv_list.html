@@ -117,10 +117,12 @@
               Net à payer {% if current_sort == 'retribution_brute_par_jeh' %}<i data-lucide="chevron-{% if current_order == 'asc' %}up{% else %}down{% endif %}" width="12"></i>{% endif %}
             </a>
           </th>
+          <th style="padding:8px 10px">Date Opé.</th>
           <th style="padding:8px 10px">Réf. Opération</th>
-          <th style="padding:8px 10px; width: 140px;" class="text-right">Actions</th>
+          <th style="padding:8px 10px; width: 110px;" class="text-center">Download BV</th>
           <th style="padding:8px 10px">ENVOYÉ LE</th>
           <th style="padding:8px 10px">Commentaire</th>
+          <th style="padding:8px 10px; width: 140px;" class="text-right">Actions</th>
         </tr>
       </thead>
 
@@ -158,8 +160,14 @@
             {{ bv.net_a_payer|floatformat:2 }} €
           </td>
 
-          <!-- Réf. Opération -->
+          <!-- Date Opération -->
+          <td style="padding:7px 10px">
+            <span class="text-muted" style="font-size:0.75rem">
+              {{ bv.operation.date_operation|date:"d/m/Y"|default:"—" }}
+            </span>
+          </td>
 
+          <!-- Réf. Opération -->
           <td style="padding:7px 10px">
             {% if bv.operation %}
               <span class="text-muted" style="font-size:0.75rem" title="{{ bv.operation.libelle }}">
@@ -171,13 +179,57 @@
                 À traiter
               </a>
             {% endif %}
+          </td>
+
+          <!-- Download BV -->
+          <td style="padding:7px 10px" class="text-center">
+             <!-- Export PDF -->
+             {% if bv.operation %}
+               <a href="{% url 'finance:bv_pdf_export' bv.pk %}" class="btn btn-ghost btn-icon text-primary" title="Télécharger le PDF">
+                <i data-lucide="file-down" width="16" height="16"></i>
+              </a>
+             {% else %}
+               <div class="btn btn-ghost btn-icon text-muted" style="opacity:0.3; cursor:not-allowed;" title="Liaison requise pour télécharger">
+                <i data-lucide="file-down" width="16" height="16"></i>
+               </div>
+             {% endif %}
+          </td>
+
+          <!-- Envoyé le (Date Envoi) -->
+          <td style="padding:7px 10px">
+            <input type="text" 
+                   class="bv-date-picker"
+                   placeholder="JJ/MM/AAAA"
+                   style="border:none; background:transparent; font-size:0.85rem; font-weight:400; width:90px; padding:0; outline:none; color:var(--color-gray-700)"
+                   value="{{ bv.date_envoi|date:'d/m/Y' }}"
+                   data-pk="{{ bv.id }}"
+                   oninput="smartDateMask(this)">
+          </td>
+
+          <!-- Commentaire -->
+          <td style="padding:7px 10px">
+            <textarea class="comment-textarea"
+                      placeholder="Ajouter un commentaire..."
+                      hx-post="{% url 'finance:update_bv_field' %}"
+                      hx-trigger="keyup changed delay:1s"
+                      hx-vals='{"pk": "{{ bv.id }}", "field": "commentaire"}'
+                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      name="value"
+                      oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">{{ bv.commentaire }}</textarea>
+          </td>
+
           <!-- Actions -->
           <td style="padding:7px 10px">
             <div class="flex gap-1 justify-end items-center">
-              <!-- Export PDF -->
-              <a href="{% url 'finance:bv_pdf_export' bv.pk %}" class="btn btn-ghost btn-icon text-primary" title="Télécharger le PDF">
-                <i data-lucide="file-down" width="16" height="16"></i>
+              {% if bv.operation %}
+              <!-- Unlink Action -->
+              <a href="{% url 'finance:bv_unlink_operation' bv.pk %}" 
+                 class="btn btn-ghost btn-icon text-warning" 
+                 title="Délier l'opération"
+                 onclick="return confirm('Voulez-vous vraiment délier ce bulletin de son opération bancaire ? L\'opération retournera dans la liste à traiter.')">
+                <i data-lucide="link-2-off" width="16" height="16"></i>
               </a>
+              {% endif %}
 
               <!-- Drive -->
               <button onclick="openDriveModal('bv', '{{ bv.id }}', '{{ bv.lien_drive }}')" 
@@ -214,33 +266,6 @@
                 </a>
               {% endif %}
             </div>
-          </td>
-
-          <!-- Envoyé le (Date Envoi) -->
-          <td style="padding:7px 10px">
-            <input type="text" 
-                   class="bv-date-picker"
-                   placeholder="JJ/MM/AAAA"
-                   style="border:none; background:transparent; font-size:0.85rem; font-weight:400; width:90px; padding:0; outline:none; color:var(--color-gray-700)"
-                   value="{{ bv.date_envoi|date:'d/m/Y' }}"
-                   data-pk="{{ bv.id }}"
-                   oninput="smartDateMask(this)">
-
-          </td>
-
-
-
-
-          <!-- Commentaire -->
-          <td style="padding:7px 10px">
-            <textarea class="comment-textarea"
-                      placeholder="Ajouter un commentaire..."
-                      hx-post="{% url 'finance:update_bv_field' %}"
-                      hx-trigger="keyup changed delay:1s"
-                      hx-vals='{"pk": "{{ bv.id }}", "field": "commentaire"}'
-                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                      name="value"
-                      oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">{{ bv.commentaire }}</textarea>
           </td>
         </tr>
         {% endfor %}
