@@ -1971,3 +1971,6 @@ dialog::backdrop {
 .tracking-wider { letter-spacing: 0.05em; }
 .font-black { font-weight: 900; }
 .font-extrabold { font-weight: 800; }
+
+/* ─── Utilities ──────────────────────────────────────────── */
+.hidden { display: none !important; }
