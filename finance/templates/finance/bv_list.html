@@ -120,7 +120,7 @@
           <th style="padding:8px 10px">Date Opé.</th>
           <th style="padding:8px 10px">Réf. Opération</th>
           <th style="padding:8px 10px; width: 110px;" class="text-center">Download BV</th>
-          <th style="padding:8px 10px">ENVOYÉ LE</th>
+          <th style="padding:8px 10px">Date facture</th>
           <th style="padding:8px 10px">Commentaire</th>
           <th style="padding:8px 10px; width: 140px;" class="text-right">Actions</th>
         </tr>
@@ -132,8 +132,7 @@
         <tr>
           <!-- N° BV -->
           <td style="padding:7px 10px">
-            <span class="font-mono font-bold" style="color:var(--color-primary);font-size:.75rem">{{ bv.numero }}</span>
-            <div class="text-muted" style="font-size:0.65rem">{{ bv.date_operation|date:"d/m/Y" }}</div>
+            <span class="font-mono font-bold" style="color:var(--color-primary);font-size:0.9rem">{{ bv.numero }}</span>
           </td>
 
           <!-- Étude -->
@@ -203,7 +202,12 @@
                    style="border:none; background:transparent; font-size:0.85rem; font-weight:400; width:90px; padding:0; outline:none; color:var(--color-gray-700)"
                    value="{{ bv.date_envoi|date:'d/m/Y' }}"
                    data-pk="{{ bv.id }}"
-                   oninput="smartDateMask(this)">
+                   oninput="smartDateMask(this)"
+                   hx-post="{% url 'finance:update_bv_field' %}"
+                   hx-trigger="change"
+                   hx-vals='{"pk": "{{ bv.id }}", "field": "date_envoi"}'
+                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                   name="value">
           </td>
 
           <!-- Commentaire -->

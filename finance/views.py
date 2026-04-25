@@ -251,22 +251,29 @@ def bv_edit(request, pk):
             cotis = calculate_cotisations_urssaf(nb_jeh)
 
             # Dates
-            date_emission_raw = request.POST.get('date_emission', '')
-            bv.date_emission = datetime.strptime(date_emission_raw, '%Y-%m-%d').date() if date_emission_raw else None
+            date_envoi_raw = request.POST.get('date_envoi', '')
+            if date_envoi_raw:
+                try:
+                    # Format français DD/MM/YYYY
+                    new_date_envoi = datetime.strptime(date_envoi_raw, '%d/%m/%Y').date()
+                    bv.date_envoi = new_date_envoi
+                    bv.date_emission = new_date_envoi # Synchroniser avec l'émission
+                except ValueError:
+                    pass
 
             date_op_raw = request.POST.get('date_operation', '')
             if date_op_raw:
-                new_date_op = datetime.strptime(date_op_raw, '%Y-%m-%d').date()
-                bv.date_operation = new_date_op
-                if bv.operation:
-                    bv.operation.date_operation = new_date_op
-                    bv.operation.save()
+                try:
+                    new_date_op = datetime.strptime(date_op_raw, '%d/%m/%Y').date()
+                    bv.date_operation = new_date_op
+                    if bv.operation:
+                        bv.operation.date_operation = new_date_op
+                        bv.operation.save()
+                except ValueError:
+                    pass
 
             etude_pk = request.POST.get('etude')
-            ligne_bud_pk = request.POST.get('ligne_budgetaire')
-
             bv.etude = Etude.objects.get(pk=etude_pk) if etude_pk else None
-            bv.ligne_budgetaire = LigneBudgetaire.objects.get(pk=ligne_bud_pk) if ligne_bud_pk else None
             
             # Informations Intervenant
             bv.intervenant_nom = request.POST.get('intervenant_nom', bv.intervenant_nom)
@@ -1202,7 +1209,8 @@ def update_bv_field(request):
     elif field == 'date_envoi':
         from datetime import datetime
         try:
-            bv.date_envoi = datetime.strptime(value, '%Y-%m-%d').date() if value else None
+            # Gestion du format français DD/MM/YYYY envoyé par le mask JS
+            bv.date_envoi = datetime.strptime(value, '%d/%m/%Y').date() if value else None
         except ValueError:
             pass
         

@@ -123,26 +123,27 @@
           </div>
           <div class="form-grid-2">
             <div class="form-group flex-1">
-              <label class="form-label">Date d'opération</label>
-              <input type="date" name="date_operation" class="form-control" value="{{ bv.date_operation|date:'Y-m-d' }}">
+              <label class="form-label">Date débit bancaire</label>
+              <input type="text" 
+                     name="date_operation" 
+                     class="form-control font-mono" 
+                     placeholder="JJ/MM/AAAA"
+                     value="{% if bv.operation %}{{ bv.operation.date_operation|date:'d/m/Y' }}{% else %}{{ bv.date_operation|date:'d/m/Y' }}{% endif %}"
+                     oninput="smartDateMask(this)">
             </div>
             <div class="form-group flex-1">
-              <label class="form-label">Date d'émission du BV</label>
-              <input type="date" name="date_emission" class="form-control" value="{{ bv.date_emission|date:'Y-m-d' }}">
+              <label class="form-label">Date facture</label>
+              <input type="text" 
+                     name="date_envoi" 
+                     class="form-control font-mono" 
+                     placeholder="JJ/MM/AAAA"
+                     value="{% if bv.date_envoi %}{{ bv.date_envoi|date:'d/m/Y' }}{% else %}{{ bv.date_emission|date:'d/m/Y' }}{% endif %}"
+                     oninput="smartDateMask(this)">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Preuve comptable (lien Drive)</label>
             <input type="url" name="lien_drive" class="form-control" value="{{ bv.lien_drive }}" placeholder="https://drive.google.com/...">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Ligne budgétaire</label>
-            <input list="budget-lines-list" 
-                   class="form-control" 
-                   placeholder="Rechercher une ligne..."
-                   value="{{ bv.ligne_budgetaire.nom|default:'' }}"
-                   onchange="syncBudgetLineId(this)">
-            <input type="hidden" name="ligne_budgetaire" id="id_ligne_budgetaire" value="{{ bv.ligne_budgetaire_id|default:'' }}">
           </div>
         </div>
       </div>
@@ -296,6 +297,17 @@ function toggleCotisations() {
 
 function nb_round(num) {
   return Math.round((num + Number.EPSILON) * 100) / 100;
+}
+
+function smartDateMask(input) {
+  let v = input.value.replace(/\D/g, '').slice(0, 8);
+  if (v.length >= 4) {
+    input.value = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
+  } else if (v.length >= 2) {
+    input.value = v.slice(0, 2) + '/' + v.slice(2);
+  } else {
+    input.value = v;
+  }
 }
 
 function syncBudgetLineId(input) {
