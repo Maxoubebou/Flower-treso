@@ -172,26 +172,36 @@
                     </div>
 
                     <div class="flex-1 flex flex-col">
-                        <div class="flex items-center gap-6 p-4 bg-white">
-                            {% for doc in ndf.justificatifs.all %}
-                            <button class="flex items-center gap-2 group cursor-pointer transition-colors"
-                                    onclick="switchPreview(this, '{{ doc.fichier.url }}', '{{ doc.fichier|is_pdf }}')">
-                                
-                                <span class="flex items-center gap-2 {% if forloop.first %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}">
-                                    {% if doc.type_pièce == 'Facture' %}
-                                        <i data-lucide="file-text" width="12"></i>
-                                    {% elif doc.fichier|is_pdf %}
-                                        <i data-lucide="file" width="12"></i>
-                                    {% else %}
-                                        <i data-lucide="image" width="12"></i>
-                                    {% endif %}
+                        <div class="flex items-center justify-between p-4 bg-white">
+                            <div class="flex items-center gap-6">
+                                {% for doc in ndf.justificatifs.all %}
+                                <button class="flex items-center gap-2 group cursor-pointer transition-colors"
+                                        onclick="switchPreview(this, '{{ doc.fichier.url }}', '{{ doc.fichier|is_pdf }}')">
+                                    
+                                    <span class="flex items-center gap-2 {% if forloop.first %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}">
+                                        {% if doc.type_pièce == 'Facture' %}
+                                            <i data-lucide="file-text" width="12"></i>
+                                        {% elif doc.fichier|is_pdf %}
+                                            <i data-lucide="file" width="12"></i>
+                                        {% else %}
+                                            <i data-lucide="image" width="12"></i>
+                                        {% endif %}
 
-                                    <span class="text-[10px] font-bold uppercase tracking-widest">
-                                        {% if doc.type_pièce == 'Facture' %}Facture{% elif doc.type_pièce == 'Extra' %}Extra {{ forloop.counter|add:"-1" }}{% else %}{{ doc.type_pièce }}{% endif %}
+                                        <span class="text-[10px] font-bold uppercase tracking-widest">
+                                            {% if doc.type_pièce == 'Facture' %}Facture{% elif doc.type_pièce == 'Extra' %}Extra {{ forloop.counter|add:"-1" }}{% else %}{{ doc.type_pièce }}{% endif %}
+                                        </span>
                                     </span>
-                                </span>
-                            </button>
-                            {% endfor %}
+                                </button>
+                                {% endfor %}
+                            </div>
+
+                            <a href="{{ ndf.justificatifs.first.fichier.url }}" download 
+                               id="download-link-{{ ndf.id }}" 
+                               class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors
+                                      {% if ndf.justificatifs.exists %}text-primary hover:text-primary-dark{% else %}text-gray-300 pointer-events-none{% endif %}">
+                                <i data-lucide="download" width="14"></i>
+                                <span>Télécharger</span>
+                            </a>
                         </div>
                         
                         <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4">
@@ -318,6 +328,11 @@ function switchPreview(btn, url, isPdf) {
     const activeSpan = btn.querySelector('span.flex');
     activeSpan.classList.remove('text-gray-400');
     activeSpan.classList.add('text-primary');
+
+    // Mettre à jour le lien de téléchargement
+    const ndfId = btn.closest('.ndf-detail-panel').id.replace('ndf-details-', '');
+    const downloadLink = document.getElementById('download-link-' + ndfId);
+    if (downloadLink) downloadLink.href = url;
 
     const previewArea = container.querySelector('[id^="preview-container-"]');
     if (isPdf === "True") {
