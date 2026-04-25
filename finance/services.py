@@ -380,10 +380,13 @@ def generate_ndf_pdf(ndf, sig_config) -> bytes:
                 wb.remove(sheet)
                 continue
 
+            rows_to_delete = []
             for row in sheet.iter_rows():
+                is_empty_desc_row = False
                 for cell in row:
                     if isinstance(cell.value, str):
                         # 1. Remplacement des balises connues
+                        match_found = False
                         for tag, value in data.items():
                             if not isinstance(cell.value, str):
                                 break
@@ -394,13 +397,37 @@ def generate_ndf_pdf(ndf, sig_config) -> bytes:
                                     cell.value = value
                                 else:
                                     cell.value = cell.value.replace(tag_str, str(value))
+                                match_found = True
+                        
+                        # Si c'est une balise de description non remplie, on marque la ligne
+                        if not match_found and "{{DESC_" in cell.value:
+                            is_empty_desc_row = True
                         
                         # 2. Nettoyage des balises restantes (non remplies)
                         if isinstance(cell.value, str) and "{{" in cell.value:
                             import re
                             cell.value = re.sub(r"\{\{.*?\}\}", "", cell.value)
+                
+                if is_empty_desc_row:
+                    rows_to_delete.append(row[0].row)
 
-            # Mise en page minimale : on reste sur la largeur A4 mais hauteur libre
+            # Nouvelle méthode : Masquage total (Hidden + Height=0) 
+            # On ne touche qu'aux lignes du tableau (19 à 68)
+            from openpyxl.styles import Border, Side
+            no_border = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+            
+            for row_idx in range(1, 69): # On scanne la zone tableau
+                is_empty = any(idx == row_idx for idx in rows_to_delete)
+                if is_empty and row_idx >= 19: # On ne masque que si c'est une ligne DESC_n vide
+                    sheet.row_dimensions[row_idx].hidden = True
+                    sheet.row_dimensions[row_idx].height = 0
+                    # On retire les bordures pour éviter les traits parasites en PDF
+                    for cell in sheet[row_idx]:
+                        cell.border = no_border
+
+            # On laisse le bas de page (>= 69) totalement intact
+            
+            # Mise en page : on ajuste à la largeur
             sheet.page_setup.fitToPage = True
             sheet.page_setup.fitToWidth = 1
             sheet.page_setup.fitToHeight = 0
@@ -416,4 +443,3 @@ def generate_ndf_pdf(ndf, sig_config) -> bytes:
         tmp_pdf = os.path.join(tmp_dir, 'ndf_temp.pdf')
         with open(tmp_pdf, 'rb') as f:
             return f.read()
-
