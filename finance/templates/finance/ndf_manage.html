@@ -9,10 +9,10 @@
 {% block content %}
 <div class="outlook-container">
     <aside class="outlook-sidebar card">
-        <div class="sidebar-header border-b border-gray-100 p-4">
+        <div class="sidebar-header p-4">
             <h3 class="text-sm font-bold uppercase tracking-widest text-muted">Demandes en attente</h3>
         </div>
-        <div class="sidebar-list scroll-container p-3 bg-gray-50/50">
+        <div class="sidebar-list scroll-container p-4" style="display: flex; flex-direction: column; gap: 16px;">
             {% if not demandes %}
             <div class="p-8 text-center text-muted text-sm">
                 Aucune demande en attente
@@ -20,19 +20,20 @@
             {% endif %}
             {% for ndf in demandes %}
             <div id="ndf-item-{{ ndf.id }}" 
-                 class="ndf-item mb-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 cursor-pointer transition-all duration-200" 
+                 class="ndf-item bg-white cursor-pointer transition-all duration-200"
+                 style="padding: 20px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
                  onclick="showNDF('{{ ndf.id }}')">
-                <div class="flex justify-between items-start mb-2">
-                    <div class="flex flex-col flex-1 min-w-0 pr-4">
-                        <span class="text-md font-bold text-gray-900 truncate leading-tight">{{ ndf.libelle|default:"Sans titre" }}</span>
-                        <span class="text-xs text-muted mt-0.5">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</span>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                    <div style="display: flex; flex-direction: column; flex: 1; min-width: 0; padding-right: 16px;">
+                        <span class="text-md font-bold text-gray-900 truncate" style="line-height: 1.2;">{{ ndf.libelle|default:"Sans titre" }}</span>
+                        <span class="text-xs text-muted" style="margin-top: 4px;">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</span>
                     </div>
                 </div>
-                <div class="flex justify-between items-center mt-4">
-                    <div class="px-2 py-1 bg-primary/5 rounded-md">
-                        <span class="text-xs font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }}€</span>
-                    </div>
-                    <span class="text-md text-muted italic font-medium">
+
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 16px;">
+                    <span class="text-md font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }}€</span>
+                    <span class="text-md text-muted italic">
                         {{ ndf.date_soumission|days_since }} jours
                     </span>
                 </div>
@@ -53,7 +54,7 @@
         {% for ndf in demandes %}
         <div id="ndf-details-{{ ndf.id }}" class="ndf-detail-panel hidden h-full">
             <div class="card h-full flex flex-col overflow-hidden">
-                <div class="card-header bg-white border-b border-gray-100 py-6 px-8">
+                <div class="card-header bg-white py-6 px-8">
                     <div class="flex flex-row items-start gap-16">
                         
                         <div class="flex-col">
