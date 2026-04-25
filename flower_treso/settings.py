@@ -171,6 +171,8 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
 # ─── Override local (SQLite pour dev, PostgreSQL pour prod) ──────────────────
 try:
     from .local_settings import *  # noqa: F401, F403
