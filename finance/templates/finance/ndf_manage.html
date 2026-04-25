@@ -99,7 +99,6 @@
                             
                             <div class="p-0 mb-6">
                                 {% if ndf.type_frais == 'ik' %}
-                                    <h5 class="text-[10px] uppercase font-bold text-muted mb-3 tracking-widest">Calcul de l'indemnité</h5>
                                     {% for ligne in ndf.lignes.all %}
                                         {% if ligne.est_ik %}
                                         <div class="grid grid-cols-3 gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
@@ -128,27 +127,26 @@
                                         {% endif %}
                                     {% endfor %}
                                 {% else %}
-                                    <table class="w-full text-sm table-fixed border-separate border-spacing-x-2 -mx-2">
+                                    <table class="w-full text-sm">
                                         <thead>
-                                            <tr class="text-left text-[0.65rem] text-muted uppercase font-bold">
-                                                <th class="pb-3 px-1 w-1/2">Libellé</th>
-                                                <th class="pb-3 px-1 w-1/4 text-right">TTC (€)</th>
-                                                <th class="pb-3 px-1 w-1/4 text-right">TVA (%)</th>
+                                            <tr class="text-left text-sm text-muted uppercase font-bold">
+                                                <th class="pb-3 px-1">Libellé</th>
+                                                <th class="pb-3 px-1 text-right">TTC (€)</th>
+                                                <th class="pb-3 px-1 text-right">TVA (%)</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="divide-y divide-gray-100">
+                                        <tbody class="divide-y">
                                             {% for ligne in ndf.lignes.all %}
                                             <tr>
-                                                <input type="hidden" name="l_id" value="{{ ligne.id }}">
-                                                <td class="py-2 px-0">
+                                                <td class="py-2 px-2">
                                                     <input type="text" name="l_libelle" value="{{ ligne.libelle }}" 
                                                            class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors truncate">
                                                 </td>
-                                                <td class="py-2 px-0">
+                                                <td class="py-2 px-2">
                                                     <input type="number" step="0.01" name="l_ttc" value="{{ ligne.montant_ttc|stringformat:'.2f' }}" 
-                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono font-bold">
+                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono ">
                                                 </td>
-                                                <td class="py-2 px-0">
+                                                <td class="py-2 px-2">
                                                     <input type="number" step="0.01" name="l_tva" value="{{ ligne.taux_tva|stringformat:'.1f' }}" 
                                                            class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono">
                                                 </td>
