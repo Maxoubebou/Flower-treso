@@ -436,10 +436,45 @@ def generate_ndf_pdf(ndf, sig_config) -> bytes:
         wb.save(tmp_excel)
         wb.close()
 
-        # Conversion PDF
+        # Conversion PDF de la note de frais
         subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', tmp_dir, tmp_excel], 
                        check=True, capture_output=True, timeout=30)
         
-        tmp_pdf = os.path.join(tmp_dir, 'ndf_temp.pdf')
+        main_pdf = os.path.join(tmp_dir, 'ndf_temp.pdf')
+        pdf_list = [main_pdf]
+        
+        # Traitement des justificatifs
+        from PIL import Image
+        for i, justif in enumerate(ndf.justificatifs.all()):
+            if not justif.fichier or not os.path.exists(justif.fichier.path):
+                continue
+            
+            ext = os.path.splitext(justif.fichier.path)[1].lower()
+            if ext == '.pdf':
+                pdf_list.append(justif.fichier.path)
+            elif ext in ['.jpg', '.jpeg', '.png', '.bmp']:
+                # Conversion image en PDF via PIL
+                justif_pdf = os.path.join(tmp_dir, f'justif_{i}.pdf')
+                try:
+                    img = Image.open(justif.fichier.path)
+                    if img.mode in ('RGBA', 'P'):
+                        img = img.convert('RGB')
+                    img.save(justif_pdf, "PDF", resolution=100.0)
+                    pdf_list.append(justif_pdf)
+                except Exception as e:
+                    print(f"Erreur conversion image {justif.fichier.path}: {e}")
+
+        if len(pdf_list) > 1:
+            final_pdf = os.path.join(tmp_dir, 'final_ndf.pdf')
+            try:
+                # Utilisation de pdfunite (outil système) pour fusionner
+                subprocess.run(['pdfunite'] + pdf_list + [final_pdf], check=True)
+                tmp_pdf = final_pdf
+            except Exception as e:
+                print(f"Erreur fusion PDF: {e}")
+                tmp_pdf = main_pdf
+        else:
+            tmp_pdf = main_pdf
+
         with open(tmp_pdf, 'rb') as f:
             return f.read()
