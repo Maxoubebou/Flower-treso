@@ -64,47 +64,39 @@
         <div id="ndf-details-{{ ndf.id }}" class="ndf-detail-panel hidden h-full">
             <div class="card h-full flex flex-col overflow-hidden">
                 <div class="card-header bg-white border-b border-gray-100 py-6 px-8">
-                    <div class="flex items-center w-full h-full">
+                    <div class="flex flex-row items-start gap-16">
                         
-                        <div class="flex items-center gap-4 w-[25%] pr-4 shrink-0">
+                        <div class="flex-col">
                             {% if ndf.user_obj.socialaccount_set.first.get_avatar_url %}
                                 <img src="{{ ndf.user_obj.socialaccount_set.first.get_avatar_url }}" 
-                                     class="w-12 h-12 rounded-full object-cover shadow-sm bg-gray-100">
+                                    class="w-12 h-12 rounded-full">
                             {% else %}
-                                <div class="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center text-primary text-lg font-bold">
+                                <div class="w-12 h-12 rounded-full text-primary font-bold">
                                     {{ ndf.prenom_beneficiaire|slice:":1" }}
                                 </div>
                             {% endif %}
-                            <div class="flex flex-col gap-1 text-left">
-                                <div class="text-sm font-bold text-gray-900 leading-none">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
-                                <div class="badge badge-warning text-[0.6rem] uppercase font-bold px-2 py-0.5 w-fit">En attente</div>
-                            </div>
+                        </div>
+                        <div class="flex-col">
+                            <div class="text-xl font-bold">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
+                            <div class="badge badge-warning text-[10px] uppercase font-bold px-2 py-0.5 w-fit mt-1">En attente</div>
                         </div>
 
-                        <div class="flex flex-col gap-1 w-[30%] border-l border-gray-100 px-6 shrink-0 text-left">
-                            <div class="text-sm font-bold text-gray-900 truncate leading-tight">{{ ndf.libelle|default:"Sans titre" }}</div>
-                            <div class="text-[0.65rem] text-muted font-bold tracking-widest uppercase opacity-50">{{ ndf.get_type_frais_display }}</div>
+                        <div class="flex-col">
+                            <div class="text-xl font-bold">{{ ndf.libelle|default:"Sans titre" }}</div>
+                            <div class="text-sm text-muted">{{ ndf.get_type_frais_display }}</div>
                         </div>
 
-                        <div class="flex flex-col gap-1 w-[20%] border-l border-gray-100 px-6 shrink-0 text-left">
-                            <div class="text-lg font-black text-primary font-mono leading-none">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</div>
-                            <div class="text-[0.65rem] text-muted uppercase font-bold tracking-widest opacity-50">Total Demandé</div>
-                        </div>
-                        
-                        <div class="flex flex-col gap-1 w-[25%] border-l border-gray-100 pl-6 shrink-0 text-left">
-                            <div class="flex items-center gap-2">
-                                <div class="text-sm font-mono font-bold text-gray-900 tracking-tighter" id="rib-text-{{ ndf.id }}">
+                        <div class="flex-col">
+                            <div class="text-xl font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</div>
+                            <div class="flex items-center gap-4">
+                                <span class="text-sm text-muted" id="rib-text-{{ ndf.id }}">
                                     {{ ndf.rib_beneficiaire }}
-                                </div>
-                                <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)" 
-                                        class="hover:text-primary transition-colors"
-                                        title="Copier">
-                                    <i data-lucide="copy" width="14" height="14"></i>
+                                </span>
+                                <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)" class="text-sm text-muted">
+                                    <i data-lucide="copy" width="16" height="16"></i>
                                 </button>
                             </div>
-                            <div class="text-[0.65rem] text-muted uppercase font-bold tracking-widest opacity-50">RIB Bénéficiaire</div>
                         </div>
-
                     </div>
                 </div>
 
