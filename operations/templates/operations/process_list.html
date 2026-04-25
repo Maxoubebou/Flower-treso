@@ -64,7 +64,7 @@
       {% endif %}
     </div>
 
-    <div class="op-amount {% if op.est_credit %}credit{% else %}debit{% endif %} ml-auto mr-4">
+    <div class="op-amount {% if op.est_credit %}credit{% else %}debit{% endif %} ml-auto">
       {% if op.est_credit %}+{{ op.credit|floatformat:2 }}{% else %}{{ op.debit|floatformat:2 }}{% endif %} €
     </div>
   </a>

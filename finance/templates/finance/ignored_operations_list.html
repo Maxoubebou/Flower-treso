@@ -21,8 +21,8 @@
                 <tr>
                     <th class="th-tight">Date</th>
                     <th class="th-tight" style="width: 35%;">Libellé / Référence</th>
-                    <th class="th-tight text-right">Débit</th>
-                    <th class="th-tight text-right">Crédit</th>
+                    <th class="th-tight">Débit</th>
+                    <th class="th-tight">Crédit</th>
                     <th class="th-tight">Commentaire d'ignorance</th>
                     <th class="th-tight text-center">Actions</th>
                 </tr>
@@ -30,17 +30,17 @@
             <tbody>
                 {% for op in operations %}
                 <tr>
-                    <td class="td-tight text-xs">{{ op.date_operation|date:"d/m/Y" }}</td>
+                    <td class="td-tight"><span style="color: var(--color-primary) !important; font-weight: 700;">{{ op.date_operation|date:"d/m/Y" }}</span></td>
                     <td class="td-tight">
                         <div class="font-bold text-sm">{{ op.libelle }}</div>
                         {% if op.reference %}
-                        <div class="text-[0.65rem] font-mono font-bold text-primary">{{ op.reference }}</div>
+                        <div class="text-[0.7rem] text-muted">{{ op.reference }}</div>
                         {% endif %}
                     </td>
-                    <td class="td-tight text-right font-bold text-danger">
+                    <td class="td-tight text-left font-bold text-danger">
                         {% if op.debit %}{{ op.debit|floatformat:2 }}€{% else %}—{% endif %}
                     </td>
-                    <td class="td-tight text-right font-bold text-success">
+                    <td class="td-tight text-left font-bold text-success">
                         {% if op.credit %}{{ op.credit|floatformat:2 }}€{% else %}—{% endif %}
                     </td>
                     <td class="td-tight">
