@@ -40,6 +40,12 @@
             </div>
             {% endfor %}
         </div>
+        <div class="sidebar-footer p-4 border-t">
+            <a href="{% url 'finance:ndf_history' %}" class="btn btn-ghost btn-sm w-full">
+                <i data-lucide="history" width="16" height="16"></i>
+                Voir l'historique
+            </a>
+        </div>
     </aside>
 
     <main class="outlook-main">
@@ -74,7 +80,18 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <div class="text-xl font-bold">{{ ndf.libelle|default:"Sans titre" }}</div>
+                            <div class="flex items-center gap-4">
+                                <div class="text-xl font-bold cursor-pointer hover:bg-gray-50 px-2 -mx-2 rounded transition-colors group" 
+                                     onclick="editLibelle('{{ ndf.id }}', this)">
+                                    <span id="libelle-display-{{ ndf.id }}">{{ ndf.libelle|default:"Sans titre" }}</span>
+                                    <i data-lucide="edit-3" class="inline-block ml-2 opacity-0 group-hover:opacity-40" width="14" height="14"></i>
+                                </div>
+                                {% if ndf.statut != 'pending' %}
+                                <a href="{% url 'finance:ndf_download_pdf' ndf.pk %}" class="btn btn-ghost btn-sm text-primary" target="_blank" title="Générer PDF">
+                                    <i data-lucide="printer" width="16" height="16"></i>
+                                </a>
+                                {% endif %}
+                            </div>
                             <div class="text-sm text-muted">{{ ndf.get_type_frais_display }}</div>
                         </div>
 
@@ -96,33 +113,32 @@
                     <div class="w-[400px] p-6 scroll-container flex-shrink-0">
                         <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}">
                             {% csrf_token %}
+                            <input type="hidden" name="libelle_final" id="libelle-input-{{ ndf.id }}" value="{{ ndf.libelle|default:"Sans titre" }}">
                             
                             <div class="p-0 mb-6">
                                 {% if ndf.type_frais == 'ik' %}
                                     {% for ligne in ndf.lignes.all %}
                                         {% if ligne.est_ik %}
-                                        <div class="grid grid-cols-3 gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-                                            <input type="hidden" name="l_id" value="{{ ligne.id }}">
-                                            <input type="hidden" name="l_libelle" value="{{ ligne.libelle }}">
-                                            <input type="hidden" name="l_tva" value="0">
-                                            
-                                            <div class="form-group mb-0">
-                                                <label class="form-label text-[0.65rem] uppercase text-muted">Distance (km)</label>
-                                                <input type="number" step="0.01" name="l_distance" value="{{ ligne.distance_km|stringformat:'.2f' }}" 
-                                                       class="form-control form-control-sm font-mono font-bold"
-                                                       oninput="recomputeIK(this, '{{ param_ndf.montant_ik|default:0.45|stringformat:'.4f' }}')">
+                                        <input type="hidden" name="l_id" value="{{ ligne.id }}">
+                                        <input type="hidden" name="l_libelle" value="{{ ligne.libelle }}">
+                                        <input type="hidden" name="l_tva" value="0">
+                                        
+                                        <div class="form-group mb-0">
+                                            <label class="form-label text-[0.65rem] uppercase text-muted">Distance (km)</label>
+                                            <input type="number" step="0.01" name="l_distance" value="{{ ligne.distance_km|stringformat:'.2f' }}" 
+                                                    class="form-control form-control-sm font-mono font-bold"
+                                                    oninput="recomputeIK(this, '{{ param_ndf.montant_ik|default:0.45|stringformat:'.4f' }}')">
+                                        </div>
+                                        <div class="form-group mb-0">
+                                            <label class="form-label text-[0.65rem] uppercase text-muted">Taux (€/km)</label>
+                                            <div class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted">
+                                                {{ param_ndf.montant_ik|default:0.45 }}
                                             </div>
-                                            <div class="form-group mb-0">
-                                                <label class="form-label text-[0.65rem] uppercase text-muted">Taux (€/km)</label>
-                                                <div class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted">
-                                                    {{ param_ndf.montant_ik|default:0.45 }}
-                                                </div>
-                                            </div>
-                                            <div class="form-group mb-0">
-                                                <label class="form-label text-[0.65rem] uppercase text-muted">Total TTC (€)</label>
-                                                <input type="number" step="0.01" name="l_ttc" value="{{ ligne.montant_ttc|stringformat:'.2f' }}" 
-                                                       class="form-control form-control-sm border-transparent bg-transparent font-mono font-bold text-primary text-lg" readonly>
-                                            </div>
+                                        </div>
+                                        <div class="form-group mb-0">
+                                            <label class="form-label text-[0.65rem] uppercase text-muted">Total TTC (€)</label>
+                                            <input type="number" step="0.01" name="l_ttc" value="{{ ligne.montant_ttc|stringformat:'.2f' }}" 
+                                                    class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted">
                                         </div>
                                         {% endif %}
                                     {% endfor %}
@@ -161,7 +177,7 @@
                                 {% if ndf.commentaire_demandeur %}
                                 <div class="form-group mb-0">
                                     <label class="form-label text-xs uppercase text-muted">Commentaire Demandeur</label>
-                                    <textarea class="form-control bg-blue-50/30 border-blue-100 text-blue-900" rows="2" readonly>{{ ndf.commentaire_demandeur }}</textarea>
+                                    <textarea class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted">{{ ndf.commentaire_demandeur }}</textarea>
                                 </div>
                                 {% endif %}
 
@@ -185,7 +201,7 @@
 
                                 <div class="flex gap-3 pt-2">
                                     <button type="submit" class="btn btn-success flex-1 justify-center py-3">
-                                        <i data-lucide="check-check" width="18" height="18"></i> Valider la demande
+                                        <i data-lucide="check-check" width="18" height="18"></i> Valider et générer la NDF
                                     </button>
                                     <button type="button" class="btn btn-outline-danger px-4" onclick="confirmReject('{{ ndf.id }}')">
                                         <i data-lucide="x" width="18" height="18"></i>
@@ -508,6 +524,41 @@ function confirmReject(id) {
         document.getElementById('reject-comment-' + id).value = reason;
         document.getElementById('reject-form-' + id).submit();
     }
+}
+
+function editLibelle(id, container) {
+    const display = document.getElementById('libelle-display-' + id);
+    const currentVal = display.innerText;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentVal;
+    input.className = 'form-control form-control-sm text-xl font-bold bg-white border-primary border-2';
+    input.style.width = '100%';
+    
+    container.onclick = null; // Désactiver le clic pendant l'édition
+    display.style.display = 'none';
+    const icon = container.querySelector('[data-lucide="edit-3"]');
+    if(icon) icon.style.display = 'none';
+    
+    container.appendChild(input);
+    input.focus();
+    input.select();
+    
+    const finishEdit = () => {
+        const newVal = input.value.trim() || currentVal;
+        display.innerText = newVal;
+        display.style.display = '';
+        if(icon) icon.style.display = '';
+        document.getElementById('libelle-input-' + id).value = newVal;
+        input.remove();
+        setTimeout(() => { container.onclick = () => editLibelle(id, container); }, 10);
+    };
+    
+    input.onblur = finishEdit;
+    input.onkeydown = (e) => {
+        if(e.key === 'Enter') { e.preventDefault(); finishEdit(); }
+        if(e.key === 'Escape') { input.value = currentVal; finishEdit(); }
+    };
 }
 </script>
 {% endblock %}

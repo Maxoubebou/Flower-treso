@@ -179,3 +179,17 @@ class ParametreNDF(models.Model):
 
     def __str__(self):
         return f"{self.nom} : {self.montant_ik} €/km"
+
+class SignatureConfiguration(models.Model):
+    """Configuration des signatures pour les documents générés (BV, NDF)."""
+    president_prenom = models.CharField(max_length=100, default="Prénom")
+    president_nom = models.CharField(max_length=100, default="NOM")
+    tresorier_prenom = models.CharField(max_length=100, default="Prénom")
+    tresorier_nom = models.CharField(max_length=100, default="NOM")
+
+    class Meta:
+        verbose_name = "Configuration Signatures"
+        verbose_name_plural = "Configuration Signatures"
+
+    def __str__(self):
+        return "Configuration des Signatures"

@@ -381,6 +381,12 @@ def _process_ndf_link(request, operation):
         fa.operation = operation
         fa.save()
 
+        # Si c'est une NDF, on la marque comme terminée
+        if hasattr(fa, 'demande_ndf') and fa.demande_ndf:
+            ndf = fa.demande_ndf
+            ndf.statut = 'completed'
+            ndf.save()
+
         operation.statut = 'processed'
         operation.save()
         

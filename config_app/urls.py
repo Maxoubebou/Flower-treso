@@ -14,4 +14,5 @@ urlpatterns = [
     path('type-achat/create/', views.type_achat_create, name='type_achat_create'),
     path('autofill-rules/create/', views.autofill_rule_create, name='autofill_rule_create'),
     path('autofill-rules/<int:pk>/delete/', views.autofill_rule_delete, name='autofill_rule_delete'),
+    path('signatures/update/', views.signature_update, name='signature_update'),
 ]

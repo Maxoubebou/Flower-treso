@@ -316,3 +316,104 @@ def generate_bv_pdf_from_template(data_dict: dict) -> bytes:
         except subprocess.TimeoutExpired:
             raise Exception("Le processus LibreOffice a expiré.")
 
+def generate_ndf_pdf(ndf, sig_config) -> bytes:
+    """Génère le PDF d'une NDF à partir d'un template Excel."""
+    import os
+    import openpyxl
+    import subprocess
+    import tempfile
+    import shutil
+    from django.conf import settings
+    from datetime import date
+
+    # Choix du template
+    tpl_name = 'doctype_flower_NDF_kilometrique.xlsx' if ndf.type_frais == 'ik' else 'doctype_flower_NDF_achat.xlsx'
+    template_path = os.path.join(settings.BASE_DIR, 'Ressource_gemini', tpl_name)
+    
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(f"Modèle Excel introuvable : {tpl_name}")
+
+    # Préparation des données communes
+    data = {
+        'REF': ndf.facture_achat.numero if ndf.facture_achat else f"NDF-{ndf.id}",
+        'DATE_GEN': date.today().strftime('%d/%m/%Y'),
+        'NOM': ndf.nom_beneficiaire.upper(),
+        'PRENOM': ndf.prenom_beneficiaire,
+        'PRÉNOM': ndf.prenom_beneficiaire,
+        'LIBELLE': ndf.libelle,
+        'PRESIDENT': f"{sig_config.president_prenom} {sig_config.president_nom.upper()}",
+        'TRESORIER': f"{sig_config.tresorier_prenom} {sig_config.tresorier_nom.upper()}",
+        'JUSTIFICATIFS': ", ".join([doc.type_pièce or "Justificatif" for doc in ndf.justificatifs.all()]),
+        'TOTAL_TTC': float(sum(l.montant_ttc for l in ndf.lignes.all())),
+    }
+
+    if ndf.type_frais == 'ik':
+        ligne_ik = ndf.lignes.filter(est_ik=True).first()
+        if ligne_ik:
+            data['DISTANCE'] = float(ligne_ik.distance_km or 0)
+            data['TOTAL_IK'] = float(ligne_ik.montant_ttc)
+            # On suppose que le taux est TTC / Distance
+            if ligne_ik.distance_km:
+                data['PRIX_KM'] = float(ligne_ik.montant_ttc / ligne_ik.distance_km)
+            else:
+                data['PRIX_KM'] = 0.0
+    else:
+        # Achats : Totaux HT/TVA
+        data['TOTAL_HT'] = float(sum(l.montant_ht for l in ndf.lignes.all()))
+        data['TOTAL_TVA'] = float(sum(l.montant_tva for l in ndf.lignes.all()))
+        # Lignes individuelles (jusqu'à 50)
+        for i, ligne in enumerate(ndf.lignes.all()[:50], 1):
+            data[f'DESC_{i}'] = ligne.libelle
+            data[f'HT_{i}'] = float(ligne.montant_ht)
+            data[f'TVA_{i}'] = float(ligne.montant_tva)
+            data[f'TAUX_{i}'] = float(ligne.taux_tva)
+            data[f'TTC_{i}'] = float(ligne.montant_ttc)
+
+    # Travail temporaire
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_excel = os.path.join(tmp_dir, 'ndf_temp.xlsx')
+        shutil.copy(template_path, tmp_excel)
+        wb = openpyxl.load_workbook(tmp_excel)
+        
+        for sheet in list(wb.worksheets):
+            if sheet != wb.worksheets[0]:
+                wb.remove(sheet)
+                continue
+
+            for row in sheet.iter_rows():
+                for cell in row:
+                    if isinstance(cell.value, str):
+                        # 1. Remplacement des balises connues
+                        for tag, value in data.items():
+                            if not isinstance(cell.value, str):
+                                break
+                            tag_str = f"{{{{{tag}}}}}"
+                            if tag_str in cell.value:
+                                # Remplacement exact ou partiel
+                                if cell.value.strip() == tag_str:
+                                    cell.value = value
+                                else:
+                                    cell.value = cell.value.replace(tag_str, str(value))
+                        
+                        # 2. Nettoyage des balises restantes (non remplies)
+                        if isinstance(cell.value, str) and "{{" in cell.value:
+                            import re
+                            cell.value = re.sub(r"\{\{.*?\}\}", "", cell.value)
+
+            # Mise en page minimale : on reste sur la largeur A4 mais hauteur libre
+            sheet.page_setup.fitToPage = True
+            sheet.page_setup.fitToWidth = 1
+            sheet.page_setup.fitToHeight = 0
+            sheet.page_setup.paperSize = sheet.PAPERSIZE_A4
+
+        wb.save(tmp_excel)
+        wb.close()
+
+        # Conversion PDF
+        subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', tmp_dir, tmp_excel], 
+                       check=True, capture_output=True, timeout=30)
+        
+        tmp_pdf = os.path.join(tmp_dir, 'ndf_temp.pdf')
+        with open(tmp_pdf, 'rb') as f:
+            return f.read()
+

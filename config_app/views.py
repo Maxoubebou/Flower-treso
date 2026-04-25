@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import (
     LigneBudgetaire, TypeFactureVente, TypeAchat,
-    ParametreTVA, ParametreCotisation, AutofillRule
+    ParametreTVA, ParametreCotisation, AutofillRule, SignatureConfiguration
 )
 
 
@@ -16,6 +16,7 @@ def settings_index(request):
         'param_j': ParametreCotisation.objects.filter(type_cotisant='junior').first(),
         'param_e': ParametreCotisation.objects.filter(type_cotisant='etudiant').first(),
         'autofill_rules': AutofillRule.objects.all().order_by('ordre', 'nom'),
+        'signature_config': SignatureConfiguration.objects.first() or SignatureConfiguration.objects.create(),
     })
 
 
@@ -241,3 +242,16 @@ def autofill_rule_delete(request, pk):
         messages.success(request, f"Règle « {rule.nom} » supprimée.")
     next_url = request.POST.get('next') or request.GET.get('next') or request.META.get('HTTP_REFERER')
     return redirect(next_url if next_url else 'config:settings_index')
+
+def signature_update(request):
+    """Mise à jour des signatures pour les documents."""
+    from .models import SignatureConfiguration
+    config = SignatureConfiguration.objects.first() or SignatureConfiguration.objects.create()
+    if request.method == 'POST':
+        config.president_prenom = request.POST.get('president_prenom', config.president_prenom)
+        config.president_nom = request.POST.get('president_nom', config.president_nom)
+        config.tresorier_prenom = request.POST.get('tresorier_prenom', config.tresorier_prenom)
+        config.tresorier_nom = request.POST.get('tresorier_nom', config.tresorier_nom)
+        config.save()
+        messages.success(request, "Signatures mises à jour avec succès.")
+    return redirect('config:settings_index')

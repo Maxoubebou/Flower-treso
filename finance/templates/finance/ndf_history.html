@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static ndf_extras %}
+
+{% block title %}Historique NDF — Flower-Tréso{% endblock %}
+{% block page_title %}Historique des Notes de Frais{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+    <!-- Filtres -->
+    <div class="card p-4">
+        <form method="get" class="flex gap-4 items-end">
+            <div class="form-group mb-0 flex-1">
+                <label class="form-label">Rechercher</label>
+                <div class="relative">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted" width="16" height="16"></i>
+                    <input type="text" name="search" value="{{ request.GET.search|default:'' }}" 
+                           placeholder="Nom, prénom ou libellé..." 
+                           class="form-control pl-10">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Filtrer</button>
+            <a href="{% url 'finance:ndf_history' %}" class="btn btn-ghost">Réinitialiser</a>
+        </form>
+    </div>
+
+    <!-- Liste -->
+    <div class="card">
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Bénéficiaire</th>
+                        <th>Libellé</th>
+                        <th>Type</th>
+                        <th>Montant</th>
+                        <th>Statut</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ndf in demandes %}
+                    <tr>
+                        <td class="font-mono text-xs">{{ ndf.date_soumission|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <div class="font-semibold">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
+                            <div class="text-[10px] text-muted">{{ ndf.email }}</div>
+                        </td>
+                        <td>
+                            <div class="font-medium max-w-xs truncate">{{ ndf.libelle|default:"Sans titre" }}</div>
+                            {% if ndf.facture_achat %}
+                            <div class="text-[10px] font-mono text-primary">{{ ndf.facture_achat.numero }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if ndf.type_frais == 'ik' %}badge-info{% else %}badge-gray{% endif %}">
+                                {{ ndf.get_type_frais_display }}
+                            </span>
+                        </td>
+                        <td class="font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</td>
+                        <td>
+                            {% if ndf.statut == 'waiting_payment' %}
+                                <span class="badge badge-warning">Attente Paiement</span>
+                            {% elif ndf.statut == 'completed' %}
+                                <span class="badge badge-success">Payée</span>
+                            {% elif ndf.statut == 'approved' %}
+                                <span class="badge badge-success">Validée</span>
+                            {% elif ndf.statut == 'rejected' %}
+                                <span class="badge badge-danger">Rejetée</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-right">
+                            <div class="flex justify-end gap-2">
+                                <a href="{% url 'finance:ndf_download_pdf' ndf.pk %}" class="btn btn-ghost btn-sm" target="_blank" title="Télécharger PDF">
+                                    <i data-lucide="file-text" width="16" height="16"></i>
+                                </a>
+                                {% if ndf.facture_achat and ndf.facture_achat.lien_drive %}
+                                <a href="{{ ndf.facture_achat.lien_drive }}" class="btn btn-ghost btn-sm" target="_blank" title="Voir sur Drive">
+                                    <i data-lucide="external-link" width="16" height="16"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-muted">
+                            Aucune note de frais trouvée dans l'historique.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

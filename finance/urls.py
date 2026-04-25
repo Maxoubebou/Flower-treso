@@ -30,8 +30,10 @@ urlpatterns = [
     # Notes de Frais
     path('ndf/demander/', views.ndf_submit, name='ndf_submit'),
     path('ndf/gerer/', views.ndf_manage, name='ndf_manage'),
+    path('ndf/historique/', views.ndf_history, name='ndf_history'),
     path('ndf/<int:pk>/valider/', views.ndf_validate, name='ndf_validate'),
     path('ndf/<int:pk>/rejeter/', views.ndf_reject, name='ndf_reject'),
+    path('ndf/<int:pk>/pdf/', views.ndf_download_pdf, name='ndf_download_pdf'),
     # Études
     path('etudes/', views.etudes_list, name='etudes_list'),
     path('etudes/nouvelle/', views.etude_create, name='etude_create'),

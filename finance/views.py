@@ -1356,6 +1356,7 @@ def ndf_validate(request, pk):
     lien_drive = request.POST.get('lien_drive')
     commentaire = request.POST.get('commentaire_tresorier', '')
     custom_ref = request.POST.get('reference_facture', '').strip()
+    libelle_final = request.POST.get('libelle_final', ndf.libelle)
 
     if not lien_drive:
         messages.error(request, "Un lien Drive est requis pour valider la NDF.")
@@ -1432,12 +1433,56 @@ def ndf_validate(request, pk):
         )
 
         # 6. Mettre à jour la demande
-        ndf.statut = 'approved'
+        ndf.libelle = libelle_final
+        ndf.statut = 'waiting_payment'
         ndf.facture_achat = fa
         ndf.commentaire_tresorier = commentaire
         ndf.save()
 
-    messages.success(request, f"NDF #{ndf.id} validée. Facture d'achat {fa.numero} générée.")
+    messages.success(request, f"NDF #{ndf.id} validée. Facture d'achat {fa.numero} générée. Statut : En attente de paiement.")
+    return redirect('finance:ndf_download_pdf', pk=ndf.pk)
+
+def ndf_download_pdf(request, pk):
+    """Génère et sert le PDF d'une NDF validée."""
+    from .models import DemandeNDF
+    from config_app.models import SignatureConfiguration
+    from .services import generate_ndf_pdf
+    from django.http import HttpResponse
+    
+    ndf = get_object_or_404(DemandeNDF, pk=pk)
+    if ndf.statut not in ['waiting_payment', 'approved', 'completed']:
+        messages.error(request, "Cette NDF n'est pas encore validée.")
+        return redirect('finance:ndf_manage')
+        
+    sig_config = SignatureConfiguration.objects.first() or SignatureConfiguration.objects.create()
+    
+    try:
+        pdf_content = generate_ndf_pdf(ndf, sig_config)
+        filename = f"NDF_{ndf.nom_beneficiaire}_{ndf.id}.pdf"
+        response = HttpResponse(pdf_content, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la génération du PDF : {e}")
+        return redirect('finance:ndf_manage')
+
+def ndf_history(request):
+    """Historique des demandes de NDF traitées."""
+    from .models import DemandeNDF
+    qs = DemandeNDF.objects.exclude(statut='pending').prefetch_related('lignes').order_by('-date_soumission')
+    
+    # Filtres simples
+    search = request.GET.get('search')
+    if search:
+        qs = qs.filter(
+            Q(nom_beneficiaire__icontains=search) | 
+            Q(prenom_beneficiaire__icontains=search) |
+            Q(libelle__icontains=search)
+        )
+        
+    return render(request, 'finance/ndf_history.html', {
+        'demandes': qs,
+    })
     return redirect('finance:ndf_manage')
 
 
