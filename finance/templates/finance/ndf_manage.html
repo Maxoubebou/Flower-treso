@@ -108,6 +108,13 @@
                             <h4 class="text-xs font-bold uppercase tracking-widest text-muted mb-4 flex items-center gap-2">
                                 <i data-lucide="edit-3" width="14"></i> Détails éditables
                             </h4>
+
+                            {% if ndf.commentaire_demandeur %}
+                            <div class="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
+                                <div class="text-[10px] uppercase font-bold text-blue-600 mb-1 tracking-widest">Commentaire du demandeur</div>
+                                <div class="text-sm text-blue-800 leading-relaxed">{{ ndf.commentaire_demandeur }}</div>
+                            </div>
+                            {% endif %}
                             
                             <div class="p-0 mb-6">
                                 <table class="w-full text-sm">

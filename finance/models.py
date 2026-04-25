@@ -272,6 +272,7 @@ class DemandeNDF(models.Model):
     facture_achat = models.OneToOneField(
         FactureAchat, on_delete=models.SET_NULL, null=True, blank=True, related_name='demande_ndf'
     )
+    commentaire_demandeur = models.TextField(blank=True, verbose_name="Commentaire du demandeur")
     commentaire_tresorier = models.TextField(blank=True)
 
     class Meta:

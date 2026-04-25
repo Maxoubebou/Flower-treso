@@ -19,31 +19,40 @@
                     Informations Générales
                 </div>
             </div>
-            <div class="card-body">
-                <div class="form-grid-2 mb-4">
-                    <div class="form-group">
-                        <label class="form-label">Prénom <span class="required">*</span></label>
-                        {{ form.prenom_beneficiaire }}
+            <div class="card-body py-6">
+                <div class="flex flex-col gap-6">
+                    <!-- Ligne 1 : Identité -->
+                    <div class="flex gap-6">
+                        <div class="flex-1">
+                            <label class="form-label text-[10px] uppercase text-muted tracking-widest">Prénom</label>
+                            {{ form.prenom_beneficiaire }}
+                        </div>
+                        <div class="flex-1">
+                            <label class="form-label text-[10px] uppercase text-muted tracking-widest">Nom</label>
+                            {{ form.nom_beneficiaire }}
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Nom <span class="required">*</span></label>
-                        {{ form.nom_beneficiaire }}
-                    </div>
-                </div>
-                
-                <div class="form-group mb-4">
-                    <label class="form-label">Libellé de la demande <span class="required">*</span></label>
-                    {{ form.libelle }}
-                </div>
 
-                <div class="form-grid-2">
-                    <div class="form-group">
-                        <label class="form-label">Type de frais <span class="required">*</span></label>
-                        {{ form.type_frais }}
+                    <!-- Ligne 2 : Type, Libellé, RIB (Alignement Horizontal Strict) -->
+                    <div class="flex gap-6 items-end">
+                        <div class="flex-1">
+                            <label class="form-label text-sm uppercase text-muted tracking-widest">Type de frais</label>
+                            {{ form.type_frais }}
+                        </div>
+                        <div class="flex-1">
+                            <label class="form-label text-sm uppercase text-muted tracking-widest">Libellé de la demande</label>
+                            {{ form.libelle }}
+                        </div>
+                        <div class="flex-1">
+                            <label class="form-label text-sm uppercase text-muted tracking-widest">RIB (IBAN)</label>
+                            {{ form.rib_beneficiaire }}
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">RIB (IBAN) <span class="required">*</span></label>
-                        {{ form.rib_beneficiaire }}
+
+                    <!-- Ligne 3 : Commentaire -->
+                    <div class="flex flex-col">
+                        <label class="form-label text-sm uppercase text-muted tracking-widest">Commentaires (Optionnel)</label>
+                        {{ form.commentaire_demandeur }}
                     </div>
                 </div>
             </div>
