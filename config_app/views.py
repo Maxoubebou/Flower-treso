@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from .models import (
     LigneBudgetaire, TypeFactureVente, TypeAchat,
-    ParametreTVA, ParametreCotisation, AutofillRule, SignatureConfiguration
+    ParametreTVA, ParametreCotisation, AutofillRule, SignatureConfiguration,
+    UserProfile
 )
 
 
@@ -311,3 +313,20 @@ def poste_save(request):
         poste.save()
         messages.success(request, f"Configuration du poste « {poste.nom} » enregistrée.")
     return redirect('config:access_settings')
+
+@login_required
+def user_profile(request):
+    """Page de profil utilisateur pour gérer le RIB et la Carte Grise."""
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        profile.rib = request.POST.get('rib', profile.rib)
+        if 'carte_grise' in request.FILES:
+            profile.carte_grise = request.FILES['carte_grise']
+        profile.save()
+        messages.success(request, "Vos informations personnelles ont été mises à jour.")
+        return redirect('config:user_profile')
+        
+    return render(request, 'config_app/profile.html', {
+        'profile': profile
+    })

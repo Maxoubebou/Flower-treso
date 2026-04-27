@@ -136,7 +136,7 @@
     <div class="sidebar-footer">
       <div style="display:flex; flex-direction:column; gap:8px; width:100%; padding:0 4px">
           {% if request.user.is_authenticated %}
-          <div class="user-info-sidebar">
+          <a href="{% url 'config:user_profile' %}" class="user-info-sidebar" style="text-decoration:none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
               <img src="{% if request.user.socialaccount_set.all.0 %}{{ request.user.socialaccount_set.all.0.get_avatar_url }}{% else %}https://ui-avatars.com/api/?name={{ request.user.email }}{% endif %}" 
                    class="user-avatar-sm">
               <div style="display:flex; flex-direction:column; overflow:hidden">
@@ -144,7 +144,7 @@
                       {{ request.user.first_name|default:request.user.email|truncatechars:18 }}
                   </span>
               </div>
-          </div>
+          </a>
           {% endif %}
 
           <div style="display:flex; gap:4px">

@@ -1299,13 +1299,21 @@ def ndf_submit(request, pk=None):
                 def save_justif(label, f, custom_name=None):
                     if not f: return
                     ext = os.path.splitext(f.name)[1]
-                    # Renommage : Nom personnalisé (slugified) ou Label de base + _ + original slugified
                     if custom_name:
                         base_name = slugify(custom_name).replace('-', '_')
                     else:
                         base_name = slugify(os.path.splitext(f.name)[0]).replace('-', '_')
-                    
                     f.name = f"{base_name}{ext}"
+
+                    # Upsert pour les types obligatoires (tout sauf Extra)
+                    if label != 'Extra':
+                        existing = JustificatifNDF.objects.filter(demande=ndf, type_pièce=label).first()
+                        if existing:
+                            existing.fichier = f
+                            existing.nom_original = f.name
+                            existing.label_personnalise = custom_name or ""
+                            existing.save()
+                            return
 
                     JustificatifNDF.objects.create(
                         demande=ndf,
@@ -1318,9 +1326,27 @@ def ndf_submit(request, pk=None):
                 type_f = form.cleaned_data['type_frais']
                 
                 if type_f == 'ik':
-                    if 'file_compteur' in request.FILES: save_justif('Compteur', request.FILES['file_compteur'])
-                    if 'file_mappy' in request.FILES: save_justif('Mappy', request.FILES['file_mappy'])
-                    if 'file_cartegrise' in request.FILES: save_justif('Carte Grise', request.FILES['file_cartegrise'])
+                    if 'file_compteur_debut' in request.FILES: 
+                        save_justif('Compteur Début', request.FILES['file_compteur_debut'], request.POST.get('file_name_compteur_debut'))
+                    if 'file_compteur_fin' in request.FILES: 
+                        save_justif('Compteur Fin', request.FILES['file_compteur_fin'], request.POST.get('file_name_compteur_fin'))
+                    if 'file_mappy' in request.FILES: 
+                        save_justif('Mappy', request.FILES['file_mappy'], request.POST.get('file_name_mappy'))
+                    
+                    if 'file_cartegrise' in request.FILES:
+                        save_justif('Carte Grise', request.FILES['file_cartegrise'], request.POST.get('file_name_cartegrise'))
+                    elif not pk and hasattr(request.user, 'profile') and request.user.profile.carte_grise:
+                        # Auto-attach profile Carte Grise for NEW requests if not provided
+                        cg = request.user.profile.carte_grise
+                        custom_title = request.POST.get('file_name_cartegrise')
+                        
+                        JustificatifNDF.objects.create(
+                            demande=ndf,
+                            fichier=cg,
+                            nom_original=os.path.basename(cg.name),
+                            label_personnalise=custom_title or "",
+                            type_pièce='Carte Grise'
+                        )
                 else:
                     if 'file_facture' in request.FILES: 
                         custom = request.POST.get('file_name_facture')
@@ -1382,12 +1408,23 @@ def ndf_submit(request, pk=None):
         if not obj and request.user.is_authenticated:
             initial['prenom_beneficiaire'] = request.user.first_name
             initial['nom_beneficiaire'] = request.user.last_name
+            if hasattr(request.user, 'profile'):
+                initial['rib_beneficiaire'] = request.user.profile.rib
         form = DemandeNDFForm(instance=obj, initial=initial)
     
     param_ndf = ParametreNDF.objects.filter(actif=True).first()
+    
+    justifs_by_type = {}
+    if obj:
+        for j in obj.justificatifs.all():
+            # On remplace les espaces et accents pour un accès facile en template
+            key = j.type_pièce.lower().replace(' ', '_').replace('é', 'e').replace('ç', 'c')
+            justifs_by_type[key] = j
+
     return render(request, 'finance/ndf_submit.html', {
         'form': form,
         'ndf': obj,
+        'justifs_by_type': justifs_by_type,
         'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True).order_by('ordre'),
         'param_ndf': param_ndf,
     })

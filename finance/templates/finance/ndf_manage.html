@@ -11,10 +11,12 @@
     <aside class="outlook-sidebar card">
         <div class="sidebar-header p-0">
             <div class="flex border-b border-gray-200/50">
-                <a href="?tab=pending" class="flex-1 py-3 text-center text-[9px] uppercase tracking-widest font-bold transition-colors {% if current_tab == 'pending' %}bg-primary/5 text-primary border-b-2 border-primary{% else %}text-muted hover:bg-gray-50{% endif %}">
+                <a href="?tab=pending"
+                    class="flex-1 py-3 text-center text-[9px] uppercase tracking-widest font-bold transition-colors {% if current_tab == 'pending' %}bg-primary/5 text-primary border-b-2 border-primary{% else %}text-muted hover:bg-gray-50{% endif %}">
                     À valider ({{ count_pending }})
                 </a>
-                <a href="?tab=waiting_payment" class="flex-1 py-3 text-center text-[9px] uppercase tracking-widest font-bold transition-colors {% if current_tab == 'waiting_payment' %}bg-primary/5 text-primary border-b-2 border-primary{% else %}text-muted hover:bg-gray-50{% endif %}">
+                <a href="?tab=waiting_payment"
+                    class="flex-1 py-3 text-center text-[9px] uppercase tracking-widest font-bold transition-colors {% if current_tab == 'waiting_payment' %}bg-primary/5 text-primary border-b-2 border-primary{% else %}text-muted hover:bg-gray-50{% endif %}">
                     En attente paiement ({{ count_waiting_payment }})
                 </a>
             </div>
@@ -26,15 +28,16 @@
             </div>
             {% endif %}
             {% for ndf in demandes %}
-            <div id="ndf-item-{{ ndf.id }}" 
-                 class="ndf-item bg-white cursor-pointer transition-all duration-200"
-                 style="padding: 20px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
-                 onclick="showNDF('{{ ndf.id }}')">
-                
+            <div id="ndf-item-{{ ndf.id }}" class="ndf-item bg-white cursor-pointer transition-all duration-200"
+                style="padding: 20px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
+                onclick="showNDF('{{ ndf.id }}')">
+
                 <div class="flex justify-between items-start mb-1">
                     <div class="flex flex-col flex-1 min-width-0 pr-4">
-                        <span class="text-md font-bold text-gray-900 truncate" style="line-height: 1.2;">{{ ndf.libelle|default:"Sans titre" }}</span>
-                        <span class="text-xs text-muted mt-1">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</span>
+                        <span class="text-md font-bold text-gray-900 truncate" style="line-height: 1.2;">{{
+                            ndf.libelle|default:"Sans titre" }}</span>
+                        <span class="text-xs text-muted mt-1">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire
+                            }}</span>
                     </div>
                 </div>
 
@@ -61,7 +64,8 @@
                 <i data-lucide="mail-open" class="text-gray-400" width="32" height="32"></i>
             </div>
             <h3 class="text-lg font-semibold text-gray-900">Sélectionnez une demande</h3>
-            <p class="text-muted max-w-xs mx-auto">Cliquez sur une demande dans la liste de gauche pour afficher ses détails et procéder à la validation.</p>
+            <p class="text-muted max-w-xs mx-auto">Cliquez sur une demande dans la liste de gauche pour afficher ses
+                détails et procéder à la validation.</p>
         </div>
 
         {% for ndf in demandes %}
@@ -71,19 +75,22 @@
                     <div class="flex flex-row items-start gap-8">
                         <div class="flex flex-col">
                             {% if ndf.user_obj.socialaccount_set.first.get_avatar_url %}
-                                <img src="{{ ndf.user_obj.socialaccount_set.first.get_avatar_url }}" 
-                                    class="w-10 h-10 rounded-full">
+                            <img src="{{ ndf.user_obj.socialaccount_set.first.get_avatar_url }}"
+                                class="w-10 h-10 rounded-full">
                             {% else %}
-                                <div class="w-10 h-10 rounded-full text-primary font-bold bg-primary/10 flex items-center justify-center">
-                                    {{ ndf.prenom_beneficiaire|slice:":1" }}
-                                </div>
+                            <div
+                                class="w-10 h-10 rounded-full text-primary font-bold bg-primary/10 flex items-center justify-center">
+                                {{ ndf.prenom_beneficiaire|slice:":1" }}
+                            </div>
                             {% endif %}
                         </div>
 
                         <div class="flex flex-col">
-                            <div class="text-lg font-bold">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
+                            <div class="text-lg font-bold">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}
+                            </div>
                             <div class="flex gap-2 mt-0.5">
-                                <div class="badge {% if ndf.statut == 'pending' %}badge-warning{% elif ndf.statut == 'needs_info' %}badge-info{% elif ndf.statut == 'waiting_payment' %}badge-primary{% endif %} text-[9px] uppercase font-bold px-2 py-0.5 w-fit">
+                                <div
+                                    class="badge {% if ndf.statut == 'pending' %}badge-warning{% elif ndf.statut == 'needs_info' %}badge-info{% elif ndf.statut == 'waiting_payment' %}badge-primary{% endif %} text-[9px] uppercase font-bold px-2 py-0.5 w-fit">
                                     {{ ndf.get_statut_display }}
                                 </div>
                                 {% if ndf.facture_achat and ndf.statut != 'waiting_payment' %}
@@ -96,15 +103,19 @@
 
                         <div class="flex flex-col">
                             <div class="flex items-center gap-4">
-                                <div class="text-lg font-bold {% if ndf.statut != 'waiting_payment' %}cursor-pointer hover:bg-gray-50 group px-2 -mx-2 transition-colors{% endif %} rounded" 
-                                     {% if ndf.statut != 'waiting_payment' %}onclick="editLibelle('{{ ndf.id }}', this)"{% endif %}>
-                                    <span id="libelle-display-{{ ndf.id }}">{{ ndf.libelle|default:"Sans titre" }}</span>
+                                <div class="text-lg font-bold {% if ndf.statut != 'waiting_payment' %}cursor-pointer hover:bg-gray-50 group px-2 -mx-2 transition-colors{% endif %} rounded"
+                                    {% if ndf.statut !='waiting_payment' %}onclick="editLibelle('{{ ndf.id }}', this)"
+                                    {% endif %}>
+                                    <span id="libelle-display-{{ ndf.id }}">{{ ndf.libelle|default:"Sans titre"
+                                        }}</span>
                                     {% if ndf.statut != 'waiting_payment' %}
-                                    <i data-lucide="edit-3" class="inline-block ml-2 opacity-0 group-hover:opacity-40" width="14" height="14"></i>
+                                    <i data-lucide="edit-3" class="inline-block ml-2 opacity-0 group-hover:opacity-40"
+                                        width="14" height="14"></i>
                                     {% endif %}
                                 </div>
                                 {% if ndf.statut != 'pending' and ndf.statut != 'waiting_payment' %}
-                                <a href="{% url 'finance:ndf_download_pdf' ndf.pk %}" class="btn btn-ghost btn-sm text-primary" target="_blank" title="Générer PDF">
+                                <a href="{% url 'finance:ndf_download_pdf' ndf.pk %}"
+                                    class="btn btn-ghost btn-sm text-primary" target="_blank" title="Générer PDF">
                                     <i data-lucide="printer" width="16" height="16"></i>
                                 </a>
                                 {% endif %}
@@ -113,12 +124,14 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <div class="text-lg font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</div>
+                            <div class="text-lg font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €
+                            </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-muted font-mono" id="rib-text-{{ ndf.id }}">
                                     {{ ndf.rib_beneficiaire }}
                                 </span>
-                                <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)" class="text-muted hover:text-primary transition-colors">
+                                <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)"
+                                    class="text-muted hover:text-primary transition-colors">
                                     <i data-lucide="copy" width="14" height="14"></i>
                                 </button>
                             </div>
@@ -129,12 +142,14 @@
                     <div class="flex items-center gap-3">
                         <form method="post" action="{% url 'finance:ndf_unvalidate' ndf.pk %}">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-outline btn-sm text-[11px]" onclick="return confirm('Dévalider cette NDF pour corriger les informations ?')">
+                            <button type="submit" class="btn btn-outline btn-sm text-[11px]"
+                                onclick="return confirm('Dévalider cette NDF pour corriger les informations ?')">
                                 <i data-lucide="edit-2" width="14" height="14"></i>
                                 Modifier
                             </button>
                         </form>
-                        <a href="{% url 'finance:ndf_download_pdf' ndf.pk %}" target="_blank" class="btn btn-primary btn-sm flex items-center gap-2 text-[11px]">
+                        <a href="{% url 'finance:ndf_download_pdf' ndf.pk %}" target="_blank"
+                            class="btn btn-primary btn-sm flex items-center gap-2 text-[11px]">
                             <i data-lucide="download" width="14" height="14"></i>
                             Télécharger la NDF (PDF)
                         </a>
@@ -144,69 +159,76 @@
 
                 <div class="flex-1 flex overflow-hidden">
                     <div class="w-[400px] p-6 scroll-container flex-shrink-0">
-                        <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}" target="_blank" onsubmit="return handleValidationSubmit(this, '{{ ndf.pk }}')">
+                        <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}" target="_blank"
+                            onsubmit="return handleValidationSubmit(this, '{{ ndf.pk }}')">
                             {% csrf_token %}
-                            <input type="hidden" name="libelle_final" id="libelle-input-{{ ndf.pk }}" value="{{ ndf.libelle|default:'Sans titre' }}">
-                            
+                            <input type="hidden" name="libelle_final" id="libelle-input-{{ ndf.pk }}"
+                                value="{{ ndf.libelle|default:'Sans titre' }}">
+
                             <div class="p-0 mb-6">
                                 {% if ndf.type_frais == 'ik' %}
-                                    {% for ligne in ndf.lignes.all %}
-                                        {% if ligne.est_ik %}
-                                        <input type="hidden" name="l_id" value="{{ ligne.id }}">
-                                        <input type="hidden" name="l_libelle" value="{{ ligne.libelle }}">
-                                        <input type="hidden" name="l_tva" value="0">
-                                        
-                                        <div class="form-group mb-0">
-                                            <label class="form-label text-[0.65rem] uppercase text-muted">Distance (km)</label>
-                                            <input type="number" step="0.01" name="l_distance" value="{{ ligne.distance_km|stringformat:'.2f' }}" 
-                                                    class="form-control form-control-sm font-mono font-bold"
-                                                    {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}
-                                                    oninput="recomputeIK(this, '{{ param_ndf.montant_ik|default:0.45|stringformat:'.4f' }}')">
-                                        </div>
-                                        <div class="form-group mb-0">
-                                            <label class="form-label text-[0.65rem] uppercase text-muted">Taux (€/km)</label>
-                                            <div class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted">
-                                                {{ param_ndf.montant_ik|default:0.45 }}
-                                            </div>
-                                        </div>
-                                        <div class="form-group mb-0">
-                                            <label class="form-label text-[0.65rem] uppercase text-muted">Total TTC (€)</label>
-                                            <input type="number" step="0.01" name="l_ttc" value="{{ ligne.montant_ttc|stringformat:'.2f' }}" 
-                                                    class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted">
-                                        </div>
-                                        {% endif %}
-                                    {% endfor %}
+                                {% for ligne in ndf.lignes.all %}
+                                {% if ligne.est_ik %}
+                                <input type="hidden" name="l_id" value="{{ ligne.id }}">
+                                <input type="hidden" name="l_libelle" value="{{ ligne.libelle }}">
+                                <input type="hidden" name="l_tva" value="0">
+
+                                <div class="form-group mb-0">
+                                    <label class="form-label text-[0.65rem] uppercase text-muted">Distance (km)</label>
+                                    <input type="number" step="0.01" name="l_distance"
+                                        value="{{ ligne.distance_km|stringformat:'.2f' }}"
+                                        class="form-control form-control-sm font-mono font-bold" {% if
+                                        ndf.statut=='waiting_payment' %}disabled{% endif %}
+                                        oninput="recomputeIK(this, '{{ param_ndf.montant_ik|default:0.45|stringformat:'.4f' }}')">
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="form-label text-[0.65rem] uppercase text-muted">Taux (€/km)</label>
+                                    <div
+                                        class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted">
+                                        {{ param_ndf.montant_ik|default:0.45 }}
+                                    </div>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="form-label text-[0.65rem] uppercase text-muted">Total TTC (€)</label>
+                                    <input type="number" step="0.01" name="l_ttc"
+                                        value="{{ ligne.montant_ttc|stringformat:'.2f' }}"
+                                        class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted">
+                                </div>
+                                {% endif %}
+                                {% endfor %}
                                 {% else %}
-                                    <table class="w-full text-sm">
-                                        <thead>
-                                            <tr class="text-left text-sm text-muted uppercase font-bold">
-                                                <th class="pb-3 px-1">Libellé</th>
-                                                <th class="pb-3 px-1 text-right">TTC (€)</th>
-                                                <th class="pb-3 px-1 text-right">TVA (%)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y">
-                                            {% for ligne in ndf.lignes.all %}
-                                            <tr>
-                                                <td class="py-2 px-2">
-                                                    <input type="text" name="l_libelle" value="{{ ligne.libelle }}" 
-                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors truncate"
-                                                           {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}>
-                                                </td>
-                                                <td class="py-2 px-2">
-                                                    <input type="number" step="0.01" name="l_ttc" value="{{ ligne.montant_ttc|stringformat:'.2f' }}" 
-                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono"
-                                                           {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}>
-                                                </td>
-                                                <td class="py-2 px-2">
-                                                    <input type="number" step="0.01" name="l_tva" value="{{ ligne.taux_tva|stringformat:'.1f' }}" 
-                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono"
-                                                           {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="text-left text-sm text-muted uppercase font-bold">
+                                            <th class="pb-3 px-1">Libellé</th>
+                                            <th class="pb-3 px-1 text-right">TTC (€)</th>
+                                            <th class="pb-3 px-1 text-right">TVA (%)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y">
+                                        {% for ligne in ndf.lignes.all %}
+                                        <tr>
+                                            <td class="py-2 px-2">
+                                                <input type="text" name="l_libelle" value="{{ ligne.libelle }}"
+                                                    class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors truncate"
+                                                    {% if ndf.statut=='waiting_payment' %}disabled{% endif %}>
+                                            </td>
+                                            <td class="py-2 px-2">
+                                                <input type="number" step="0.01" name="l_ttc"
+                                                    value="{{ ligne.montant_ttc|stringformat:'.2f' }}"
+                                                    class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono"
+                                                    {% if ndf.statut=='waiting_payment' %}disabled{% endif %}>
+                                            </td>
+                                            <td class="py-2 px-2">
+                                                <input type="number" step="0.01" name="l_tva"
+                                                    value="{{ ligne.taux_tva|stringformat:'.1f' }}"
+                                                    class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono"
+                                                    {% if ndf.statut=='waiting_payment' %}disabled{% endif %}>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                                 {% endif %}
                             </div>
 
@@ -214,52 +236,67 @@
                                 {% if ndf.commentaire_demandeur %}
                                 <div class="form-group mb-0">
                                     <label class="form-label text-xs uppercase text-muted">Commentaire Demandeur</label>
-                                    <textarea class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted" {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}>{{ ndf.commentaire_demandeur }}</textarea>
+                                    <textarea
+                                        class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted"
+                                        {% if ndf.statut=='waiting_payment' %}disabled{% endif
+                                        %}>{{ ndf.commentaire_demandeur }}</textarea>
                                 </div>
                                 {% endif %}
 
                                 <div class="form-group mb-0">
                                     <label class="form-label text-xs uppercase text-muted">Commentaire Trésorier</label>
-                                    <textarea name="commentaire_tresorier" class="form-control" rows="2" placeholder="Notes internes..." {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}></textarea>
+                                    <textarea name="commentaire_tresorier" class="form-control" rows="2"
+                                        placeholder="Notes internes..." {% if ndf.statut=='waiting_payment' %}disabled{%
+                                        endif %}></textarea>
                                 </div>
                             </div>
 
                             <div class="pt-5 space-y-4">
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-group mb-0">
-                                        <label class="form-label text-[0.65rem] uppercase text-muted">Lien Drive Preuve</label>
-                                        <input type="url" name="lien_drive" class="form-control form-control-sm" placeholder="https://..." 
-                                               value="{{ ndf.facture_achat.lien_drive|default:'' }}"
-                                               {% if ndf.statut == 'waiting_payment' %}disabled{% endif %} required>
+                                        <label class="form-label text-[0.65rem] uppercase text-muted">Lien Drive
+                                            Preuve</label>
+                                        <input type="url" name="lien_drive" class="form-control form-control-sm"
+                                            placeholder="https://..."
+                                            value="{{ ndf.facture_achat.lien_drive|default:'' }}" {% if
+                                            ndf.statut=='waiting_payment' %}disabled{% endif %} required>
                                     </div>
                                     <div class="form-group mb-0">
-                                        <label class="form-label text-[0.65rem] uppercase text-muted">Référence Facture</label>
-                                        <input type="text" name="reference_facture" class="form-control form-control-sm font-mono" 
-                                               placeholder="NF-..." value="{{ suggested_ref }}"
-                                               {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}
-                                               oninput="if(!this.value.startsWith('NF-')) this.value = 'NF-' + this.value.replace('NF-', '')">
+                                        <label class="form-label text-[0.65rem] uppercase text-muted">Référence
+                                            Facture</label>
+                                        <input type="text" name="reference_facture"
+                                            class="form-control form-control-sm font-mono" placeholder="NF-..."
+                                            value="{{ suggested_ref }}" {% if ndf.statut=='waiting_payment' %}disabled{%
+                                            endif %}
+                                            oninput="if(!this.value.startsWith('NF-')) this.value = 'NF-' + this.value.replace('NF-', '')">
                                     </div>
                                 </div>
 
                                 <div class="flex gap-3 pt-2">
                                     {% if ndf.statut == 'pending' or ndf.statut == 'needs_info' %}
                                     <button type="submit" class="btn btn-success flex-1 justify-center py-3">
-                                        <i data-lucide="check-check" width="18" height="18"></i> Valider et générer la NDF
+                                        <i data-lucide="check-check" width="18" height="18"></i> Valider et générer la
+                                        NDF
                                     </button>
-                                    <button type="button" class="btn btn-outline-info px-4 tooltip" title="Demander précisions" onclick="confirmInfoRequest('{{ ndf.id }}')">
+                                    <button type="button" class="btn btn-outline-info px-4 tooltip"
+                                        title="Demander précisions" onclick="confirmInfoRequest('{{ ndf.id }}')">
                                         <i data-lucide="message-square" width="18" height="18"></i>
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger px-4" title="Rejeter" onclick="confirmReject('{{ ndf.id }}')">
+                                    <button type="button" class="btn btn-outline-danger px-4" title="Rejeter"
+                                        onclick="confirmReject('{{ ndf.id }}')">
                                         <i data-lucide="x" width="18" height="18"></i>
                                     </button>
                                     {% elif ndf.statut == 'waiting_payment' %}
-                                    <div class="flex-1 bg-primary/5 border border-primary/20 rounded-xl p-4 text-center">
-                                        <div class="text-primary text-sm font-bold flex items-center justify-center gap-2">
+                                    <div
+                                        class="flex-1 bg-primary/5 border border-primary/20 rounded-xl p-4 text-center">
+                                        <div
+                                            class="text-primary text-sm font-bold flex items-center justify-center gap-2">
                                             <i data-lucide="clock" width="18"></i>
                                             Demande validée - En attente de paiement
                                         </div>
                                         <p class="text-[10px] text-muted mt-1 uppercase tracking-widest">
-                                            Celle-ci disparaîtra dès que l'opération bancaire sera liée à la facture {{ ndf.facture_achat.numero }}
+                                            Celle-ci disparaîtra dès que l'opération bancaire sera liée à la facture {{
+                                            ndf.facture_achat.numero }}
                                         </p>
                                     </div>
                                     {% endif %}
@@ -273,60 +310,79 @@
                             <div class="flex items-center gap-6">
                                 {% for doc in ndf.justificatifs.all %}
                                 <button class="flex items-center gap-2 group cursor-pointer transition-colors"
-                                        onclick="switchPreview(this, '{{ doc.fichier.url }}', '{{ doc.fichier|is_pdf }}')">
-                                    
-                                    <span class="flex items-center gap-2 {% if forloop.first %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}">
+                                    onclick="switchPreview(this, '{{ doc.fichier.url }}', '{{ doc.fichier|is_pdf }}')">
+
+                                    <span
+                                        class="flex items-center gap-2 {% if forloop.first %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}">
                                         {% if doc.type_pièce == 'Facture' %}
-                                            <i data-lucide="file-text" width="12"></i>
+                                        <i data-lucide="file-text" width="12"></i>
+                                        {% elif 'Compteur' in doc.type_pièce %}
+                                        <i data-lucide="gauge" width="12"></i>
+                                        {% elif doc.type_pièce == 'Carte Grise' %}
+                                        <i data-lucide="car" width="12"></i>
+                                        {% elif doc.type_pièce == 'Mappy' %}
+                                        <i data-lucide="map" width="12"></i>
                                         {% elif doc.fichier|is_pdf %}
-                                            <i data-lucide="file" width="12"></i>
+                                        <i data-lucide="file" width="12"></i>
                                         {% else %}
-                                            <i data-lucide="image" width="12"></i>
+                                        <i data-lucide="image" width="12"></i>
                                         {% endif %}
 
                                         <span class="text-[10px] font-bold uppercase tracking-widest">
-                                            {% if doc.type_pièce == 'Facture' %}Facture{% elif doc.type_pièce == 'Extra' %}Extra {{ forloop.counter|add:"-1" }}{% else %}{{ doc.type_pièce }}{% endif %}
+                                            {% if doc.type_pièce == 'Facture' %}Facture{% elif doc.type_pièce == 'Extra'
+                                            %}Extra {{ forloop.counter|add:"-1" }}{% else %}{{ doc.type_pièce }}{% endif
+                                            %}
                                         </span>
                                     </span>
                                 </button>
                                 {% endfor %}
                             </div>
 
-                            <a href="{{ ndf.justificatifs.first.fichier.url }}" download 
-                               id="download-link-{{ ndf.id }}" 
-                               class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors
+                            <a href="{{ ndf.justificatifs.first.fichier.url }}" download id="download-link-{{ ndf.id }}"
+                                class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors
                                       {% if ndf.justificatifs.exists %}text-primary hover:text-primary-dark{% else %}text-gray-300 pointer-events-none{% endif %}">
                                 <i data-lucide="download" width="14"></i>
                                 <span>Télécharger</span>
                             </a>
                         </div>
-                        
-                        <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4 bg-gray-50/50" id="viewer-area-{{ ndf.id }}">
+
+                        <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4 bg-gray-50/50"
+                            id="viewer-area-{{ ndf.id }}">
                             <!-- Zoom Controls -->
-                            <div class="absolute bottom-6 right-6 flex items-center gap-2 z-30 zoom-controls bg-white/80 backdrop-blur-md border border-gray-200 p-1.5 rounded-xl shadow-lg transition-all duration-300 transform translate-y-12 opacity-0">
-                                <button onclick="zoomPreview('{{ ndf.id }}', 0.8)" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Zoom arrière">
+                            <div
+                                class="absolute bottom-6 right-6 flex items-center gap-2 z-30 zoom-controls bg-white/80 backdrop-blur-md border border-gray-200 p-1.5 rounded-xl shadow-lg transition-all duration-300 transform translate-y-12 opacity-0">
+                                <button onclick="zoomPreview('{{ ndf.id }}', 0.8)"
+                                    class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"
+                                    title="Zoom arrière">
                                     <i data-lucide="zoom-out" width="18" height="18"></i>
                                 </button>
                                 <div class="w-px h-4 bg-gray-200"></div>
-                                <button onclick="resetZoom('{{ ndf.id }}')" class="px-2 py-1 hover:bg-gray-100 rounded-lg text-xs font-bold text-gray-600 transition-colors" title="Réinitialiser">
+                                <button onclick="resetZoom('{{ ndf.id }}')"
+                                    class="px-2 py-1 hover:bg-gray-100 rounded-lg text-xs font-bold text-gray-600 transition-colors"
+                                    title="Réinitialiser">
                                     100%
                                 </button>
                                 <div class="w-px h-4 bg-gray-200"></div>
-                                <button onclick="zoomPreview('{{ ndf.id }}', 1.25)" class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors" title="Zoom avant">
+                                <button onclick="zoomPreview('{{ ndf.id }}', 1.25)"
+                                    class="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"
+                                    title="Zoom avant">
                                     <i data-lucide="zoom-in" width="18" height="18"></i>
                                 </button>
                             </div>
 
                             {% with first_doc=ndf.justificatifs.first %}
-                            <div id="preview-container-{{ ndf.id }}" class="w-full h-full flex items-center justify-center transition-transform duration-200 ease-out origin-center cursor-grab active:cursor-grabbing viewer-canvas">
+                            <div id="preview-container-{{ ndf.id }}"
+                                class="w-full h-full flex items-center justify-center transition-transform duration-200 ease-out origin-center cursor-grab active:cursor-grabbing viewer-canvas">
                                 {% if first_doc %}
-                                    {% if first_doc.fichier|is_pdf %}
-                                    <iframe src="{{ first_doc.fichier.url }}" class="w-full h-full border-none rounded shadow-2xl"></iframe>
-                                    {% else %}
-                                    <img src="{{ first_doc.fichier.url }}" class="max-w-full max-h-full object-contain shadow-2xl rounded viewer-img">
-                                    {% endif %}
+                                {% if first_doc.fichier|is_pdf %}
+                                <iframe src="{{ first_doc.fichier.url }}"
+                                    class="w-full h-full border-none rounded shadow-2xl"></iframe>
                                 {% else %}
-                                    <div class="text-gray-600 italic text-sm">Aucun justificatif disponible</div>
+                                <img src="{{ first_doc.fichier.url }}"
+                                    class="max-w-full max-h-full object-contain shadow-2xl rounded viewer-img">
+                                {% endif %}
+                                {% else %}
+                                <div class="text-gray-600 italic text-sm">Aucun justificatif disponible</div>
                                 {% endif %}
                             </div>
                             {% endwith %}
@@ -335,12 +391,14 @@
                 </div>
             </div>
 
-            <form id="reject-form-{{ ndf.id }}" method="post" action="{% url 'finance:ndf_reject' ndf.pk %}" class="hidden">
+            <form id="reject-form-{{ ndf.id }}" method="post" action="{% url 'finance:ndf_reject' ndf.pk %}"
+                class="hidden">
                 {% csrf_token %}
                 <input type="hidden" name="commentaire_tresorier" id="reject-comment-{{ ndf.id }}">
             </form>
 
-            <form id="info-form-{{ ndf.id }}" method="post" action="{% url 'finance:ndf_request_info' ndf.pk %}" class="hidden">
+            <form id="info-form-{{ ndf.id }}" method="post" action="{% url 'finance:ndf_request_info' ndf.pk %}"
+                class="hidden">
                 {% csrf_token %}
                 <input type="hidden" name="commentaire_tresorier" id="info-comment-{{ ndf.id }}">
             </form>
@@ -350,307 +408,323 @@
 </div>
 
 <style>
-.outlook-container {
-    display: flex;
-    height: calc(100vh - 120px);
-    gap: 16px;
-    margin: -16px;
-    padding: 16px;
-}
+    .outlook-container {
+        display: flex;
+        height: calc(100vh - 120px);
+        gap: 16px;
+        margin: -16px;
+        padding: 16px;
+    }
 
-.outlook-sidebar {
-    width: 320px;
-    display: flex;
-    flex-direction: column;
-    background: #fff;
-}
+    .outlook-sidebar {
+        width: 320px;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+    }
 
-.sidebar-list {
-    flex: 1;
-    overflow-y: auto;
-}
+    .sidebar-list {
+        flex: 1;
+        overflow-y: auto;
+    }
 
-.outlook-main {
-    flex: 1;
-    min-width: 0;
-    position: relative;
-    height: 100%;
-}
+    .outlook-main {
+        flex: 1;
+        min-width: 0;
+        position: relative;
+        height: 100%;
+    }
 
-.ndf-detail-panel {
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-    background: #fff;
-    display: flex;
-    flex-direction: column;
-}
+    .ndf-detail-panel {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+    }
 
-.ndf-detail-panel > .card {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    border: none;
-    box-shadow: none;
-}
+    .ndf-detail-panel>.card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        border: none;
+        box-shadow: none;
+    }
 
-.ndf-item.active {
-    background: var(--color-primary-light);
-    border-left: 4px solid var(--color-primary);
-    padding-left: 12px;
-}
+    .ndf-item.active {
+        background: var(--color-primary-light);
+        border-left: 4px solid var(--color-primary);
+        padding-left: 12px;
+    }
 
-.scroll-container::-webkit-scrollbar {
-    width: 6px;
-}
-.scroll-container::-webkit-scrollbar-thumb {
-    background: #e2e8f0;
-    border-radius: 10px;
-}
+    .scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
 
-.no-scrollbar::-webkit-scrollbar { display: none; }
+    .scroll-container::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 10px;
+    }
 
-.badge-warning { background: #fef3c7; color: #92400e; }
-.badge-info { background: #e0f2fe; color: #075985; }
-.badge-primary { background: #e0e7ff; color: #3730a3; }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
 
-iframe { filter: drop-shadow(0 20px 25px rgb(0 0 0 / 0.1)); }
+    .badge-warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
 
-.viewer-canvas {
-    will-change: transform;
-    user-select: none;
-}
+    .badge-info {
+        background: #e0f2fe;
+        color: #075985;
+    }
 
-.viewer-img {
-    pointer-events: none;
-}
+    .badge-primary {
+        background: #e0e7ff;
+        color: #3730a3;
+    }
 
-.outlook-main:hover .zoom-controls {
-    transform: translateY(0);
-    opacity: 1;
-}
+    iframe {
+        filter: drop-shadow(0 20px 25px rgb(0 0 0 / 0.1));
+    }
 
-.zoom-controls button:active {
-    transform: scale(0.95);
-}
+    .viewer-canvas {
+        will-change: transform;
+        user-select: none;
+    }
+
+    .viewer-img {
+        pointer-events: none;
+    }
+
+    .outlook-main:hover .zoom-controls {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    .zoom-controls button:active {
+        transform: scale(0.95);
+    }
 </style>
 
 <script>
-function showNDF(id) {
-    document.getElementById('ndf-empty-state').classList.add('hidden');
-    document.querySelectorAll('.ndf-detail-panel').forEach(p => p.classList.add('hidden'));
-    document.querySelectorAll('.ndf-item').forEach(i => i.classList.remove('active'));
-    
-    const panel = document.getElementById('ndf-details-' + id);
-    if(panel) {
-        panel.classList.remove('hidden');
-        resetZoom(id);
-        initPanZoom(id);
-    }
-    
-    const item = document.getElementById('ndf-item-' + id);
-    if(item) item.classList.add('active');
+    function showNDF(id) {
+        document.getElementById('ndf-empty-state').classList.add('hidden');
+        document.querySelectorAll('.ndf-detail-panel').forEach(p => p.classList.add('hidden'));
+        document.querySelectorAll('.ndf-item').forEach(i => i.classList.remove('active'));
 
-    lucide.createIcons();
-}
-
-function switchPreview(btn, url, isPdf) {
-    const detailPanel = btn.closest('.ndf-detail-panel');
-    const container = btn.closest('.flex-1');
-    const ndfId = detailPanel.id.replace('ndf-details-', '');
-    
-    detailPanel.querySelectorAll('button span.flex').forEach(s => {
-        s.classList.remove('text-primary');
-        s.classList.add('text-gray-400');
-    });
-    
-    const activeSpan = btn.querySelector('span.flex');
-    activeSpan.classList.remove('text-gray-400');
-    activeSpan.classList.add('text-primary');
-
-    const downloadLink = document.getElementById('download-link-' + ndfId);
-    if (downloadLink) downloadLink.href = url;
-
-    resetZoom(ndfId);
-
-    const previewArea = document.getElementById('preview-container-' + ndfId);
-    if (isPdf === "True") {
-        previewArea.innerHTML = `<iframe src="${url}" class="w-full h-full border-none rounded shadow-2xl"></iframe>`;
-        hideZoomControls(ndfId);
-    } else {
-        previewArea.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain shadow-2xl rounded animated fadeIn viewer-img">`;
-        showZoomControls(ndfId);
-    }
-}
-
-let zoomStates = {};
-
-function initPanZoom(id) {
-    const container = document.getElementById('viewer-area-' + id);
-    const canvas = document.getElementById('preview-container-' + id);
-    if (!container || !canvas) return;
-
-    if (!zoomStates[id]) {
-        zoomStates[id] = { scale: 1, posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0 };
-    }
-
-    container.onmousedown = (e) => {
-        if (zoomStates[id].scale <= 1) return;
-        zoomStates[id].isDragging = true;
-        zoomStates[id].startX = e.clientX - zoomStates[id].posX;
-        zoomStates[id].startY = e.clientY - zoomStates[id].posY;
-        canvas.classList.add('cursor-grabbing');
-    };
-
-    window.onmousemove = (e) => {
-        if (!zoomStates[id].isDragging) return;
-        zoomStates[id].posX = e.clientX - zoomStates[id].startX;
-        zoomStates[id].posY = e.clientY - zoomStates[id].startY;
-        updateTransform(id);
-    };
-
-    window.onmouseup = () => {
-        zoomStates[id].isDragging = false;
-        canvas.classList.remove('cursor-grabbing');
-    };
-
-    container.onwheel = (e) => {
-        if (canvas.querySelector('iframe')) return;
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        zoomPreview(id, delta);
-    };
-}
-
-function zoomPreview(id, factor) {
-    if (!zoomStates[id]) zoomStates[id] = { scale: 1, posX: 0, posY: 0 };
-    const newScale = zoomStates[id].scale * factor;
-    if (newScale < 0.5 || newScale > 5) return;
-    zoomStates[id].scale = newScale;
-    if (newScale <= 1) { zoomStates[id].posX = 0; zoomStates[id].posY = 0; }
-    updateTransform(id);
-}
-
-function resetZoom(id) {
-    zoomStates[id] = { scale: 1, posX: 0, posY: 0, isDragging: false };
-    updateTransform(id);
-}
-
-function updateTransform(id) {
-    const canvas = document.getElementById('preview-container-' + id);
-    if (canvas) {
-        canvas.style.transform = `translate(${zoomStates[id].posX}px, ${zoomStates[id].posY}px) scale(${zoomStates[id].scale})`;
-    }
-}
-
-function showZoomControls(id) {
-    const controls = document.querySelector(`#viewer-area-${id} .zoom-controls`);
-    if (controls) controls.classList.remove('hidden');
-}
-
-function hideZoomControls(id) {
-    const controls = document.querySelector(`#viewer-area-${id} .zoom-controls`);
-    if (controls) controls.classList.add('hidden');
-}
-
-function recomputeIK(input, rate) {
-    const row = input.closest('.grid');
-    const dist = parseFloat(input.value) || 0;
-    const ttcInput = row.querySelector('input[name="l_ttc"]');
-    const libelleInput = row.querySelector('input[name="l_libelle"]');
-    const total = dist * parseFloat(rate);
-    ttcInput.value = total.toFixed(2);
-    if (libelleInput && libelleInput.value.includes('km')) {
-        libelleInput.value = `Frais IK - ${dist} km`;
-    }
-}
-
-function copyRIBById(id, btn) {
-    const text = document.getElementById(id).innerText;
-    navigator.clipboard.writeText(text).then(() => {
-        const icon = btn.innerHTML;
-        btn.innerHTML = '<i data-lucide="check" width="14" height="14"></i>';
-        lucide.createIcons();
-        btn.classList.add('text-green-500');
-        setTimeout(() => {
-            btn.innerHTML = icon;
-            btn.classList.remove('text-green-500');
-            lucide.createIcons();
-        }, 2000);
-    });
-}
-
-function confirmReject(id) {
-    const reason = prompt("Raison du rejet (OBLIGATOIRE - sera notifiée au demandeur) :");
-    if (reason && reason.trim() !== '') {
-        document.getElementById('reject-comment-' + id).value = reason;
-        document.getElementById('reject-form-' + id).submit();
-    } else if (reason !== null) {
-        alert("Un commentaire est obligatoire pour rejeter une demande.");
-    }
-}
-
-function confirmInfoRequest(id) {
-    const msg = prompt("Précisions demandées (sera notifiée au demandeur) :");
-    if (msg && msg.trim() !== '') {
-        document.getElementById('info-comment-' + id).value = msg;
-        document.getElementById('info-form-' + id).submit();
-    } else if (msg !== null) {
-        alert("Un commentaire est obligatoire pour demander des précisions.");
-    }
-}
-
-function editLibelle(id, container) {
-    const display = document.getElementById('libelle-display-' + id);
-    const currentVal = display.innerText;
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = currentVal;
-    input.className = 'form-control form-control-sm text-xl font-bold bg-white border-primary border-2';
-    input.style.width = '100%';
-    
-    container.onclick = null; // Désactiver le clic pendant l'édition
-    display.style.display = 'none';
-    const icon = container.querySelector('[data-lucide="edit-3"]');
-    if(icon) icon.style.display = 'none';
-    
-    container.appendChild(input);
-    input.focus();
-    input.select();
-    
-    const finishEdit = () => {
-        const newVal = input.value.trim() || currentVal;
-        display.innerText = newVal;
-        display.style.display = '';
-        if(icon) icon.style.display = '';
-        document.getElementById('libelle-input-' + id).value = newVal;
-        input.remove();
-        setTimeout(() => { container.onclick = () => editLibelle(id, container); }, 10);
-    };
-    
-    input.onblur = finishEdit;
-    input.onkeydown = (e) => {
-        if(e.key === 'Enter') { e.preventDefault(); finishEdit(); }
-        if(e.key === 'Escape') { input.value = currentVal; finishEdit(); }
-    };
-}
-
-function handleValidationSubmit(form, id) {
-    const currentItem = document.getElementById('ndf-item-' + id);
-    const nextItem = currentItem ? currentItem.nextElementSibling : null;
-    
-    // On attend un court instant que le navigateur lance l'ouverture du nouvel onglet
-    setTimeout(() => {
-        if (nextItem && nextItem.classList.contains('ndf-item')) {
-            nextItem.click();
-            if(currentItem) currentItem.remove();
-        } else {
-            // Plus de demandes, on rafraîchit pour afficher l'état vide
-            window.location.reload();
+        const panel = document.getElementById('ndf-details-' + id);
+        if (panel) {
+            panel.classList.remove('hidden');
+            resetZoom(id);
+            initPanZoom(id);
         }
-    }, 800);
-    
-    return true; // Laisse le formulaire s'envoyer (dans l'onglet target="_blank")
-}
+
+        const item = document.getElementById('ndf-item-' + id);
+        if (item) item.classList.add('active');
+
+        lucide.createIcons();
+    }
+
+    function switchPreview(btn, url, isPdf) {
+        const detailPanel = btn.closest('.ndf-detail-panel');
+        const container = btn.closest('.flex-1');
+        const ndfId = detailPanel.id.replace('ndf-details-', '');
+
+        detailPanel.querySelectorAll('button span.flex').forEach(s => {
+            s.classList.remove('text-primary');
+            s.classList.add('text-gray-400');
+        });
+
+        const activeSpan = btn.querySelector('span.flex');
+        activeSpan.classList.remove('text-gray-400');
+        activeSpan.classList.add('text-primary');
+
+        const downloadLink = document.getElementById('download-link-' + ndfId);
+        if (downloadLink) downloadLink.href = url;
+
+        resetZoom(ndfId);
+
+        const previewArea = document.getElementById('preview-container-' + ndfId);
+        if (isPdf === "True") {
+            previewArea.innerHTML = `<iframe src="${url}" class="w-full h-full border-none rounded shadow-2xl"></iframe>`;
+            hideZoomControls(ndfId);
+        } else {
+            previewArea.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain shadow-2xl rounded animated fadeIn viewer-img">`;
+            showZoomControls(ndfId);
+        }
+    }
+
+    let zoomStates = {};
+
+    function initPanZoom(id) {
+        const container = document.getElementById('viewer-area-' + id);
+        const canvas = document.getElementById('preview-container-' + id);
+        if (!container || !canvas) return;
+
+        if (!zoomStates[id]) {
+            zoomStates[id] = { scale: 1, posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0 };
+        }
+
+        container.onmousedown = (e) => {
+            if (zoomStates[id].scale <= 1) return;
+            zoomStates[id].isDragging = true;
+            zoomStates[id].startX = e.clientX - zoomStates[id].posX;
+            zoomStates[id].startY = e.clientY - zoomStates[id].posY;
+            canvas.classList.add('cursor-grabbing');
+        };
+
+        window.onmousemove = (e) => {
+            if (!zoomStates[id].isDragging) return;
+            zoomStates[id].posX = e.clientX - zoomStates[id].startX;
+            zoomStates[id].posY = e.clientY - zoomStates[id].startY;
+            updateTransform(id);
+        };
+
+        window.onmouseup = () => {
+            zoomStates[id].isDragging = false;
+            canvas.classList.remove('cursor-grabbing');
+        };
+
+        container.onwheel = (e) => {
+            if (canvas.querySelector('iframe')) return;
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            zoomPreview(id, delta);
+        };
+    }
+
+    function zoomPreview(id, factor) {
+        if (!zoomStates[id]) zoomStates[id] = { scale: 1, posX: 0, posY: 0 };
+        const newScale = zoomStates[id].scale * factor;
+        if (newScale < 0.5 || newScale > 5) return;
+        zoomStates[id].scale = newScale;
+        if (newScale <= 1) { zoomStates[id].posX = 0; zoomStates[id].posY = 0; }
+        updateTransform(id);
+    }
+
+    function resetZoom(id) {
+        zoomStates[id] = { scale: 1, posX: 0, posY: 0, isDragging: false };
+        updateTransform(id);
+    }
+
+    function updateTransform(id) {
+        const canvas = document.getElementById('preview-container-' + id);
+        if (canvas) {
+            canvas.style.transform = `translate(${zoomStates[id].posX}px, ${zoomStates[id].posY}px) scale(${zoomStates[id].scale})`;
+        }
+    }
+
+    function showZoomControls(id) {
+        const controls = document.querySelector(`#viewer-area-${id} .zoom-controls`);
+        if (controls) controls.classList.remove('hidden');
+    }
+
+    function hideZoomControls(id) {
+        const controls = document.querySelector(`#viewer-area-${id} .zoom-controls`);
+        if (controls) controls.classList.add('hidden');
+    }
+
+    function recomputeIK(input, rate) {
+        const row = input.closest('.grid');
+        const dist = parseFloat(input.value) || 0;
+        const ttcInput = row.querySelector('input[name="l_ttc"]');
+        const libelleInput = row.querySelector('input[name="l_libelle"]');
+        const total = dist * parseFloat(rate);
+        ttcInput.value = total.toFixed(2);
+        if (libelleInput && libelleInput.value.includes('km')) {
+            libelleInput.value = `Frais IK - ${dist} km`;
+        }
+    }
+
+    function copyRIBById(id, btn) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const icon = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="check" width="14" height="14"></i>';
+            lucide.createIcons();
+            btn.classList.add('text-green-500');
+            setTimeout(() => {
+                btn.innerHTML = icon;
+                btn.classList.remove('text-green-500');
+                lucide.createIcons();
+            }, 2000);
+        });
+    }
+
+    function confirmReject(id) {
+        const reason = prompt("Raison du rejet (OBLIGATOIRE - sera notifiée au demandeur) :");
+        if (reason && reason.trim() !== '') {
+            document.getElementById('reject-comment-' + id).value = reason;
+            document.getElementById('reject-form-' + id).submit();
+        } else if (reason !== null) {
+            alert("Un commentaire est obligatoire pour rejeter une demande.");
+        }
+    }
+
+    function confirmInfoRequest(id) {
+        const msg = prompt("Précisions demandées (sera notifiée au demandeur) :");
+        if (msg && msg.trim() !== '') {
+            document.getElementById('info-comment-' + id).value = msg;
+            document.getElementById('info-form-' + id).submit();
+        } else if (msg !== null) {
+            alert("Un commentaire est obligatoire pour demander des précisions.");
+        }
+    }
+
+    function editLibelle(id, container) {
+        const display = document.getElementById('libelle-display-' + id);
+        const currentVal = display.innerText;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentVal;
+        input.className = 'form-control form-control-sm text-xl font-bold bg-white border-primary border-2';
+        input.style.width = '100%';
+
+        container.onclick = null; // Désactiver le clic pendant l'édition
+        display.style.display = 'none';
+        const icon = container.querySelector('[data-lucide="edit-3"]');
+        if (icon) icon.style.display = 'none';
+
+        container.appendChild(input);
+        input.focus();
+        input.select();
+
+        const finishEdit = () => {
+            const newVal = input.value.trim() || currentVal;
+            display.innerText = newVal;
+            display.style.display = '';
+            if (icon) icon.style.display = '';
+            document.getElementById('libelle-input-' + id).value = newVal;
+            input.remove();
+            setTimeout(() => { container.onclick = () => editLibelle(id, container); }, 10);
+        };
+
+        input.onblur = finishEdit;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); finishEdit(); }
+            if (e.key === 'Escape') { input.value = currentVal; finishEdit(); }
+        };
+    }
+
+    function handleValidationSubmit(form, id) {
+        const currentItem = document.getElementById('ndf-item-' + id);
+        const nextItem = currentItem ? currentItem.nextElementSibling : null;
+
+        // On attend un court instant que le navigateur lance l'ouverture du nouvel onglet
+        setTimeout(() => {
+            if (nextItem && nextItem.classList.contains('ndf-item')) {
+                nextItem.click();
+                if (currentItem) currentItem.remove();
+            } else {
+                // Plus de demandes, on rafraîchit pour afficher l'état vide
+                window.location.reload();
+            }
+        }, 800);
+
+        return true; // Laisse le formulaire s'envoyer (dans l'onglet target="_blank")
+    }
 </script>
 {% endblock %}

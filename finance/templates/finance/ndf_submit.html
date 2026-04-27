@@ -76,19 +76,102 @@
             <div class="card-body">
                 <!-- Section IK -->
                 <div id="section-justifs-ik" class="hidden">
-                    <p class="text-xs text-muted mb-4 italic">Pour un remboursement kilométrique, les trois pièces suivantes sont obligatoires.</p>
-                    <div class="grid-3 gap-4">
-                        <div class="form-group">
-                            <label class="form-label text-xs">Compteur Kilométrique <span class="required">*</span></label>
-                            <input type="file" name="file_compteur" class="form-control form-control-sm j-ik" accept="image/*,application/pdf">
+                    <p class="text-xs text-muted mb-4 italic">Pour un remboursement kilométrique, les quatre pièces suivantes sont obligatoires.</p>
+                    <div class="space-y-4">
+                        <!-- Slot Compteur Début -->
+                        <div class="flex gap-4 items-end">
+                            <div class="flex-1" id="slot-compteur-debut">
+                                <label class="form-label text-xs">Compteur Début <span class="required">*</span></label>
+                                {% if justifs_by_type.compteur_debut %}
+                                    <div class="existing-file-preview flex items-center gap-2">
+                                        <i data-lucide="check-circle" class="text-success" width="14"></i>
+                                        <span class="text-sm font-bold flex-1">Compteur Début</span>
+                                        <div class="flex gap-2">
+                                            <a href="{{ justifs_by_type.compteur_debut.fichier.url }}" target="_blank" class="btn btn-xs btn-outline" title="Voir"><i data-lucide="eye" width="12"></i></a>
+                                            <button type="button" class="btn btn-xs btn-primary" onclick="enableReplacement(this, 'file_compteur_debut')">Modifier</button>
+                                        </div>
+                                    </div>
+                                    <input type="file" name="file_compteur_debut" class="form-control form-control-sm j-ik hidden" accept="image/*,application/pdf" data-existing="true">
+                                {% else %}
+                                    <input type="file" name="file_compteur_debut" class="form-control form-control-sm j-ik" accept="image/*,application/pdf">
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <label class="form-label text-xs">Nom du fichier</label>
+                                <input type="text" name="file_name_compteur_debut" class="form-control form-control-sm" placeholder="Compteur au départ" value="{{ justifs_by_type.compteur_debut.label_personnalise|default:'' }}">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label text-xs">Trajet Mappy/Maps <span class="required">*</span></label>
-                            <input type="file" name="file_mappy" class="form-control form-control-sm j-ik" accept="image/*,application/pdf">
+
+                        <!-- Slot Compteur Fin -->
+                        <div class="flex gap-4 items-end">
+                            <div class="flex-1" id="slot-compteur-fin">
+                                <label class="form-label text-xs">Compteur Fin <span class="required">*</span></label>
+                                {% if justifs_by_type.compteur_fin %}
+                                    <div class="existing-file-preview flex items-center gap-2">
+                                        <i data-lucide="check-circle" class="text-success" width="14"></i>
+                                        <span class="text-sm font-bold flex-1">Compteur Fin</span>
+                                        <div class="flex gap-2">
+                                            <a href="{{ justifs_by_type.compteur_fin.fichier.url }}" target="_blank" class="btn btn-xs btn-outline" title="Voir"><i data-lucide="eye" width="12"></i></a>
+                                            <button type="button" class="btn btn-xs btn-primary" onclick="enableReplacement(this, 'file_compteur_fin')">Modifier</button>
+                                        </div>
+                                    </div>
+                                    <input type="file" name="file_compteur_fin" class="form-control form-control-sm j-ik hidden" accept="image/*,application/pdf" data-existing="true">
+                                {% else %}
+                                    <input type="file" name="file_compteur_fin" class="form-control form-control-sm j-ik" accept="image/*,application/pdf">
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <label class="form-label text-xs">Nom du fichier</label>
+                                <input type="text" name="file_name_compteur_fin" class="form-control form-control-sm" placeholder="Compteur à l'arrivée" value="{{ justifs_by_type.compteur_fin.label_personnalise|default:'' }}">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label text-xs">Carte Grise <span class="required">*</span></label>
-                            <input type="file" name="file_cartegrise" class="form-control form-control-sm j-ik" accept="image/*,application/pdf">
+
+                        <!-- Slot Mappy -->
+                        <div class="flex gap-4 items-end">
+                            <div class="flex-1" id="slot-mappy">
+                                <label class="form-label text-xs">Trajet Mappy/Maps <span class="required">*</span></label>
+                                {% if justifs_by_type.mappy %}
+                                    <div class="existing-file-preview flex items-center gap-2">
+                                        <i data-lucide="check-circle" class="text-success" width="14"></i>
+                                        <span class="text-sm font-bold flex-1">Mappy</span>
+                                        <div class="flex gap-2">
+                                            <a href="{{ justifs_by_type.mappy.fichier.url }}" target="_blank" class="btn btn-xs btn-outline" title="Voir"><i data-lucide="eye" width="12"></i></a>
+                                            <button type="button" class="btn btn-xs btn-primary" onclick="enableReplacement(this, 'file_mappy')">Modifier</button>
+                                        </div>
+                                    </div>
+                                    <input type="file" name="file_mappy" class="form-control form-control-sm j-ik hidden" accept="image/*,application/pdf" data-existing="true">
+                                {% else %}
+                                    <input type="file" name="file_mappy" class="form-control form-control-sm j-ik" accept="image/*,application/pdf">
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <label class="form-label text-xs">Nom du fichier</label>
+                                <input type="text" name="file_name_mappy" class="form-control form-control-sm" placeholder="Détail du trajet" value="{{ justifs_by_type.mappy.label_personnalise|default:'' }}">
+                            </div>
+                        </div>
+
+                        <!-- Slot Carte Grise -->
+                        <div class="flex gap-4 items-end">
+                            <div class="flex-1" id="slot-carte-grise">
+                                <label class="form-label text-xs">Carte Grise <span class="required">*</span></label>
+                                {% if justifs_by_type.carte_grise %}
+                                    <div class="existing-file-preview flex items-center gap-2">
+                                        <i data-lucide="check-circle" class="text-success" width="14"></i>
+                                        <span class="text-sm font-bold flex-1">Carte Grise</span>
+                                        <div class="flex gap-2">
+                                            <a href="{{ justifs_by_type.carte_grise.fichier.url }}" target="_blank" class="btn btn-xs btn-outline" title="Voir"><i data-lucide="eye" width="12"></i></a>
+                                            <button type="button" class="btn btn-xs btn-primary" onclick="enableReplacement(this, 'file_cartegrise')">Modifier</button>
+                                        </div>
+                                    </div>
+                                    <input type="file" name="file_cartegrise" class="form-control form-control-sm j-ik hidden" accept="image/*,application/pdf" data-existing="true">
+                                {% else %}
+                                    <input type="file" name="file_cartegrise" class="form-control form-control-sm j-ik" accept="image/*,application/pdf">
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <label class="form-label text-xs">Nom du fichier</label>
+                                <input type="text" name="file_name_cartegrise" class="form-control form-control-sm" placeholder="Carte Grise du véhicule" value="{{ justifs_by_type.carte_grise.label_personnalise|default:'' }}">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -96,13 +179,27 @@
                 <!-- Section Achat -->
                 <div id="section-justifs-achat" class="">
                     <div class="grid-2 gap-4">
-                        <div class="form-group flex-1">
+                        <div class="form-group flex-1" id="slot-facture">
                             <label class="form-label">Facture / Reçu <span class="required">*</span></label>
-                            <input type="file" name="file_facture" class="form-control j-achat" accept="image/*,application/pdf">
+                            {% if justifs_by_type.facture %}
+                                <div class="existing-file-preview flex items-center gap-2 p-3 bg-success/5 rounded border border-dashed border-success/30 mb-2">
+                                    <i data-lucide="check-circle" class="text-success" width="16"></i>
+                                    <span class="text-xs font-bold uppercase truncate flex-1">Facture chargée</span>
+                                    <div class="flex gap-2">
+                                        <a href="{{ justifs_by_type.facture.fichier.url }}" target="_blank" class="btn btn-sm btn-ghost p-2"><i data-lucide="eye" width="14"></i></a>
+                                        <button type="button" class="btn btn-sm btn-primary px-3 text-xs uppercase font-bold" onclick="enableReplacement(this, 'file_facture')">Modifier</button>
+                                    </div>
+                                </div>
+                                <input type="file" name="file_facture" class="form-control j-achat hidden" accept="image/*,application/pdf" data-existing="true">
+                            {% else %}
+                                <input type="file" name="file_facture" class="form-control j-achat" accept="image/*,application/pdf">
+                            {% endif %}
                         </div>
                         <div class="form-group flex-1">
                             <label class="form-label">Nom de la pièce (ex: "Déjeuner Client")</label>
-                            <input type="text" name="file_name_facture" class="form-control" placeholder="Laisser vide pour garder le nom d'origine">
+                            <input type="text" name="file_name_facture" class="form-control" 
+                                   placeholder="Laisser vide pour garder le nom d'origine"
+                                   value="{{ justifs_by_type.facture.label_personnalise|default:'' }}">
                         </div>
                     </div>
                 </div>
@@ -118,9 +215,10 @@
                     <div id="extra-files-container"></div>
                     {% if ndf %}
                     <div>
-                        <label class="form-label text-xs text-muted mb-0">Justificatifs déjà envoyés</label>
+                        <label class="form-label text-xs text-muted mb-0">Justificatifs additionnels déjà envoyés</label>
                         <div class="space-y-0">
                             {% for j in ndf.justificatifs.all %}
+                            {% if j.type_pièce == 'Extra' %}
                             <div class="flex items-center gap-4 py-3 hover:bg-gray-50/30">
                                 <div class="flex-1">
                                     <input type="text" name="existing_label_{{ j.id }}" 
@@ -130,22 +228,15 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <a href="{{ j.fichier.url }}" target="_blank" class="btn btn-outline btn-xs">
-                                        <i data-lucide="external-link" width="12"></i>
-                                        Voir le document
+                                        <i data-lucide="external-link" width="14"></i> Ouvrir
                                     </a>
-                                    
-                                    <label class="btn btn-outline btn-xs">
-                                        <input type="file" name="replace_doc_{{ j.id }}" class="hidden" onchange="this.parentElement.classList.add('bg-primary/10', 'text-primary')">
-                                        <i data-lucide="upload-cloud" width="12"></i>
-                                        Remplacer
-                                    </label>
 
                                     <label class="text-red-500" title="Supprimer">
                                         <input type="checkbox" name="delete_doc_{{ j.id }}" class="hidden" onchange="this.parentElement.classList.toggle('bg-red-100', this.checked); this.parentElement.classList.toggle('rounded-lg', this.checked)">
                                         <i data-lucide="trash-2" width="16"></i>
                                     </label>
                                 </div>
-                            </div>
+                            {% endif %}
                             {% endfor %}
                         </div>
                     </div>

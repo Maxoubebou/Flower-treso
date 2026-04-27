@@ -145,7 +145,7 @@
                     </td>
                     <td>
                         {% if ndf.statut == 'pending' %}<span class="badge badge-warning">En attente</span>
-                        {% elif ndf.statut == 'needs_info' %}<span class="badge" style="background-color: #fee2e2; color: #ef4444; border: 1px solid #fecaca;">À compléter</span>
+                        {% elif ndf.statut == 'needs_info' %}<span class="badge" style="background-color: #fee2e2; color: #ef4444; border: 1px solid #fecaca;">À corriger</span>
                         {% elif ndf.statut == 'waiting_payment' %}<span class="badge badge-primary">Validée</span>
                         {% elif ndf.statut == 'completed' %}<span class="badge badge-success">Payée</span>
                         {% elif ndf.statut == 'rejected' %}<span class="badge badge-danger">Rejetée</span>
@@ -154,8 +154,8 @@
                     <td>
                         {% if ndf.commentaire_tresorier %}
                           <div class="flex-1">
-                              <p class="text-sm">
-                                  "{{ ndf.commentaire_tresorier }}"
+                              <p class="text-sm" {% if ndf.statut == 'rejected' or ndf.statut == 'needs_info' %}style="color: #ef4444; font-weight: 500;"{% endif %}>
+                                  {{ ndf.commentaire_tresorier }}
                               </p>
                           </div>
                         {% endif %}

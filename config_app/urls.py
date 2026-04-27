@@ -5,6 +5,7 @@ app_name = 'config'
 
 urlpatterns = [
     path('', views.settings_index, name='settings_index'),
+    path('profile/', views.user_profile, name='user_profile'),
     path('tva/<int:pk>/update/', views.taux_tva_update, name='taux_tva_update'),
     path('tva/create/', views.taux_tva_create, name='taux_tva_create'),
     path('cotisations/update-unified/', views.cotisation_unified_update, name='cotisation_unified_update'),

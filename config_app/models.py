@@ -232,3 +232,11 @@ class UserPoste(models.Model):
 
     def __str__(self):
         return f"{self.email} -> {self.poste.nom}"
+
+class UserProfile(models.Model):
+    user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='profile')
+    rib = models.CharField(max_length=34, blank=True, null=True, help_text="IBAN")
+    carte_grise = models.FileField(upload_to='profiles/carte_grise/', blank=True, null=True)
+    
+    def __str__(self):
+        return f"Profil de {self.user.email}"
