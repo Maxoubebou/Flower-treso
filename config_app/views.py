@@ -255,3 +255,59 @@ def signature_update(request):
         config.save()
         messages.success(request, "Signatures mises à jour avec succès.")
     return redirect('config:settings_index')
+
+
+# ─── Gestion des Accès (RBAC) ───────────────────────────────────────────────
+
+def access_settings(request):
+    """Page de configuration des accès et rôles."""
+    from .models import PostePermission, UserPoste
+    postes = PostePermission.objects.all().order_by('nom')
+    users_postes = UserPoste.objects.all().select_related('poste').order_by('email')
+    
+    return render(request, 'config_app/access_settings.html', {
+        'postes': postes,
+        'users_postes': users_postes,
+    })
+
+def user_poste_add(request):
+    from .models import PostePermission, UserPoste
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        poste_id = request.POST.get('poste_id')
+        if email and poste_id:
+            poste = get_object_or_404(PostePermission, pk=poste_id)
+            UserPoste.objects.update_or_create(email=email, defaults={'poste': poste})
+            messages.success(request, f"Rôle assigné à {email}")
+        else:
+            messages.error(request, "L'email et le poste sont obligatoires.")
+    return redirect('config:access_settings')
+
+def user_poste_delete(request, pk):
+    from .models import UserPoste
+    up = get_object_or_404(UserPoste, pk=pk)
+    email = up.email
+    up.delete()
+    messages.success(request, f"Accès supprimé pour {email}")
+    return redirect('config:access_settings')
+
+def poste_save(request):
+    from .models import PostePermission
+    if request.method == 'POST':
+        poste_id = request.POST.get('poste_id')
+        poste = get_object_or_404(PostePermission, pk=poste_id)
+        
+        # Liste des permissions à mapper
+        fields = [
+            'can_access_operations', 'can_access_ndf_admin', 'can_access_etudes',
+            'can_access_budget', 'can_access_settings',
+            'dashboard_show_kpi_global', 'dashboard_show_kpi_ndf_admin',
+            'dashboard_show_personal_ndf', 'dashboard_show_tva_urssaf'
+        ]
+        
+        for f in fields:
+            setattr(poste, f, f in request.POST)
+        
+        poste.save()
+        messages.success(request, f"Configuration du poste « {poste.nom} » enregistrée.")
+    return redirect('config:access_settings')

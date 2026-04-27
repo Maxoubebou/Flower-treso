@@ -14,6 +14,10 @@
   <button class="settings-tab" onclick="showTab('types-achat', this)">Types d'achat</button>
   <button class="settings-tab" onclick="showTab('autofill', this)">Règles auto.</button>
   <button class="settings-tab" onclick="showTab('signatures', this)">Signatures</button>
+  <a href="{% url 'config:access_settings' %}" class="settings-tab" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:8px">
+    <i data-lucide="shield-check" width="16" height="16"></i>
+    Gestion des Accès
+  </a>
 </div>
 
 <!-- ─── Taux TVA ───────────────────────────────────────────────────────────── -->

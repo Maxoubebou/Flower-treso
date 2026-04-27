@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Gestion des Accès — Flower-Tréso{% endblock %}
+{% block page_title %}Gestion des Accès et Rôles 🔐{% endblock %}
+
+{% block content %}
+<div class="card mb-6">
+    <div class="card-header">
+        <div class="card-title">Assigner un rôle à un membre</div>
+    </div>
+    <div class="card-body">
+        <form action="{% url 'config:user_poste_add' %}" method="post" class="flex gap-4 items-end">
+            {% csrf_token %}
+            <div class="form-group flex-1">
+                <label class="form-label">Email de l'utilisateur (Google)</label>
+                <input type="email" name="email" class="form-control" placeholder="exemple@ouest-insa.fr" required>
+            </div>
+            <div class="form-group flex-1">
+                <label class="form-label">Rôle (Poste)</label>
+                <select name="poste_id" class="form-control" required>
+                    <option value="">-- Sélectionner un poste --</option>
+                    {% for p in postes %}
+                    <option value="{{ p.id }}">{{ p.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-bottom: 2px;">
+                <i data-lucide="user-plus" width="16" class="inline"></i> Arrtibuer
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="grid-2 gap-6">
+    <!-- Liste des utilisateurs -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Membres Configurés</div>
+        </div>
+        <div class="card-body p-0">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Rôle</th>
+                        <th class="text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for up in users_postes %}
+                    <tr>
+                        <td class="font-medium">{{ up.email }}</td>
+                        <td><span class="badge badge-info">{{ up.poste.nom }}</span></td>
+                        <td class="text-right">
+                            <form action="{% url 'config:user_poste_delete' up.pk %}" method="post" onsubmit="return confirm('Supprimer cet accès ?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-icon btn-ghost text-danger">
+                                    <i data-lucide="trash-2" width="16"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center py-4 text-muted">Aucun membre configuré manuellement.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-gray-50 text-xs text-muted italic">
+            Note: Les utilisateurs sans rôle spécifique héritent du rôle par défaut (généralement Membre).
+        </div>
+    </div>
+
+    <!-- Configuration des permissions par rôle -->
+    <div class="space-y-6">
+        {% for p in postes %}
+        <div class="card">
+            <div class="card-header flex justify-between items-center">
+                <div class="card-title">Permissions : {{ p.nom }}</div>
+                {% if p.nom == "Trésorier" %}<span class="text-xs text-muted">Rôle système</span>{% endif %}
+            </div>
+            <div class="card-body">
+                <form action="{% url 'config:poste_save' %}" method="post" id="form-poste-{{ p.id }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="poste_id" value="{{ p.id }}">
+                    
+                    <div class="space-y-4">
+                        <div class="section-subtitle text-xs font-bold uppercase text-gray-400 border-b pb-1">Accès aux Pages</div>
+                        <div class="grid-2 gap-2">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="can_access_operations" {% if p.can_access_operations %}checked{% endif %}>
+                                <span class="text-sm">Traitement Opérations</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="can_access_ndf_admin" {% if p.can_access_ndf_admin %}checked{% endif %}>
+                                <span class="text-sm">Gestion NDF / BV</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="can_access_etudes" {% if p.can_access_etudes %}checked{% endif %}>
+                                <span class="text-sm">Études</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="can_access_budget" {% if p.can_access_budget %}checked{% endif %}>
+                                <span class="text-sm">Budget</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="can_access_settings" {% if p.can_access_settings %}checked{% endif %}>
+                                <span class="text-sm">Paramètres</span>
+                            </label>
+                        </div>
+
+                        <div class="section-subtitle text-xs font-bold uppercase text-gray-400 border-b pb-1 mt-4">Dashboard</div>
+                        <div class="grid-2 gap-2">
+                            <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="dashboard_show_kpi_global" {% if p.dashboard_show_kpi_global %}checked{% endif %}>
+                                <span class="text-sm">KPIs Globaux (CA/Dép)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="dashboard_show_kpi_ndf_admin" {% if p.dashboard_show_kpi_ndf_admin %}checked{% endif %}>
+                                <span class="text-sm">KPIs NDF (Admin)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="dashboard_show_personal_ndf" {% if p.dashboard_show_personal_ndf %}checked{% endif %}>
+                                <span class="text-sm">Bloc "Mes NDF"</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="dashboard_show_tva_urssaf" {% if p.dashboard_show_tva_urssaf %}checked{% endif %}>
+                                <span class="text-sm">Blocs TVA/URSSAF</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                            <i data-lucide="save" width="14" class="inline"></i> Enregistrer {{ p.nom }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card mt-6 border-danger" style="background: var(--color-danger-50);">
+    <div class="card-body flex items-center gap-4">
+        <i data-lucide="shield-alert" class="text-danger" width="24"></i>
+        <div>
+            <div class="font-bold text-danger">Note de sécurité importante</div>
+            <p class="text-sm text-danger opacity-80">L'utilisateur <strong>maxime.even@ouest-insa.fr</strong> possède un accès SuperUser permanent codé en dur pour garantir que l'administration reste toujours accessible.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

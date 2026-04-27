@@ -20,170 +20,121 @@ def dashboard(request):
     mois_courant = aujourd_hui.month
     annee_courante = aujourd_hui.year
 
-    # KPIs du mois
-    ventes_mois = FactureVente.objects.filter(
-        date_operation__year=annee_courante,
-        date_operation__month=mois_courant
-    )
-    achats_mois = FactureAchat.objects.filter(
-        date_operation__year=annee_courante,
-        date_operation__month=mois_courant
-    )
-    bv_mois = BulletinVersement.objects.filter(
-        date_operation__year=annee_courante,
-        date_operation__month=mois_courant
-    )
+    # --- Bloc Personnel pour TOUS ---
+    user_ndfs = DemandeNDF.objects.filter(email=request.user.email).order_by('-date_soumission')
+    user_ndf_summary = {
+        'pending': user_ndfs.filter(statut='pending').count(),
+        'waiting': user_ndfs.filter(statut='waiting_payment').count(),
+        'completed': user_ndfs.filter(statut='completed').count(),
+        'all': user_ndfs[:5] # 5 dernières
+    }
 
-    from operations.models import Operation
-    ops_pending_count = Operation.objects.filter(statut='pending').count()
-    
-    # BV en attente de liaison (Intégrité)
-    bv_pending = BulletinVersement.objects.filter(operation__isnull=True).order_by('-date_emission')[:10]
-    bv_pending_count = BulletinVersement.objects.filter(operation__isnull=True).count()
-    # NDF en attente
-    ndf_pending_count = DemandeNDF.objects.filter(statut='pending').count()
-    ndf_pending_sum = DemandeNDF.objects.filter(statut='pending').aggregate(total=Sum('lignes__montant_ttc'))['total'] or 0
-    ndf_waiting_payment_count = DemandeNDF.objects.filter(statut='waiting_payment').count()
-    ndf_waiting_payment_sum = DemandeNDF.objects.filter(statut='waiting_payment').aggregate(total=Sum('lignes__montant_ttc'))['total'] or 0
+    # KPIs globaux (calculés uniquement si l'utilisateur a le droit de les voir sur le dashboard)
+    # On récupère les permissions via le context processor (déjà dispo dans le template, mais on peut les utiliser ici aussi)
+    from config_app.context_processors import rbac_permissions
+    perms = rbac_permissions(request)['user_perms']
 
-    # --- Gestion URSSAF Dashboard ---
-    urssaf_history = []
-    # On affiche les trois mois précédant le mois actuel (périodes prêtes à être déclarées)
-    for i in range(1, 4):
-        # Calcul de la période
-        d = aujourd_hui
-        target_month = (d.month - i - 1) % 12 + 1
-        target_year = d.year + (d.month - i - 1) // 12
-        
-        period_str = f"{target_year}{target_month:02d}"
-        # Échéance : le 15 du mois suivant la période
-        deadline_year = target_year + (target_month // 12)
-        deadline_month = (target_month % 12) + 1
-        deadline_date = date(deadline_year, deadline_month, 15)
-        
-        # Filtre sur date_envoi (Date Facture) comme demandé
-        bvs = BulletinVersement.objects.filter(
-            date_envoi__year=target_year,
-            date_envoi__month=target_month
-        )
-        
-        # Statistiques
-        participants = bvs.values('intervenant_nom', 'intervenant_prenom').distinct().count()
-        total_assiette = bvs.aggregate(total=Sum('assiette'))['total'] or 0
-        total_cotis = bvs.aggregate(
-            total=Sum(models.F('total_junior') + models.F('total_etudiant'))
-        )['total'] or 0
-        
-        decl = DeclarationURSSAF.objects.filter(periode=period_str).first()
-        status = 'not_started'
-        status_label = "En attente"
-        days_left = (deadline_date - aujourd_hui).days
-        days_late = (aujourd_hui - deadline_date).days if aujourd_hui > deadline_date else 0
-        
-        if decl and decl.finalisee:
-            status = 'done'
-            status_label = "BRC déclaré"
-        elif aujourd_hui > deadline_date:
-            status = 'late'
-            status_label = f"Retard: {days_late}j"
-        elif days_left <= 7:
-            status = 'urgent'
-            status_label = f"J-{days_left}"
-        
-        months_fr = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
-        period_label = f"{months_fr[target_month-1]} {target_year}"
-
-        urssaf_history.append({
-            'period': period_str,
-            'label': period_label,
-            'month': target_month,
-            'year': target_year,
-            'deadline': deadline_date,
-            'decl': decl,
-            'status': status,
-            'status_label': status_label,
-            'days_left': days_left,
-            'days_late': days_late,
-            # KPIs demandés (arrondis à l'unité)
-            'participants': participants,
-            'assiette': round(total_assiette),
-            'cotisations': round(total_cotis),
-        })
-
-    # --- Gestion TVA Dashboard ---
-    # On affiche les 3 dernières périodes (M-1, M-2, M-3 par rapport à aujourd'hui)
+    ca_mois = 0
+    depenses_mois = 0
+    nb_ventes = 0
+    nb_achats = 0
+    nb_bv = 0
+    ops_pending_count = 0
+    bv_pending = []
+    bv_pending_count = 0
+    ndf_pending_count = 0
+    ndf_pending_sum = 0
+    ndf_waiting_payment_count = 0
+    ndf_waiting_payment_sum = 0
     tva_history = []
-    for i in range(1, 4):
-        # Calcul de la période (ex: si aujourd'hui est Avril, i=1 -> Mars, i=2 -> Février...)
-        d = aujourd_hui
-        target_month = (d.month - i - 1) % 12 + 1
-        target_year = d.year + (d.month - i - 1) // 12
-        
-        period_str = f"{target_year}{target_month:02d}"
-        deadline_date = date(target_year + (target_month // 12), (target_month % 12) + 1, 24)
-        
-        decl = DeclarationTVA.objects.filter(periode=period_str).first()
-        status = 'not_started'
-        status_label = "En attente"
-        days_left = (deadline_date - aujourd_hui).days
-        days_late = (aujourd_hui - deadline_date).days if aujourd_hui > deadline_date else 0
-        
-        if decl and decl.finalisee:
-            status = 'done'
-            status_label = "TVA faite"
-        elif aujourd_hui > deadline_date:
-            status = 'late'
-            status_label = f"Retard: {days_late}j"
-        elif days_left <= 10:
-            status = 'urgent'
-            status_label = f"Plus que {days_left}j"
-        
-        # Libellé du mois à déclarer (ex: "Mars 2026")
-        months_fr = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
-        period_label = f"{months_fr[target_month-1]} {target_year}"
+    urssaf_history = []
 
-        tva_history.append({
-            'period': period_str,
-            'label': period_label,
-            'month': target_month,
-            'year': target_year,
-            'deadline': deadline_date,
-            'decl': decl,
-            'status': status,
-            'status_label': status_label,
-            'days_left': days_left,
-            'days_late': days_late,
-            # Résumé financier
-            'amount': decl.ligne_27 if decl and decl.ligne_27 > 0 else (decl.ligne_32 if decl else 0),
-            'is_credit': decl and decl.ligne_27 > 0,
-        })
+    if perms.get('dashboard_show_kpi_global'):
+        ventes_mois = FactureVente.objects.filter(date_operation__year=annee_courante, date_operation__month=mois_courant)
+        achats_mois = FactureAchat.objects.filter(date_operation__year=annee_courante, date_operation__month=mois_courant)
+        bv_mois = BulletinVersement.objects.filter(date_operation__year=annee_courante, date_operation__month=mois_courant)
+        
+        ca_mois = ventes_mois.aggregate(total=Sum('montant_ttc'))['total'] or 0
+        depenses_mois = achats_mois.aggregate(total=Sum('montant_ttc'))['total'] or 0
+        nb_ventes = ventes_mois.count()
+        nb_achats = achats_mois.count()
+        nb_bv = bv_mois.count()
+        ops_pending_count = Operation.objects.filter(statut='pending').count()
+        bv_pending = BulletinVersement.objects.filter(operation__isnull=True).order_by('-date_emission')[:10]
+        bv_pending_count = BulletinVersement.objects.filter(operation__isnull=True).count()
 
-    ca_mois = sum(v.montant_ttc for v in ventes_mois) or 0
-    depenses_mois = sum(a.montant_ttc for a in achats_mois) or 0
-    tva_collectee = sum(v.montant_tva for v in ventes_mois) or 0
-    tva_deductible = sum(a.montant_tva for a in achats_mois) or 0
+    if perms.get('dashboard_show_kpi_ndf_admin'):
+        ndf_pending_count = DemandeNDF.objects.filter(statut='pending').count()
+        from finance.models import LigneNDF
+        ndf_pending_sum = LigneNDF.objects.filter(demande__statut='pending').aggregate(total=Sum('montant_ttc'))['total'] or 0
+        ndf_waiting_payment_count = DemandeNDF.objects.filter(statut='waiting_payment').count()
+        ndf_waiting_payment_sum = LigneNDF.objects.filter(demande__statut='waiting_payment').aggregate(total=Sum('montant_ttc'))['total'] or 0
+
+    if perms.get('dashboard_show_tva_urssaf'):
+        # --- Gestion URSSAF Dashboard ---
+        for i in range(1, 4):
+            d = aujourd_hui
+            target_month = (d.month - i - 1) % 12 + 1
+            target_year = d.year + (d.month - i - 1) // 12
+            period_str = f"{target_year}{target_month:02d}"
+            deadline_date = date(target_year + (target_month // 12), (target_month % 12) + 1, 15)
+            bvs = BulletinVersement.objects.filter(date_envoi__year=target_year, date_envoi__month=target_month)
+            participants = bvs.values('intervenant_nom', 'intervenant_prenom').distinct().count()
+            total_assiette = bvs.aggregate(total=Sum('assiette'))['total'] or 0
+            total_cotis = bvs.aggregate(total=Sum(models.F('total_junior') + models.F('total_etudiant')))['total'] or 0
+            decl = DeclarationURSSAF.objects.filter(periode=period_str).first()
+            status = 'not_started'
+            status_label = "En attente"
+            if decl and decl.finalisee:
+                status = 'done'; status_label = "BRC déclaré"
+            elif aujourd_hui > deadline_date:
+                status = 'late'; status_label = f"Retard: {(aujourd_hui - deadline_date).days}j"
+            
+            months_fr = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+            urssaf_history.append({
+                'period': period_str, 'label': f"{months_fr[target_month-1]} {target_year}", 'deadline': deadline_date,
+                'decl': decl, 'status': status, 'status_label': status_label,
+                'participants': participants, 'assiette': round(total_assiette), 'cotisations': round(total_cotis),
+            })
+
+        # --- Gestion TVA Dashboard ---
+        for i in range(1, 4):
+            d = aujourd_hui
+            target_month = (d.month - i - 1) % 12 + 1
+            target_year = d.year + (d.month - i - 1) // 12
+            period_str = f"{target_year}{target_month:02d}"
+            deadline_date = date(target_year + (target_month // 12), (target_month % 12) + 1, 24)
+            decl = DeclarationTVA.objects.filter(periode=period_str).first()
+            status = 'not_started'; status_label = "En attente"
+            if decl and decl.finalisee:
+                status = 'done'; status_label = "TVA faite"
+            elif aujourd_hui > deadline_date:
+                status = 'late'; status_label = f"Retard: {(aujourd_hui - deadline_date).days}j"
+            months_fr = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+            tva_history.append({
+                'period': period_str, 'label': f"{months_fr[target_month-1]} {target_year}", 'deadline': deadline_date,
+                'decl': decl, 'status': status, 'status_label': status_label,
+                'amount': decl.ligne_27 if decl and decl.ligne_27 > 0 else (decl.ligne_32 if decl else 0),
+                'is_credit': decl and decl.ligne_27 > 0,
+            })
 
     return render(request, 'dashboard.html', {
         'ca_mois': ca_mois,
         'depenses_mois': depenses_mois,
-        'tva_collectee': tva_collectee,
-        'tva_deductible': tva_deductible,
-        'tva_nette': tva_collectee - tva_deductible,
-        'nb_ventes': ventes_mois.count(),
-        'nb_achats': achats_mois.count(),
-        'nb_bv': bv_mois.count(),
+        'nb_ventes': nb_ventes,
+        'nb_achats': nb_achats,
+        'nb_bv': nb_bv,
         'ops_pending': ops_pending_count,
         'bv_pending': bv_pending,
         'bv_pending_count': bv_pending_count,
-        'mois_courant': mois_courant,
-        'annee_courante': annee_courante,
-        'tva_history': tva_history,
         'urssaf_history': urssaf_history,
-        'aujourd_hui': aujourd_hui,
+        'tva_history': tva_history,
         'ndf_pending_count': ndf_pending_count,
         'ndf_pending_sum': ndf_pending_sum,
         'ndf_waiting_payment_count': ndf_waiting_payment_count,
         'ndf_waiting_payment_sum': ndf_waiting_payment_sum,
+        'user_ndf': user_ndf_summary,
+        'aujourd_hui': aujourd_hui,
     })
 
 

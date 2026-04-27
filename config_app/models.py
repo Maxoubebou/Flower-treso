@@ -193,3 +193,42 @@ class SignatureConfiguration(models.Model):
 
     def __str__(self):
         return "Configuration des Signatures"
+
+class PostePermission(models.Model):
+    """Définition des droits d'accès par poste."""
+    nom = models.CharField(max_length=100, unique=True)
+    is_default = models.BooleanField(default=False, help_text="Poste attribué aux emails non répertoriés")
+    
+    # Pages
+    can_access_ventes = models.BooleanField(default=False)
+    can_access_achats = models.BooleanField(default=False)
+    can_access_operations = models.BooleanField(default=False)
+    can_access_ndf_admin = models.BooleanField(default=False)
+    can_access_etudes = models.BooleanField(default=False)
+    can_access_budget = models.BooleanField(default=False)
+    can_access_settings = models.BooleanField(default=False)
+    
+    # Dashboard
+    dashboard_show_kpi_global = models.BooleanField(default=False, help_text="CA, Dépenses, BV, Ops en attente")
+    dashboard_show_kpi_ndf_admin = models.BooleanField(default=False, help_text="NDF à valider, à payer, etc.")
+    dashboard_show_personal_ndf = models.BooleanField(default=True, help_text="Bloc 'Mes Notes de Frais' personnel")
+    dashboard_show_tva_urssaf = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Poste et Permissions"
+        verbose_name_plural = "Postes et Permissions"
+
+    def __str__(self):
+        return self.nom
+
+class UserPoste(models.Model):
+    """Association d'un email à un poste spécifique."""
+    email = models.EmailField(unique=True)
+    poste = models.ForeignKey(PostePermission, on_delete=models.CASCADE, related_name='utilisateurs')
+
+    class Meta:
+        verbose_name = "Accès Utilisateur"
+        verbose_name_plural = "Accès Utilisateurs"
+
+    def __str__(self):
+        return f"{self.email} -> {self.poste.nom}"

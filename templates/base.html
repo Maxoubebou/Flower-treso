@@ -43,11 +43,14 @@
         <i data-lucide="layout-dashboard" width="17" height="17"></i>
         <span>Dashboard</span>
       </a>
+      {% if user_perms.can_access_budget %}
       <a href="{% url 'budget:dashboard' %}"
          class="nav-item {% if 'budget' in request.path %}active{% endif %}">
         <i data-lucide="pie-chart" width="17" height="17"></i>
         <span>Gestion Budget</span>
       </a>
+      {% endif %}
+      {% if user_perms.can_access_operations %}
       <a href="{% url 'operations:process_list' %}" class="nav-item {% if request.resolver_match.view_name == 'operations:process_list' or request.resolver_match.view_name == 'operations:process_operation' %}active{% endif %}">
         <i data-lucide="list-checks" width="17" height="17"></i>
         <span>Traitement</span>
@@ -55,23 +58,33 @@
         <span class="nav-badge">{{ pending_count }}</span>
         {% endif %}
       </a>
+      {% endif %}
+      {% if user_perms.can_access_etudes %}
       <a href="{% url 'finance:etudes_list' %}" class="nav-item {% if 'etudes' in request.path %}active{% endif %}">
         <i data-lucide="folder-open" width="17" height="17"></i>
         <span>Études</span>
       </a>
+      {% endif %}
     </div>
+
+    {% if user_perms.can_access_ventes or user_perms.can_access_achats or user_perms.can_access_ndf_admin %}
     <div class="sidebar-section">
       <div class="sidebar-section-title"><span>Comptabilité</span></div>
+      {% if user_perms.can_access_ventes %}
       <a href="{% url 'finance:ventes_list' %}"
          class="nav-item {% if 'ventes' in request.path %}active{% endif %}">
         <i data-lucide="receipt" width="17" height="17"></i>
         <span>Ventes</span>
       </a>
+      {% endif %}
+      {% if user_perms.can_access_achats %}
       <a href="{% url 'finance:achats_list' %}"
          class="nav-item {% if 'achats' in request.path %}active{% endif %}">
         <i data-lucide="shopping-bag" width="17" height="17"></i>
         <span>Achats</span>
       </a>
+      {% endif %}
+      {% if user_perms.can_access_ndf_admin %}
       <a href="{% url 'finance:bv_list' %}"
          class="nav-item {% if '/bv/' in request.path %}active{% endif %}">
         <i data-lucide="users" width="17" height="17"></i>
@@ -82,12 +95,16 @@
         <i data-lucide="file-check" width="17" height="17"></i>
         <span>Notes de frais</span>
       </a>
+      {% endif %}
+      {% if user_perms.can_access_operations %}
       <a href="{% url 'finance:ignored_operations_list' %}"
          class="nav-item {% if 'operations-ignorees' in request.path %}active{% endif %}">
         <i data-lucide="arrow-left-right" width="17" height="17"></i>
         <span>Virements internes</span>
       </a>
+      {% endif %}
     </div>
+    {% endif %}
 
     <div class="sidebar-section">
       <div class="sidebar-section-title"><span>Génération</span></div>
@@ -96,15 +113,17 @@
         <i data-lucide="file-edit" width="17" height="17"></i>
         <span>Soumettre une NDF</span>
       </a>
+      {% if user_perms.can_access_ndf_admin %}
       <a href="{% url 'finance:bv_generation' %}"
          class="nav-item {% if 'bv/generation' in request.path %}active{% endif %}">
         <i data-lucide="file-plus" width="17" height="17"></i>
         <span>Génération de BV</span>
       </a>
+      {% endif %}
     </div>
 
+    {% if user_perms.dashboard_show_tva_urssaf %}
     <div class="sidebar-section">
-
       <div class="sidebar-section-title"><span>Reporting</span></div>
       <a href="{% url 'reporting:tva_synthese' %}"
          class="nav-item {% if 'tva' in request.path %}active{% endif %}">
@@ -112,6 +131,7 @@
         <span>Synthèse TVA</span>
       </a>
     </div>
+    {% endif %}
 
     <div class="sidebar-footer">
       <div style="display:flex; flex-direction:column; gap:8px; width:100%; padding:0 4px">
@@ -128,13 +148,15 @@
           {% endif %}
 
           <div style="display:flex; gap:4px">
+              {% if user_perms.can_access_settings %}
               <a href="{% url 'config:settings_index' %}" class="nav-item {% if 'config' in request.path %}active{% endif %}" style="flex:1; margin-bottom:0">
                 <i data-lucide="settings" width="17" height="17"></i>
                 <span class="nav-text">Paramètres</span>
               </a>
-              <form method="post" action="{% url 'account_logout' %}" style="display:inline">
+              {% endif %}
+              <form method="post" action="{% url 'account_logout' %}" style="display:inline; flex:{% if user_perms.can_access_settings %}0{% else %}1{% endif %}">
                   {% csrf_token %}
-                  <button type="submit" class="nav-item" style="border:none; background:transparent; cursor:pointer; width:auto; padding:8px 12px; margin-bottom:0; color:var(--color-danger)" title="Déconnexion">
+                  <button type="submit" class="nav-item" style="border:none; background:transparent; cursor:pointer; width:100%; padding:8px 12px; margin-bottom:0; color:var(--color-danger)" title="Déconnexion">
                       <i data-lucide="log-out" width="17" height="17"></i>
                   </button>
               </form>

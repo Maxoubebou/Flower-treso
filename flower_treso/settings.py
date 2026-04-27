@@ -54,6 +54,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'flower_treso.middleware.GlobalLoginRequiredMiddleware',
+    'config_app.middleware.RBACMiddleware',
 ]
 
 ROOT_URLCONF = 'flower_treso.urls'
@@ -78,6 +79,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'flower_treso.context_processors.global_context',
+                'config_app.context_processors.rbac_permissions',
             ],
         },
     },

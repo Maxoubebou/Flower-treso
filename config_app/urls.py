@@ -15,4 +15,10 @@ urlpatterns = [
     path('autofill-rules/create/', views.autofill_rule_create, name='autofill_rule_create'),
     path('autofill-rules/<int:pk>/delete/', views.autofill_rule_delete, name='autofill_rule_delete'),
     path('signatures/update/', views.signature_update, name='signature_update'),
+    
+    # Access Management
+    path('access/', views.access_settings, name='access_settings'),
+    path('access/user/add/', views.user_poste_add, name='user_poste_add'),
+    path('access/user/<int:pk>/delete/', views.user_poste_delete, name='user_poste_delete'),
+    path('access/poste/save/', views.poste_save, name='poste_save'),
 ]
