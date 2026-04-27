@@ -10,11 +10,11 @@
 <div class="outlook-container">
     <aside class="outlook-sidebar card">
         <div class="sidebar-header p-0">
-            <div class="flex border-b">
-                <a href="?tab=pending" class="flex-1 py-3 text-center text-[10px] uppercase tracking-widest font-bold transition-colors {% if current_tab == 'pending' %}bg-primary/5 text-primary border-b-2 border-primary{% else %}text-muted hover:bg-gray-50{% endif %}">
+            <div class="flex border-b border-gray-200/50">
+                <a href="?tab=pending" class="flex-1 py-3 text-center text-[9px] uppercase tracking-widest font-bold transition-colors {% if current_tab == 'pending' %}bg-primary/5 text-primary border-b-2 border-primary{% else %}text-muted hover:bg-gray-50{% endif %}">
                     À valider ({{ count_pending }})
                 </a>
-                <a href="?tab=waiting_payment" class="flex-1 py-3 text-center text-[10px] uppercase tracking-widest font-bold transition-colors {% if current_tab == 'waiting_payment' %}bg-primary/5 text-primary border-b-2 border-primary{% else %}text-muted hover:bg-gray-50{% endif %}">
+                <a href="?tab=waiting_payment" class="flex-1 py-3 text-center text-[9px] uppercase tracking-widest font-bold transition-colors {% if current_tab == 'waiting_payment' %}bg-primary/5 text-primary border-b-2 border-primary{% else %}text-muted hover:bg-gray-50{% endif %}">
                     En attente paiement ({{ count_waiting_payment }})
                 </a>
             </div>
@@ -67,28 +67,27 @@
         {% for ndf in demandes %}
         <div id="ndf-details-{{ ndf.id }}" class="ndf-detail-panel hidden h-full">
             <div class="card h-full flex flex-col overflow-hidden">
-                <div class="card-header bg-white py-6 px-8">
-                    <div class="flex flex-row items-start gap-16">
-                        
+                <div class="card-header bg-white py-6 px-8 flex justify-between items-start">
+                    <div class="flex flex-row items-start gap-8">
                         <div class="flex flex-col">
                             {% if ndf.user_obj.socialaccount_set.first.get_avatar_url %}
                                 <img src="{{ ndf.user_obj.socialaccount_set.first.get_avatar_url }}" 
-                                    class="w-12 h-12 rounded-full">
+                                    class="w-10 h-10 rounded-full">
                             {% else %}
-                                <div class="w-12 h-12 rounded-full text-primary font-bold bg-primary/10 flex items-center justify-center">
+                                <div class="w-10 h-10 rounded-full text-primary font-bold bg-primary/10 flex items-center justify-center">
                                     {{ ndf.prenom_beneficiaire|slice:":1" }}
                                 </div>
                             {% endif %}
                         </div>
 
                         <div class="flex flex-col">
-                            <div class="text-xl font-bold">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
-                            <div class="flex gap-2 mt-1">
-                                <div class="badge {% if ndf.statut == 'pending' %}badge-warning{% elif ndf.statut == 'needs_info' %}badge-info{% elif ndf.statut == 'waiting_payment' %}badge-primary{% endif %} text-[10px] uppercase font-bold px-2 py-0.5 w-fit">
+                            <div class="text-lg font-bold">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
+                            <div class="flex gap-2 mt-0.5">
+                                <div class="badge {% if ndf.statut == 'pending' %}badge-warning{% elif ndf.statut == 'needs_info' %}badge-info{% elif ndf.statut == 'waiting_payment' %}badge-primary{% endif %} text-[9px] uppercase font-bold px-2 py-0.5 w-fit">
                                     {{ ndf.get_statut_display }}
                                 </div>
-                                {% if ndf.facture_achat %}
-                                <div class="text-[10px] font-mono font-bold text-muted bg-gray-100 px-2 py-0.5 rounded">
+                                {% if ndf.facture_achat and ndf.statut != 'waiting_payment' %}
+                                <div class="text-[9px] font-mono font-bold text-muted bg-gray-100 px-2 py-0.5 rounded">
                                     {{ ndf.facture_achat.numero }}
                                 </div>
                                 {% endif %}
@@ -97,32 +96,50 @@
 
                         <div class="flex flex-col">
                             <div class="flex items-center gap-4">
-                                <div class="text-xl font-bold cursor-pointer hover:bg-gray-50 px-2 -mx-2 rounded transition-colors group" 
-                                     onclick="editLibelle('{{ ndf.id }}', this)">
+                                <div class="text-lg font-bold {% if ndf.statut != 'waiting_payment' %}cursor-pointer hover:bg-gray-50 group px-2 -mx-2 transition-colors{% endif %} rounded" 
+                                     {% if ndf.statut != 'waiting_payment' %}onclick="editLibelle('{{ ndf.id }}', this)"{% endif %}>
                                     <span id="libelle-display-{{ ndf.id }}">{{ ndf.libelle|default:"Sans titre" }}</span>
+                                    {% if ndf.statut != 'waiting_payment' %}
                                     <i data-lucide="edit-3" class="inline-block ml-2 opacity-0 group-hover:opacity-40" width="14" height="14"></i>
+                                    {% endif %}
                                 </div>
-                                {% if ndf.statut != 'pending' %}
+                                {% if ndf.statut != 'pending' and ndf.statut != 'waiting_payment' %}
                                 <a href="{% url 'finance:ndf_download_pdf' ndf.pk %}" class="btn btn-ghost btn-sm text-primary" target="_blank" title="Générer PDF">
                                     <i data-lucide="printer" width="16" height="16"></i>
                                 </a>
                                 {% endif %}
                             </div>
-                            <div class="text-sm text-muted">{{ ndf.get_type_frais_display }}</div>
+                            <div class="text-[11px] text-muted">{{ ndf.get_type_frais_display }}</div>
                         </div>
 
                         <div class="flex flex-col">
-                            <div class="text-xl font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</div>
-                            <div class="flex items-center gap-4">
-                                <span class="text-sm text-muted" id="rib-text-{{ ndf.id }}">
+                            <div class="text-lg font-bold text-primary">{{ ndf.lignes.all|sum_ttc|floatformat:2 }} €</div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-muted font-mono" id="rib-text-{{ ndf.id }}">
                                     {{ ndf.rib_beneficiaire }}
                                 </span>
-                                <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)" class="text-sm text-muted hover:text-primary transition-colors">
-                                    <i data-lucide="copy" width="16" height="16"></i>
+                                <button onclick="copyRIBById('rib-text-{{ ndf.id }}', this)" class="text-muted hover:text-primary transition-colors">
+                                    <i data-lucide="copy" width="14" height="14"></i>
                                 </button>
                             </div>
                         </div>
                     </div>
+
+                    {% if ndf.statut == 'waiting_payment' %}
+                    <div class="flex items-center gap-3">
+                        <form method="post" action="{% url 'finance:ndf_unvalidate' ndf.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline btn-sm text-[11px]" onclick="return confirm('Dévalider cette NDF pour corriger les informations ?')">
+                                <i data-lucide="edit-2" width="14" height="14"></i>
+                                Modifier
+                            </button>
+                        </form>
+                        <a href="{% url 'finance:ndf_download_pdf' ndf.pk %}" target="_blank" class="btn btn-primary btn-sm flex items-center gap-2 text-[11px]">
+                            <i data-lucide="download" width="14" height="14"></i>
+                            Télécharger la NDF (PDF)
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="flex-1 flex overflow-hidden">
@@ -143,6 +160,7 @@
                                             <label class="form-label text-[0.65rem] uppercase text-muted">Distance (km)</label>
                                             <input type="number" step="0.01" name="l_distance" value="{{ ligne.distance_km|stringformat:'.2f' }}" 
                                                     class="form-control form-control-sm font-mono font-bold"
+                                                    {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}
                                                     oninput="recomputeIK(this, '{{ param_ndf.montant_ik|default:0.45|stringformat:'.4f' }}')">
                                         </div>
                                         <div class="form-group mb-0">
@@ -172,15 +190,18 @@
                                             <tr>
                                                 <td class="py-2 px-2">
                                                     <input type="text" name="l_libelle" value="{{ ligne.libelle }}" 
-                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors truncate">
+                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors truncate"
+                                                           {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}>
                                                 </td>
                                                 <td class="py-2 px-2">
                                                     <input type="number" step="0.01" name="l_ttc" value="{{ ligne.montant_ttc|stringformat:'.2f' }}" 
-                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono ">
+                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono"
+                                                           {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}>
                                                 </td>
                                                 <td class="py-2 px-2">
                                                     <input type="number" step="0.01" name="l_tva" value="{{ ligne.taux_tva|stringformat:'.1f' }}" 
-                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono">
+                                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white transition-colors text-right font-mono"
+                                                           {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}>
                                                 </td>
                                             </tr>
                                             {% endfor %}
@@ -193,26 +214,29 @@
                                 {% if ndf.commentaire_demandeur %}
                                 <div class="form-group mb-0">
                                     <label class="form-label text-xs uppercase text-muted">Commentaire Demandeur</label>
-                                    <textarea class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted">{{ ndf.commentaire_demandeur }}</textarea>
+                                    <textarea class="form-control form-control-sm border-transparent bg-transparent font-mono text-muted" {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}>{{ ndf.commentaire_demandeur }}</textarea>
                                 </div>
                                 {% endif %}
 
                                 <div class="form-group mb-0">
                                     <label class="form-label text-xs uppercase text-muted">Commentaire Trésorier</label>
-                                    <textarea name="commentaire_tresorier" class="form-control" rows="2" placeholder="Notes internes..."></textarea>
+                                    <textarea name="commentaire_tresorier" class="form-control" rows="2" placeholder="Notes internes..." {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}></textarea>
                                 </div>
                             </div>
 
                             <div class="pt-5 space-y-4">
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-group mb-0">
-                                        <label class="form-label text-[0.65rem] uppercase text-muted">Lien Drive <span class="required">*</span></label>
-                                        <input type="url" name="lien_drive" class="form-control form-control-sm" placeholder="https://..." required>
+                                        <label class="form-label text-[0.65rem] uppercase text-muted">Lien Drive Preuve</label>
+                                        <input type="url" name="lien_drive" class="form-control form-control-sm" placeholder="https://..." 
+                                               value="{{ ndf.facture_achat.lien_drive|default:'' }}"
+                                               {% if ndf.statut == 'waiting_payment' %}disabled{% endif %} required>
                                     </div>
                                     <div class="form-group mb-0">
                                         <label class="form-label text-[0.65rem] uppercase text-muted">Référence Facture</label>
                                         <input type="text" name="reference_facture" class="form-control form-control-sm font-mono" 
                                                placeholder="NF-..." value="{{ suggested_ref }}"
+                                               {% if ndf.statut == 'waiting_payment' %}disabled{% endif %}
                                                oninput="if(!this.value.startsWith('NF-')) this.value = 'NF-' + this.value.replace('NF-', '')">
                                     </div>
                                 </div>

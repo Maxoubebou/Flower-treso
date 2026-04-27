@@ -1421,6 +1421,22 @@ def ndf_request_info(request, pk):
     messages.info(request, f"Des précisions ont été demandées pour la NDF #{ndf.id}.")
     return redirect('finance:ndf_manage')
 
+@require_POST
+def ndf_unvalidate(request, pk):
+    """Annule la validation d'une NDF (repasse en pending et supprime la FactureAchat)."""
+    ndf = get_object_or_404(DemandeNDF, pk=pk)
+    if ndf.statut == 'waiting_payment':
+        fa = ndf.facture_achat
+        ndf.facture_achat = None
+        ndf.statut = 'pending'
+        ndf.save()
+        if fa:
+            fa.delete()
+        messages.success(request, "La validation a été annulée. La demande est de nouveau modifiable.")
+    else:
+        messages.error(request, "Seules les demandes en attente de paiement peuvent être dévalidées.")
+    return redirect('finance:ndf_manage')
+
 
 @require_POST
 def ndf_validate(request, pk):
