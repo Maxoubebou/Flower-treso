@@ -1359,7 +1359,8 @@ def ndf_submit(request, pk=None):
                     montants_ttc = request.POST.getlist('l_montant_ttc')
                     taux_tvas = request.POST.getlist('l_taux_tva')
 
-                    for i in range(len(libelles)):
+                    num_lines = min(len(libelles), len(montants_ttc), len(taux_tvas))
+                    for i in range(num_lines):
                         if not libelles[i]: continue
                         ttc = to_decimal(montants_ttc[i])
                         taux = to_decimal(taux_tvas[i])
@@ -1400,14 +1401,14 @@ def ndf_manage(request):
     current_tab = request.GET.get('tab', 'pending')
     
     # Échantillonnage pour les compteurs
-    count_pending = DemandeNDF.objects.filter(statut__in=['pending', 'needs_info']).count()
+    count_pending = DemandeNDF.objects.filter(statut='pending').count()
     count_waiting = DemandeNDF.objects.filter(statut='waiting_payment').count()
     
     if current_tab == 'waiting_payment':
         demandes = DemandeNDF.objects.filter(statut='waiting_payment')
     else:
-        # pending et needs_info sont dans le premier onglet
-        demandes = DemandeNDF.objects.filter(statut__in=['pending', 'needs_info'])
+        # Seules les demandes prêtes à valider sont visibles (celles à corriger sont cachées)
+        demandes = DemandeNDF.objects.filter(statut='pending')
         
     demandes = demandes.prefetch_related('lignes', 'justificatifs', 'facture_achat').order_by('date_soumission')
     
