@@ -1269,6 +1269,24 @@ def ndf_submit(request, pk=None):
                 ndf.statut = 'pending'
                 ndf.save()
 
+                # 0. Gestion des anciens justificatifs (Edit mode)
+                if obj:
+                    for j in obj.justificatifs.all():
+                        # Renommage/Label
+                        new_label = request.POST.get(f'existing_label_{j.id}')
+                        if new_label is not None:
+                             j.label_personnalise = new_label
+                             j.save()
+                        
+                        # Remplacement du fichier
+                        if f'replace_doc_{j.id}' in request.FILES:
+                            j.fichier = request.FILES[f'replace_doc_{j.id}']
+                            j.save()
+
+                        # Suppression
+                        if request.POST.get(f'delete_doc_{j.id}'):
+                            j.delete()
+
                 # Si on modifie, on peut vouloir gérer les anciens justificatifs
                 # Ici : on ajoute les nouveaux. Les anciens restent (ou on pourrait les purger si besoin)
                 # Mais le user peut vouloir juste RAJOUTER. 

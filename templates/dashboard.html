@@ -4,6 +4,8 @@
 {% block title %}Dashboard — Flower-Tréso{% endblock %}
 {% block page_title %}Tableau de bord 📊{% endblock %}
 
+{%block date_filters%}{%endblock%}
+
 {% block content %}
 <div id="dashboard-content">
 {% now "F Y" as periode_label %}
@@ -129,7 +131,8 @@
             <thead>
                 <tr>
                     <th>Date / Libellé</th>
-                    <th>Statut / Info Trésorier</th>
+                    <th>Statut</th>
+                    <th>Retours Trésorier</th>
                     <th class="text-right">Action</th>
                 </tr>
             </thead>
@@ -141,22 +144,21 @@
                         <div class="font-bold text-gray-900">{{ ndf.libelle|default:"Sans titre" }}</div>
                     </td>
                     <td>
-                        <div class="flex flex-col gap-2">
-                            <div>
-                                {% if ndf.statut == 'pending' %}<span class="badge badge-warning">En attente</span>
-                                {% elif ndf.statut == 'needs_info' %}<span class="badge badge-info">À compléter</span>
-                                {% elif ndf.statut == 'waiting_payment' %}<span class="badge badge-primary">Validée</span>
-                                {% elif ndf.statut == 'completed' %}<span class="badge badge-success">Payée</span>
-                                {% elif ndf.statut == 'rejected' %}<span class="badge badge-danger">Rejetée</span>
-                                {% endif %}
-                            </div>
-                            {% if ndf.commentaire_tresorier %}
-                            <div class="text-xs italic text-muted max-w-xs bg-gray-50 p-2 rounded border-l-2 border-primary/20">
-                                <i data-lucide="message-circle" width="12" class="inline opacity-50 mr-1"></i>
-                                "{{ ndf.commentaire_tresorier }}"
-                            </div>
-                            {% endif %}
-                        </div>
+                        {% if ndf.statut == 'pending' %}<span class="badge badge-warning">En attente</span>
+                        {% elif ndf.statut == 'needs_info' %}<span class="badge" style="background-color: #fee2e2; color: #ef4444; border: 1px solid #fecaca;">À compléter</span>
+                        {% elif ndf.statut == 'waiting_payment' %}<span class="badge badge-primary">Validée</span>
+                        {% elif ndf.statut == 'completed' %}<span class="badge badge-success">Payée</span>
+                        {% elif ndf.statut == 'rejected' %}<span class="badge badge-danger">Rejetée</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ndf.commentaire_tresorier %}
+                          <div class="flex-1">
+                              <p class="text-sm">
+                                  "{{ ndf.commentaire_tresorier }}"
+                              </p>
+                          </div>
+                        {% endif %}
                     </td>
                     <td class="text-right">
                         <div class="flex justify-end gap-3">

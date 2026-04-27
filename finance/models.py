@@ -251,7 +251,7 @@ class DemandeNDF(models.Model):
     """Demande de Note de Frais par un membre."""
     STATUT_CHOICES = [
         ('pending', 'En attente'),
-        ('needs_info', 'À compléter'),
+        ('needs_info', 'À corriger'),
         ('waiting_payment', 'En attente de paiement'),
         ('approved', 'Validée'),
         ('completed', 'Traitée et Payée'),

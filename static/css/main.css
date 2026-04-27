@@ -401,7 +401,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 16px;
+  padding: 30px 30px;
   border-radius: var(--radius);
   font-family: var(--font);
   font-size: .85rem;
@@ -632,8 +632,9 @@ table.data-table {
 }
 
 /* Alignement montants */
-.text-right { text-align: right; }
-.text-center { text-align: center; }
+.text-right { text-align: right !important; }
+.text-center { text-align: center !important; }
+.text-left { text-align: left !important; }
 .font-mono { font-family: 'Menlo', 'Monaco', 'Courier New', monospace; }
 
 /* Table utility classes */
@@ -953,6 +954,12 @@ table.data-table {
 .py-6 { padding-top: 24px; padding-bottom: 24px; }
 .px-2 { padding-left: 8px; padding-right: 8px; }
 .px-4 { padding-left: 16px; padding-right: 16px; }
+.px-6 { padding-left: 24px; padding-right: 24px; }
+.px-8 { padding-left: 32px; padding-right: 32px; }
+.px-10 { padding-left: 40px; padding-right: 40px; }
+.px-12 { padding-left: 48px; padding-right: 48px; }
+.px-14 { padding-left: 56px; padding-right: 56px; }
+.px-16 { padding-left: 64px; padding-right: 64px; }
 .text-xl { font-size: 1.25rem; }
 .text-lg { font-size: 1.1rem; }
 .text-md { font-size: 1rem; }
@@ -965,6 +972,17 @@ table.data-table {
 .text-warning { color: #f97316; }
 .text-success { color: var(--color-success); }
 .text-primary { color: var(--color-primary); }
+.text-red-50 { color: #fef2f2; }
+.text-red-100 { color: #fee2e2; }
+.text-red-200 { color: #fecaca; }
+.text-red-300 { color: #fca5a5; }
+.text-red-400 { color: #f87171; }
+.text-red-500 { color: #ef4444; }
+.text-red-600 { color: #dc2626; }
+.text-red-700 { color: #b91c1c; }
+.text-red-800 { color: #991b1b; }
+.text-red-900 { color: #7f1d1d; }
+.text-red-950 { color: #450a0a; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .divider { height: 1px; background: var(--color-gray-200); margin: 20px 0; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -1444,7 +1462,7 @@ dialog::backdrop {
 }
 
 .btn-xs {
-  padding: 2px 6px !important;
+  padding: 15px 15px !important;
   font-size: 0.7rem !important;
 }
 
@@ -1976,3 +1994,13 @@ dialog::backdrop {
 
 /* ─── Utilities ──────────────────────────────────────────── */
 .hidden { display: none !important; }
+
+/* ─── Animations ─────────────────────────────────────────── */
+@keyframes pulseSubtle {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.01); opacity: 0.95; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pulse-subtle {
+  animation: pulseSubtle 3s infinite ease-in-out;
+}

@@ -56,12 +56,9 @@
                     </div>
 
                     {% if ndf.commentaire_tresorier %}
-                    <div class="p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
-                        <div class="flex items-center gap-2 text-blue-800 font-bold text-xs uppercase tracking-widest mb-1">
-                            <i data-lucide="message-circle" width="14"></i>
-                            Commentaire du Trésorier
-                        </div>
-                        <p class="text-sm text-blue-900 italic">"{{ ndf.commentaire_tresorier }}"</p>
+                    <div class="flex flex-col w-full p-4" style="border: 1px solid var(--color-danger); border-radius: var(--radius);">
+                        <label class="form-label text-sm uppercase text-muted tracking-widest mb-2">Commentaires du trésorier</label>
+                        <div>{{ ndf.commentaire_tresorier }}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -120,13 +117,34 @@
                     </div>
                     <div id="extra-files-container"></div>
                     {% if ndf %}
-                    <div class="mt-4 p-4 bg-gray-50 border border-dashed border-gray-300 rounded-xl">
-                        <label class="form-label text-[10px] uppercase text-muted tracking-widest mb-2 block">Justificatifs déjà envoyés</label>
-                        <div class="flex flex-wrap gap-2">
+                    <div>
+                        <label class="form-label text-xs text-muted mb-0">Justificatifs déjà envoyés</label>
+                        <div class="space-y-0">
                             {% for j in ndf.justificatifs.all %}
-                            <div class="badge bg-white border border-gray-200 text-gray-600 px-3 py-1 flex items-center gap-2">
-                                <i data-lucide="file" width="12"></i>
-                                {{ j.label_personnalise|default:j.type_pièce }}
+                            <div class="flex items-center gap-4 py-3 hover:bg-gray-50/30">
+                                <div class="flex-1">
+                                    <input type="text" name="existing_label_{{ j.id }}" 
+                                           value="{{ j.label_personnalise|default:'' }}" 
+                                           class="form-control form-control-sm border-transparent bg-transparent hover:bg-white focus:bg-white text-xs font-bold"
+                                           placeholder="{{ j.type_pièce }} (Renommer...)">
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ j.fichier.url }}" target="_blank" class="btn btn-outline btn-xs">
+                                        <i data-lucide="external-link" width="12"></i>
+                                        Voir le document
+                                    </a>
+                                    
+                                    <label class="btn btn-outline btn-xs">
+                                        <input type="file" name="replace_doc_{{ j.id }}" class="hidden" onchange="this.parentElement.classList.add('bg-primary/10', 'text-primary')">
+                                        <i data-lucide="upload-cloud" width="12"></i>
+                                        Remplacer
+                                    </label>
+
+                                    <label class="text-red-500" title="Supprimer">
+                                        <input type="checkbox" name="delete_doc_{{ j.id }}" class="hidden" onchange="this.parentElement.classList.toggle('bg-red-100', this.checked); this.parentElement.classList.toggle('rounded-lg', this.checked)">
+                                        <i data-lucide="trash-2" width="16"></i>
+                                    </label>
+                                </div>
                             </div>
                             {% endfor %}
                         </div>
@@ -203,7 +221,7 @@
                             </tr>
                         </tbody>
                         <tfoot>
-                             <tr class="bg-gray-50 font-bold border-t-2 border-gray-200">
+                             <tr class="bg-gray-50 font-bold">
                                 <td class="text-right pr-4">Résumé</td>
                                 <td id="total-achat-ttc" class="font-mono text-primary">0.00 €</td>
                                 <td id="summary-tva-type" class="text-xs text-muted">Taux: 20%</td>
@@ -375,7 +393,7 @@ function addAchatRow(libelle = "", ttc = "", taux = "20") {
 function addExtraFile() {
     const container = document.getElementById('extra-files-container');
     const div = document.createElement('div');
-    div.className = "flex gap-4 items-end mb-4 p-3 bg-gray-50/50 rounded-lg border border-gray-100";
+    div.className = "flex gap-4 items-end mb-4 p-3 bg-gray-50/50 rounded-lg";
     div.innerHTML = `
         <div class="flex-1">
             <label class="form-label text-[10px] text-muted uppercase">Fichier</label>
