@@ -177,10 +177,11 @@
               <a href="{% url 'finance:achat_edit' f.pk %}" class="btn btn-ghost btn-sm" style="padding:4px 6px" title="Modifier">
                 <i data-lucide="edit-2" width="14" height="14"></i>
               </a>
+
               {% if f.operation %}
               <a href="{% url 'operations:operation_delete' f.operation.pk %}?next={{ request.get_full_path|urlencode }}"
                  class="btn btn-ghost btn-sm text-danger" style="padding:4px 6px"
-                 onclick="return confirm('Supprimer l\'opération bancaire ET cette facture ?')"
+                 onclick="return confirm('Attention : cette facture est liée à une opération bancaire. Supprimer l\'opération ET la facture ?')"
                  title="Supprimer">
                 <i data-lucide="trash-2" width="14" height="14"></i>
               </a>

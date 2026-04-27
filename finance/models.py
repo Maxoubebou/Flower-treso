@@ -251,6 +251,7 @@ class DemandeNDF(models.Model):
     """Demande de Note de Frais par un membre."""
     STATUT_CHOICES = [
         ('pending', 'En attente'),
+        ('needs_info', 'À compléter'),
         ('waiting_payment', 'En attente de paiement'),
         ('approved', 'Validée'),
         ('completed', 'Traitée et Payée'),
@@ -290,6 +291,7 @@ class JustificatifNDF(models.Model):
     demande = models.ForeignKey(DemandeNDF, on_delete=models.CASCADE, related_name='justificatifs')
     fichier = models.FileField(upload_to='preuve_NDF/')
     nom_original = models.CharField(max_length=255, blank=True)
+    label_personnalise = models.CharField(max_length=255, blank=True, verbose_name="Nom personnalisé")
     type_pièce = models.CharField(max_length=50, blank=True) # Ex: Carte Grise, Mappy, etc.
 
     def __str__(self):

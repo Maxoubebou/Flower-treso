@@ -128,35 +128,55 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Date</th>
-                    <th>Libellé</th>
-                    <th>Statut</th>
+                    <th>Date / Libellé</th>
+                    <th>Statut / Info Trésorier</th>
                     <th class="text-right">Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for ndf in user_ndf.all %}
                 <tr>
-                    <td class="text-xs">{{ ndf.date_soumission|date:"d/m/Y" }}</td>
-                    <td class="font-medium">{{ ndf.libelle|default:"Sans titre" }}</td>
+                    <td class="py-4">
+                        <div class="text-[10px] text-muted uppercase tracking-widest mb-1">{{ ndf.date_soumission|date:"d/m/Y" }}</div>
+                        <div class="font-bold text-gray-900">{{ ndf.libelle|default:"Sans titre" }}</div>
+                    </td>
                     <td>
-                        {% if ndf.statut == 'pending' %}<span class="badge badge-warning">En attente</span>
-                        {% elif ndf.statut == 'waiting_payment' %}<span class="badge badge-primary">Validée</span>
-                        {% elif ndf.statut == 'completed' %}<span class="badge badge-success">Payée</span>
-                        {% elif ndf.statut == 'rejected' %}<span class="badge badge-danger">Rejetée</span>
-                        {% endif %}
+                        <div class="flex flex-col gap-2">
+                            <div>
+                                {% if ndf.statut == 'pending' %}<span class="badge badge-warning">En attente</span>
+                                {% elif ndf.statut == 'needs_info' %}<span class="badge badge-info">À compléter</span>
+                                {% elif ndf.statut == 'waiting_payment' %}<span class="badge badge-primary">Validée</span>
+                                {% elif ndf.statut == 'completed' %}<span class="badge badge-success">Payée</span>
+                                {% elif ndf.statut == 'rejected' %}<span class="badge badge-danger">Rejetée</span>
+                                {% endif %}
+                            </div>
+                            {% if ndf.commentaire_tresorier %}
+                            <div class="text-xs italic text-muted max-w-xs bg-gray-50 p-2 rounded border-l-2 border-primary/20">
+                                <i data-lucide="message-circle" width="12" class="inline opacity-50 mr-1"></i>
+                                "{{ ndf.commentaire_tresorier }}"
+                            </div>
+                            {% endif %}
+                        </div>
                     </td>
                     <td class="text-right">
-                        {% if ndf.statut != 'pending' and ndf.statut != 'rejected' %}
-                        <a href="{% url 'finance:ndf_download_pdf' ndf.pk %}" target="_blank" class="text-primary hover:underline text-xs">
-                            <i data-lucide="download" width="12" class="inline"></i> PDF
-                        </a>
-                        {% endif %}
+                        <div class="flex justify-end gap-3">
+                            {% if ndf.statut == 'needs_info' %}
+                            <a href="{% url 'finance:ndf_edit' ndf.pk %}" class="btn btn-sm btn-primary-light">
+                                <i data-lucide="edit-3" width="14"></i> Modifier
+                            </a>
+                            {% endif %}
+                            
+                            {% if ndf.statut != 'pending' and ndf.statut != 'rejected' and ndf.statut != 'needs_info' %}
+                            <a href="{% url 'finance:ndf_download_pdf' ndf.pk %}" target="_blank" class="text-primary hover:underline text-xs flex items-center gap-1 font-bold">
+                                <i data-lucide="download" width="14"></i> PDF
+                            </a>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center py-4 text-muted">Aucune demande récente.</td>
+                    <td colspan="3" class="text-center py-8 text-muted italic">Aucune demande récente.</td>
                 </tr>
                 {% endfor %}
             </tbody>

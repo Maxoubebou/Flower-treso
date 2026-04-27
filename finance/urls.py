@@ -30,10 +30,12 @@ urlpatterns = [
     path('achats/<int:pk>/delete/', views.achat_delete, name='achat_delete'),
     # Notes de Frais
     path('ndf/demander/', views.ndf_submit, name='ndf_submit'),
+    path('ndf/demander/<int:pk>/', views.ndf_submit, name='ndf_edit'),
     path('ndf/gerer/', views.ndf_manage, name='ndf_manage'),
     path('ndf/historique/', views.ndf_history, name='ndf_history'),
     path('ndf/<int:pk>/valider/', views.ndf_validate, name='ndf_validate'),
     path('ndf/<int:pk>/rejeter/', views.ndf_reject, name='ndf_reject'),
+    path('ndf/<int:pk>/precisions/', views.ndf_request_info, name='ndf_request_info'),
     path('ndf/<int:pk>/pdf/', views.ndf_download_pdf, name='ndf_download_pdf'),
     path('ndf/<int:pk>/supprimer/', views.ndf_delete, name='ndf_delete'),
     # Études

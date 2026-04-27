@@ -9,8 +9,15 @@
 {% block content %}
 <div class="outlook-container">
     <aside class="outlook-sidebar card">
-        <div class="sidebar-header p-4">
-            <h3 class="text-sm font-bold uppercase tracking-widest text-muted">Demandes en attente</h3>
+        <div class="sidebar-header p-0">
+            <div class="flex border-b">
+                <a href="?tab=pending" class="flex-1 py-3 text-center text-[10px] uppercase tracking-widest font-bold transition-colors {% if current_tab == 'pending' %}bg-primary/5 text-primary border-b-2 border-primary{% else %}text-muted hover:bg-gray-50{% endif %}">
+                    À valider ({{ count_pending }})
+                </a>
+                <a href="?tab=waiting_payment" class="flex-1 py-3 text-center text-[10px] uppercase tracking-widest font-bold transition-colors {% if current_tab == 'waiting_payment' %}bg-primary/5 text-primary border-b-2 border-primary{% else %}text-muted hover:bg-gray-50{% endif %}">
+                    En attente paiement ({{ count_waiting_payment }})
+                </a>
+            </div>
         </div>
         <div class="sidebar-list scroll-container p-4" style="display: flex; flex-direction: column; gap: 16px;">
             {% if not demandes %}
@@ -76,7 +83,16 @@
 
                         <div class="flex flex-col">
                             <div class="text-xl font-bold">{{ ndf.prenom_beneficiaire }} {{ ndf.nom_beneficiaire }}</div>
-                            <div class="badge badge-warning text-[10px] uppercase font-bold px-2 py-0.5 w-fit mt-1">En attente</div>
+                            <div class="flex gap-2 mt-1">
+                                <div class="badge {% if ndf.statut == 'pending' %}badge-warning{% elif ndf.statut == 'needs_info' %}badge-info{% elif ndf.statut == 'waiting_payment' %}badge-primary{% endif %} text-[10px] uppercase font-bold px-2 py-0.5 w-fit">
+                                    {{ ndf.get_statut_display }}
+                                </div>
+                                {% if ndf.facture_achat %}
+                                <div class="text-[10px] font-mono font-bold text-muted bg-gray-100 px-2 py-0.5 rounded">
+                                    {{ ndf.facture_achat.numero }}
+                                </div>
+                                {% endif %}
+                            </div>
                         </div>
 
                         <div class="flex flex-col">
@@ -111,9 +127,9 @@
 
                 <div class="flex-1 flex overflow-hidden">
                     <div class="w-[400px] p-6 scroll-container flex-shrink-0">
-                        <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}" target="_blank" onsubmit="return handleValidationSubmit(this, '{{ ndf.id }}')">
+                        <form method="post" action="{% url 'finance:ndf_validate' ndf.pk %}" target="_blank" onsubmit="return handleValidationSubmit(this, '{{ ndf.pk }}')">
                             {% csrf_token %}
-                            <input type="hidden" name="libelle_final" id="libelle-input-{{ ndf.id }}" value="{{ ndf.libelle|default:"Sans titre" }}">
+                            <input type="hidden" name="libelle_final" id="libelle-input-{{ ndf.pk }}" value="{{ ndf.libelle|default:'Sans titre' }}">
                             
                             <div class="p-0 mb-6">
                                 {% if ndf.type_frais == 'ik' %}
@@ -202,12 +218,27 @@
                                 </div>
 
                                 <div class="flex gap-3 pt-2">
+                                    {% if ndf.statut == 'pending' or ndf.statut == 'needs_info' %}
                                     <button type="submit" class="btn btn-success flex-1 justify-center py-3">
                                         <i data-lucide="check-check" width="18" height="18"></i> Valider et générer la NDF
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger px-4" onclick="confirmReject('{{ ndf.id }}')">
+                                    <button type="button" class="btn btn-outline-info px-4 tooltip" title="Demander précisions" onclick="confirmInfoRequest('{{ ndf.id }}')">
+                                        <i data-lucide="message-square" width="18" height="18"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger px-4" title="Rejeter" onclick="confirmReject('{{ ndf.id }}')">
                                         <i data-lucide="x" width="18" height="18"></i>
                                     </button>
+                                    {% elif ndf.statut == 'waiting_payment' %}
+                                    <div class="flex-1 bg-primary/5 border border-primary/20 rounded-xl p-4 text-center">
+                                        <div class="text-primary text-sm font-bold flex items-center justify-center gap-2">
+                                            <i data-lucide="clock" width="18"></i>
+                                            Demande validée - En attente de paiement
+                                        </div>
+                                        <p class="text-[10px] text-muted mt-1 uppercase tracking-widest">
+                                            Celle-ci disparaîtra dès que l'opération bancaire sera liée à la facture {{ ndf.facture_achat.numero }}
+                                        </p>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </form>
@@ -283,6 +314,11 @@
             <form id="reject-form-{{ ndf.id }}" method="post" action="{% url 'finance:ndf_reject' ndf.pk %}" class="hidden">
                 {% csrf_token %}
                 <input type="hidden" name="commentaire_tresorier" id="reject-comment-{{ ndf.id }}">
+            </form>
+
+            <form id="info-form-{{ ndf.id }}" method="post" action="{% url 'finance:ndf_request_info' ndf.pk %}" class="hidden">
+                {% csrf_token %}
+                <input type="hidden" name="commentaire_tresorier" id="info-comment-{{ ndf.id }}">
             </form>
         </div>
         {% endfor %}
@@ -521,10 +557,22 @@ function copyRIBById(id, btn) {
 }
 
 function confirmReject(id) {
-    const reason = prompt("Raison du rejet (sera notifiée au demandeur) :");
-    if (reason !== null) {
+    const reason = prompt("Raison du rejet (OBLIGATOIRE - sera notifiée au demandeur) :");
+    if (reason && reason.trim() !== '') {
         document.getElementById('reject-comment-' + id).value = reason;
         document.getElementById('reject-form-' + id).submit();
+    } else if (reason !== null) {
+        alert("Un commentaire est obligatoire pour rejeter une demande.");
+    }
+}
+
+function confirmInfoRequest(id) {
+    const msg = prompt("Précisions demandées (sera notifiée au demandeur) :");
+    if (msg && msg.trim() !== '') {
+        document.getElementById('info-comment-' + id).value = msg;
+        document.getElementById('info-form-' + id).submit();
+    } else if (msg !== null) {
+        alert("Un commentaire est obligatoire pour demander des précisions.");
     }
 }
 

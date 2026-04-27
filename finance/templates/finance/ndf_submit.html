@@ -54,6 +54,16 @@
                         <label class="form-label text-sm uppercase text-muted tracking-widest">Commentaires (Optionnel)</label>
                         {{ form.commentaire_demandeur }}
                     </div>
+
+                    {% if ndf.commentaire_tresorier %}
+                    <div class="p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                        <div class="flex items-center gap-2 text-blue-800 font-bold text-xs uppercase tracking-widest mb-1">
+                            <i data-lucide="message-circle" width="14"></i>
+                            Commentaire du Trésorier
+                        </div>
+                        <p class="text-sm text-blue-900 italic">"{{ ndf.commentaire_tresorier }}"</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -88,9 +98,15 @@
 
                 <!-- Section Achat -->
                 <div id="section-justifs-achat" class="">
-                    <div class="form-group">
-                        <label class="form-label">Facture / Reçu <span class="required">*</span></label>
-                        <input type="file" name="file_facture" class="form-control j-achat" accept="image/*,application/pdf">
+                    <div class="grid-2 gap-4">
+                        <div class="form-group flex-1">
+                            <label class="form-label">Facture / Reçu <span class="required">*</span></label>
+                            <input type="file" name="file_facture" class="form-control j-achat" accept="image/*,application/pdf">
+                        </div>
+                        <div class="form-group flex-1">
+                            <label class="form-label">Nom de la pièce (ex: "Déjeuner Client")</label>
+                            <input type="text" name="file_name_facture" class="form-control" placeholder="Laisser vide pour garder le nom d'origine">
+                        </div>
                     </div>
                 </div>
 
@@ -103,6 +119,19 @@
                         </button>
                     </div>
                     <div id="extra-files-container"></div>
+                    {% if ndf %}
+                    <div class="mt-4 p-4 bg-gray-50 border border-dashed border-gray-300 rounded-xl">
+                        <label class="form-label text-[10px] uppercase text-muted tracking-widest mb-2 block">Justificatifs déjà envoyés</label>
+                        <div class="flex flex-wrap gap-2">
+                            {% for j in ndf.justificatifs.all %}
+                            <div class="badge bg-white border border-gray-200 text-gray-600 px-3 py-1 flex items-center gap-2">
+                                <i data-lucide="file" width="12"></i>
+                                {{ j.label_personnalise|default:j.type_pièce }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -158,7 +187,7 @@
                             </tr>
                         </thead>
                         <tbody id="achat-lines-body">
-                            <tr class="achat-line">
+                            <tr class="achat-line" id="initial-row">
                                 <td><input type="text" name="l_libelle" class="form-control" placeholder="Description" required></td>
                                 <td><input type="number" step="0.01" name="l_montant_ttc" class="form-control font-mono ttc-input" oninput="recomputeAchatLine(this)" required></td>
                                 <td>
@@ -317,10 +346,27 @@ function updateAchatTotals() {
     }
 }
 
-function addAchatRow() {
+function addAchatRow(libelle = "", ttc = "", taux = "20") {
     const template = document.getElementById('achat-row-template');
     const tbody = document.getElementById('achat-lines-body');
-    tbody.appendChild(template.content.cloneNode(true));
+    const clone = template.content.cloneNode(true);
+    
+    if (libelle || ttc) {
+        // Supprimer la ligne initiale vide si elle existe
+        const initial = document.getElementById('initial-row');
+        if (initial) initial.remove();
+        
+        clone.querySelector('input[name="l_libelle"]').value = libelle;
+        clone.querySelector('input[name="l_montant_ttc"]').value = ttc;
+        clone.querySelector('select[name="l_taux_tva"]').value = taux;
+    }
+    
+    tbody.appendChild(clone);
+    
+    // Re-calculer HT/TVA pour la ligne ajoutée
+    const lastRow = tbody.lastElementChild;
+    recomputeAchatLine(lastRow.querySelector('input[name="l_montant_ttc"]'));
+    
     lucide.createIcons();
 }
 
@@ -329,12 +375,17 @@ function addAchatRow() {
 function addExtraFile() {
     const container = document.getElementById('extra-files-container');
     const div = document.createElement('div');
-    div.className = "form-group mb-2 flex gap-2 items-center";
+    div.className = "flex gap-4 items-end mb-4 p-3 bg-gray-50/50 rounded-lg border border-gray-100";
     div.innerHTML = `
         <div class="flex-1">
+            <label class="form-label text-[10px] text-muted uppercase">Fichier</label>
             <input type="file" name="file_extra" class="form-control form-control-sm optional empty-file" accept="image/*,application/pdf">
         </div>
-        <button type="button" class="text-danger p-1 hover:bg-red-100 rounded transition-colors" onclick="this.parentElement.remove()" title="Supprimer">
+        <div class="flex-1">
+            <label class="form-label text-[10px] text-muted uppercase">Nom personnalisé</label>
+            <input type="text" name="file_name_extra" class="form-control form-control-sm" placeholder="ex: Ticket Parking">
+        </div>
+        <button type="button" class="text-danger p-2 hover:bg-red-50 rounded-lg transition-colors" onclick="this.parentElement.remove()" title="Supprimer">
             <i data-lucide="trash-2" width="16"></i>
         </button>
     `;
@@ -381,6 +432,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     observer.observe(document.body, { childList: true, subtree: true });
+
+    // Pré-remplissage edit
+    {% if ndf %}
+        {% for ligne in ndf.lignes.all %}
+            {% if ligne.est_ik %}
+                document.getElementById('ik_distance').value = '{{ ligne.distance_km|stringformat:".2f" }}';
+                computeTotalIK();
+            {% else %}
+                addAchatRow('{{ ligne.libelle|escapejs }}', '{{ ligne.montant_ttc|stringformat:".2f" }}', '{{ ligne.taux_tva|stringformat:".1f" }}');
+            {% endif %}
+        {% endfor %}
+        
+        // S'assurer que le bon type est affiché
+        toggleFraisType('{{ ndf.type_frais }}');
+        
+        // En mode edit, les fichiers ne sont plus obligatoires
+        document.querySelectorAll('input[type="file"]').forEach(f => f.required = false);
+    {% endif %}
 });
 </script>
 {% endblock %}

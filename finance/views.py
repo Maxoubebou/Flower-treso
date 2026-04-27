@@ -1243,42 +1243,83 @@ def bv_unlink_operation(request, pk):
 
 # ─── Notes de Frais (NDF) ──────────────────────────────────────────────────
 
-def ndf_submit(request):
-    """Vue publique de soumission d'une NDF (1 reçu = 1 demande)."""
+def ndf_submit(request, pk=None):
+    """Vue publique de soumission ou modification d'une NDF."""
+    obj = None
+    if pk:
+        # On ne peut modifier que si en attente ou si des précisions ont été demandées
+        obj = get_object_or_404(DemandeNDF, pk=pk, statut__in=['pending', 'needs_info'])
+        # Si c'est un autre utilisateur qui essaie de modifier (sécurité basique par email)
+        if request.user.is_authenticated and obj.email != request.user.email and not request.user.email == 'maxime.even@ouest-insa.fr':
+             messages.error(request, "Vous n'avez pas l'autorisation de modifier cette demande.")
+             return redirect('dashboard')
+
     if request.method == 'POST':
-        form = DemandeNDFForm(request.POST, request.FILES)
+        form = DemandeNDFForm(request.POST, request.FILES, instance=obj)
         if form.is_valid():
             with transaction.atomic():
                 ndf = form.save(commit=False)
-                if request.user.is_authenticated:
-                    ndf.email = request.user.email
-                else:
-                    ndf.email = "anonyme@ouest-insa.fr"
+                if not pk:
+                    if request.user.is_authenticated:
+                        ndf.email = request.user.email
+                    else:
+                        ndf.email = "anonyme@ouest-insa.fr"
+                
+                # On repasse systématiquement en statut 'pending' lors d'une soumission/modification
+                ndf.statut = 'pending'
                 ndf.save()
 
-                # 1. Gestion des fichiers
-                type_f = form.cleaned_data['type_frais']
-                justifs = []
-                if type_f == 'ik':
-                    if 'file_compteur' in request.FILES: justifs.append(('Compteur', request.FILES['file_compteur']))
-                    if 'file_mappy' in request.FILES: justifs.append(('Mappy', request.FILES['file_mappy']))
-                    if 'file_cartegrise' in request.FILES: justifs.append(('Carte Grise', request.FILES['file_cartegrise']))
-                else:
-                    if 'file_facture' in request.FILES: justifs.append(('Facture', request.FILES['file_facture']))
-                
-                # Fichiers extra
-                for f in request.FILES.getlist('file_extra'):
-                    justifs.append(('Extra', f))
-                
-                for label, f in justifs:
+                # Si on modifie, on peut vouloir gérer les anciens justificatifs
+                # Ici : on ajoute les nouveaux. Les anciens restent (ou on pourrait les purger si besoin)
+                # Mais le user peut vouloir juste RAJOUTER. 
+                # Alternative : si le user a uploadé un nouveau type spécific (ex: Facture), on peut remplacer
+
+                # 1. Gestion des fichiers avec renommage
+                from django.utils.text import slugify
+                import os
+
+                def save_justif(label, f, custom_name=None):
+                    if not f: return
+                    ext = os.path.splitext(f.name)[1]
+                    # Renommage : Nom personnalisé (slugified) ou Label de base + _ + original slugified
+                    if custom_name:
+                        base_name = slugify(custom_name).replace('-', '_')
+                    else:
+                        base_name = slugify(os.path.splitext(f.name)[0]).replace('-', '_')
+                    
+                    f.name = f"{base_name}{ext}"
+
                     JustificatifNDF.objects.create(
                         demande=ndf,
                         fichier=f,
                         nom_original=f.name,
+                        label_personnalise=custom_name or "",
                         type_pièce=label
                     )
 
+                type_f = form.cleaned_data['type_frais']
+                
+                if type_f == 'ik':
+                    if 'file_compteur' in request.FILES: save_justif('Compteur', request.FILES['file_compteur'])
+                    if 'file_mappy' in request.FILES: save_justif('Mappy', request.FILES['file_mappy'])
+                    if 'file_cartegrise' in request.FILES: save_justif('Carte Grise', request.FILES['file_cartegrise'])
+                else:
+                    if 'file_facture' in request.FILES: 
+                        custom = request.POST.get('file_name_facture')
+                        save_justif('Facture', request.FILES['file_facture'], custom)
+                
+                # Fichiers extra
+                extra_files = request.FILES.getlist('file_extra')
+                extra_names = request.POST.getlist('file_name_extra')
+                for i, f in enumerate(extra_files):
+                    custom = extra_names[i] if i < len(extra_names) else None
+                    save_justif('Extra', f, custom)
+
                 # 2. Gestion des lignes
+                # Si c'est un edit, on purge les lignes pour les recréer proprement
+                if pk:
+                    ndf.lignes.all().delete()
+
                 if type_f == 'ik':
                     dist = to_decimal(request.POST.get('ik_distance'))
                     param_ndf = ParametreNDF.objects.filter(actif=True).first()
@@ -1304,7 +1345,6 @@ def ndf_submit(request):
                         if not libelles[i]: continue
                         ttc = to_decimal(montants_ttc[i])
                         taux = to_decimal(taux_tvas[i])
-                        # On calcule HT et TVA depuis le TTC
                         res = calculate_tva(ttc, taux)
                         
                         LigneNDF.objects.create(
@@ -1316,28 +1356,42 @@ def ndf_submit(request):
                             taux_tva=taux
                         )
                 
-            messages.success(request, "Votre demande de Note de Frais a été soumise avec succès.")
-            return redirect('finance:ndf_submit')
+            messages.success(request, "Votre demande de Note de Frais a été enregistrée avec succès.")
+            return redirect('dashboard')
     else:
         initial = {}
-        if request.user.is_authenticated:
+        if not obj and request.user.is_authenticated:
             initial['prenom_beneficiaire'] = request.user.first_name
             initial['nom_beneficiaire'] = request.user.last_name
-        form = DemandeNDFForm(initial=initial)
+        form = DemandeNDFForm(instance=obj, initial=initial)
     
     param_ndf = ParametreNDF.objects.filter(actif=True).first()
     return render(request, 'finance/ndf_submit.html', {
         'form': form,
+        'ndf': obj,
         'taux_tva_disponibles': ParametreTVA.objects.filter(actif=True).order_by('ordre'),
         'param_ndf': param_ndf,
     })
 
 
 def ndf_manage(request):
-    """Vue trésorier pour gérer les NDF en attente."""
+    """Vue trésorier pour gérer les NDF (À valider vs En attente de paiement)."""
     from django.contrib.auth import get_user_model
     User = get_user_model()
-    demandes = DemandeNDF.objects.filter(statut='pending').prefetch_related('lignes').order_by('date_soumission')
+    
+    current_tab = request.GET.get('tab', 'pending')
+    
+    # Échantillonnage pour les compteurs
+    count_pending = DemandeNDF.objects.filter(statut__in=['pending', 'needs_info']).count()
+    count_waiting = DemandeNDF.objects.filter(statut='waiting_payment').count()
+    
+    if current_tab == 'waiting_payment':
+        demandes = DemandeNDF.objects.filter(statut='waiting_payment')
+    else:
+        # pending et needs_info sont dans le premier onglet
+        demandes = DemandeNDF.objects.filter(statut__in=['pending', 'needs_info'])
+        
+    demandes = demandes.prefetch_related('lignes', 'justificatifs', 'facture_achat').order_by('date_soumission')
     
     # On attache l'objet utilisateur à chaque demande pour l'avatar SocialAccount
     for ndf in demandes:
@@ -1352,7 +1406,20 @@ def ndf_manage(request):
         'demandes': demandes,
         'param_ndf': ParametreNDF.objects.filter(actif=True).first(),
         'suggested_ref': suggested_ref,
+        'current_tab': current_tab,
+        'count_pending': count_pending,
+        'count_waiting_payment': count_waiting,
     })
+
+@require_POST
+def ndf_request_info(request, pk):
+    """Demander des précisions au demandeur (statut needs_info)."""
+    ndf = get_object_or_404(DemandeNDF, pk=pk)
+    ndf.statut = 'needs_info'
+    ndf.commentaire_tresorier = request.POST.get('commentaire_tresorier', '')
+    ndf.save()
+    messages.info(request, f"Des précisions ont été demandées pour la NDF #{ndf.id}.")
+    return redirect('finance:ndf_manage')
 
 
 @require_POST
@@ -1482,9 +1549,9 @@ def ndf_download_pdf(request, pk):
         return redirect('finance:ndf_manage')
 
 def ndf_history(request):
-    """Historique des demandes de NDF traitées."""
+    """Historique des demandes de NDF refusées uniquement."""
     from .models import DemandeNDF
-    qs = DemandeNDF.objects.exclude(statut='pending').prefetch_related('lignes').order_by('-date_soumission')
+    qs = DemandeNDF.objects.filter(statut='rejected').prefetch_related('lignes').order_by('-date_soumission')
     
     # Filtres simples
     search = request.GET.get('search')

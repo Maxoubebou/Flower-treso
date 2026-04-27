@@ -345,6 +345,7 @@ def generate_ndf_pdf(ndf, sig_config) -> bytes:
         'TRESORIER': f"{sig_config.tresorier_prenom} {sig_config.tresorier_nom.upper()}",
         'JUSTIFICATIFS': ", ".join([doc.type_pièce or "Justificatif" for doc in ndf.justificatifs.all()]),
         'TOTAL_TTC': float(sum(l.montant_ttc for l in ndf.lignes.all())),
+        'RIB': ndf.rib_beneficiaire or "",
     }
 
     if ndf.type_frais == 'ik':
