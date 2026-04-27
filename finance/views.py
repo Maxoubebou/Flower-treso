@@ -1252,7 +1252,7 @@ def ndf_submit(request, pk=None):
         # Si c'est un autre utilisateur qui essaie de modifier (sécurité basique par email)
         if request.user.is_authenticated and obj.email != request.user.email and not request.user.email == 'maxime.even@ouest-insa.fr':
              messages.error(request, "Vous n'avez pas l'autorisation de modifier cette demande.")
-             return redirect('dashboard')
+             return redirect('reporting:dashboard')
 
     if request.method == 'POST':
         form = DemandeNDFForm(request.POST, request.FILES, instance=obj)
@@ -1375,7 +1375,7 @@ def ndf_submit(request, pk=None):
                         )
                 
             messages.success(request, "Votre demande de Note de Frais a été enregistrée avec succès.")
-            return redirect('dashboard')
+            return redirect('reporting:dashboard')
     else:
         initial = {}
         if not obj and request.user.is_authenticated:

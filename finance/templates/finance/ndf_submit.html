@@ -178,7 +178,10 @@
                         <tbody>
                             <tr>
                                 <td>
-                                    <input type="number" step="0.01" name="ik_distance" id="ik_distance" class="form-control font-mono" placeholder="0.00" oninput="computeTotalIK()">
+                                    <input type="number" step="0.01" name="ik_distance" id="ik_distance" 
+                                           class="form-control font-mono" placeholder="0.00" 
+                                           value="{% for l in ndf.lignes.all %}{% if l.est_ik %}{{ l.distance_km|stringformat:".2f" }}{% endif %}{% endfor %}"
+                                           oninput="computeTotalIK()">
                                 </td>
                                 <td class="font-mono text-muted">
                                     {{ param_ndf.montant_ik|default:"0.45" }} €/km
@@ -205,13 +208,37 @@
                             </tr>
                         </thead>
                         <tbody id="achat-lines-body">
+                            {% if ndf and ndf.lignes.all %}
+                                {% for line in ndf.lignes.all %}
+                                    {% if not line.est_ik %}
+                                    <tr class="achat-line">
+                                        <td><input type="text" name="l_libelle" class="form-control" value="{{ line.libelle }}" required></td>
+                                        <td><input type="number" step="0.01" name="l_montant_ttc" class="form-control font-mono ttc-input" value="{{ line.montant_ttc|stringformat:".2f" }}" oninput="recomputeAchatLine(this)" required></td>
+                                        <td>
+                                            <select name="l_taux_tva" class="form-control tva-select" onchange="recomputeAchatLine(this)">
+                                                {% for t in taux_tva_disponibles %}
+                                                <option value="{{ t.taux|stringformat:".2f" }}" {% if t.taux == line.taux_tva %}selected{% endif %}>{{ t.taux|floatformat }}%</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td class="font-mono text-sm ht-display">{{ line.montant_ht }}</td>
+                                        <td class="font-mono text-sm tva-display">{{ line.montant_tva }}</td>
+                                        <td class="text-center">
+                                            <button type="button" class="text-red-500 hover:text-red-700" onclick="removeAchatRow(this)">
+                                                <i data-lucide="trash-2" width="16"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
                             <tr class="achat-line" id="initial-row">
                                 <td><input type="text" name="l_libelle" class="form-control" placeholder="Description" required></td>
                                 <td><input type="number" step="0.01" name="l_montant_ttc" class="form-control font-mono ttc-input" oninput="recomputeAchatLine(this)" required></td>
                                 <td>
                                     <select name="l_taux_tva" class="form-control tva-select" onchange="recomputeAchatLine(this)">
                                         {% for t in taux_tva_disponibles %}
-                                        <option value="{{ t.taux }}" {% if t.taux == 20 %}selected{% endif %}>{{ t.taux }}%</option>
+                                        <option value="{{ t.taux|stringformat:".2f" }}" {% if t.taux == 20 %}selected{% endif %}>{{ t.taux|floatformat }}%</option>
                                         {% endfor %}
                                     </select>
                                 </td>
@@ -219,6 +246,7 @@
                                 <td class="font-mono text-sm tva-display">0.00</td>
                                 <td></td>
                             </tr>
+                            {% endif %}
                         </tbody>
                         <tfoot>
                              <tr class="bg-gray-50 font-bold">
@@ -468,6 +496,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // En mode edit, les fichiers ne sont plus obligatoires
         document.querySelectorAll('input[type="file"]').forEach(f => f.required = false);
     {% endif %}
+});
+window.addEventListener('DOMContentLoaded', () => {
+    // Re-calculer les totaux au chargement pour les données pré-remplies
+    document.querySelectorAll('.achat-line').forEach(row => {
+        const ttcInput = row.querySelector('.ttc-input');
+        if (ttcInput && ttcInput.value) {
+            recomputeAchatLine(ttcInput);
+        }
+    });
+    computeTotalIK();
 });
 </script>
 {% endblock %}
